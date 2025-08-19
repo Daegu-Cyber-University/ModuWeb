@@ -6,7 +6,7 @@ body					{position: relative; width: 100%; padding: 0; margin: 0;}
 .navWrap ul li			{display: inline; height: 50px; line-height: 50px; background-color: #007bff; padding: 0 5px; border-right: 1px solid #fff; box-sizing: border-box;}
 .navWrap ul li a		{text-decoration: none; color: #fff; font-weight: bold; padding: 0 15px; display: block; box-sizing: border-box;}
 .navWrap ul li a:hover	{text-decoration: underline;}
-.content				{max-width: 800px; margin: 0 auto;}
+.content				{max-width: 1400px; margin: 0 auto;}
 .highlight				{background-color: #ffeb3b; padding: 10px; margin: 10px 0;border-radius: 5px;}
 .col_green				{color: green; font-weight: bold;}
 .sectWrap				{position: relative; margin-bottom: 20px; padding: 15px; border: 1px solid #ccc; border-radius: 5px; background-color: #f9f9f9; overflow: hidden}
