@@ -72,49 +72,201 @@
 				}
 			});
 		});
+
+		// 탭 기능
+		function showTab(evt, tabName) {
+			var i, tabcontent, navtabs;
+			
+			// 모든 탭 컨텐츠 숨기기
+			tabcontent = document.getElementsByClassName("tab-content");
+			for (i = 0; i < tabcontent.length; i++) {
+				tabcontent[i].classList.remove("active");
+			}
+			
+			// 모든 탭 버튼에서 active 클래스 제거
+			navtabs = document.getElementsByClassName("nav-tab");
+			for (i = 0; i < navtabs.length; i++) {
+				navtabs[i].classList.remove("active");
+			}
+			
+			// 선택된 탭 컨텐츠 보이기
+			document.getElementById(tabName).classList.add("active");
+			evt.currentTarget.classList.add("active");
+		}
 	</script>
 	<style>
-		body {
-			font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+		* {
 			margin: 0;
 			padding: 0;
+			box-sizing: border-box;
+		}
+
+		body {
+			font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+			line-height: 1.6;
+			color: #333;
 			background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 			min-height: 100vh;
-		}
-
-		.hero-section {
-			background: linear-gradient(135deg, rgba(102, 126, 234, 0.9) 0%, rgba(118, 75, 162, 0.9) 100%);
-			color: white;
-			padding: 60px 20px;
-			text-align: center;
-			box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-		}
-
-		.hero-section h1 {
-			font-size: 3em;
-			margin: 0 0 20px 0;
-			font-weight: 300;
-			text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-		}
-
-		.hero-section p {
-			font-size: 1.3em;
-			margin: 0;
-			opacity: 0.9;
-			max-width: 800px;
-			margin: 0 auto;
-			line-height: 1.6;
 		}
 
 		.container {
 			max-width: 1400px;
 			margin: 0 auto;
-			padding: 40px 20px;
+			padding: 20px;
+		}
+
+		.header {
+			text-align: center;
+			color: white;
+			margin-bottom: 40px;
+		}
+
+		.header h1 {
+			font-size: 3em;
+			margin-bottom: 10px;
+			text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+		}
+
+		.header .subtitle {
+			font-size: 1.3em;
+			opacity: 0.9;
+		}
+
+		.content {
 			background: white;
-			border-radius: 20px 20px 0 0;
-			margin-top: -20px;
+			border-radius: 15px;
+			box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+			overflow: hidden;
+		}
+
+		.nav-tabs {
+			display: flex;
+			background: #f8f9fa;
+			border-bottom: 1px solid #dee2e6;
+		}
+
+		.nav-tab {
+			flex: 1;
+			padding: 15px 20px;
+			text-align: center;
+			background: transparent;
+			border: none;
+			cursor: pointer;
+			font-size: 16px;
+			font-weight: 500;
+			color: #6c757d;
+			transition: all 0.3s ease;
+		}
+
+		.nav-tab.active {
+			background: white;
+			color: #495057;
+			border-bottom: 3px solid #007bff;
+		}
+
+		.nav-tab:hover {
+			background: #e9ecef;
+		}
+
+		.tab-content {
+			display: none;
+			padding: 30px;
+			animation: fadeIn 0.3s ease-in;
+		}
+
+		.tab-content.active {
+			display: block;
+		}
+
+		@keyframes fadeIn {
+			from { opacity: 0; transform: translateY(10px); }
+			to { opacity: 1; transform: translateY(0); }
+		}
+
+		.section {
+			margin-bottom: 40px;
+		}
+
+		.section h2 {
+			color: #2c3e50;
+			border-bottom: 3px solid #3498db;
+			padding-bottom: 10px;
+			margin-bottom: 20px;
+			font-size: 1.8em;
+		}
+
+		.section h3 {
+			color: #34495e;
+			margin: 25px 0 15px 0;
+			font-size: 1.4em;
+		}
+
+		.grid {
+			display: grid;
+			grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+			gap: 20px;
+			margin: 20px 0;
+		}
+
+		.card {
+			background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+			color: white;
+			padding: 25px;
+			border-radius: 10px;
+			box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+			transition: transform 0.3s ease;
+		}
+
+		.card:hover {
+			transform: translateY(-5px);
+		}
+
+		.card h3 {
+			color: white;
+			margin-bottom: 15px;
+			font-size: 1.3em;
+		}
+
+		.card ul {
+			list-style: none;
+			padding: 0;
+		}
+
+		.card li {
+			padding: 5px 0;
 			position: relative;
-			box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.1);
+			padding-left: 20px;
+		}
+
+		.card li:before {
+			content: "✓";
+			position: absolute;
+			left: 0;
+			color: #4CAF50;
+			font-weight: bold;
+		}
+
+		.highlight-box {
+			background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+			color: white;
+			padding: 20px;
+			border-radius: 10px;
+			margin: 20px 0;
+		}
+
+		.highlight-box h3 {
+			color: white;
+			margin-bottom: 15px;
+		}
+
+		.highlight-box h4 {
+			color: white;
+			margin-bottom: 10px;
+		}
+
+		.highlight-box p {
+			color: white;
+			line-height: 1.6;
 		}
 
 		.examples-grid {
@@ -128,7 +280,7 @@
 			background: white;
 			border-radius: 15px;
 			padding: 30px;
-			box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+			box-shadow: 0 5px 15px rgba(0,0,0,0.1);
 			transition: all 0.3s ease;
 			border: 1px solid #e9ecef;
 			position: relative;
@@ -147,7 +299,7 @@
 
 		.example-card:hover {
 			transform: translateY(-5px);
-			box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+			box-shadow: 0 8px 20px rgba(0,0,0,0.15);
 		}
 
 		.example-card h3 {
@@ -171,148 +323,36 @@
 		}
 
 		.example-card .features li {
-			background: #f8f9fa;
 			margin: 8px 0;
-			padding: 10px 15px;
-			border-radius: 6px;
-			border-left: 4px solid #667eea;
-			font-size: 0.9em;
+			padding-left: 20px;
+			position: relative;
 			color: #495057;
 		}
 
 		.example-card .features li::before {
 			content: '✓';
+			position: absolute;
+			left: 0;
 			color: #28a745;
 			font-weight: bold;
-			margin-right: 10px;
 		}
 
 		.example-button {
 			display: inline-block;
 			background: linear-gradient(45deg, #667eea, #764ba2);
 			color: white;
+			padding: 12px 24px;
 			text-decoration: none;
-			padding: 12px 25px;
 			border-radius: 8px;
 			font-weight: 500;
 			transition: all 0.3s ease;
 			box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
-			margin: 10px 10px 0 0;
-			font-size: 0.95em;
 		}
 
 		.example-button:hover {
-			background: linear-gradient(45deg, #5a4fcf, #6a4c93);
+			background: linear-gradient(45deg, #5a6fd8, #6a3d8f);
 			transform: translateY(-2px);
 			box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
-			text-decoration: none;
-			color: white;
-		}
-
-		.example-button.demo {
-			background: linear-gradient(45deg, #28a745, #20c997);
-			box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
-		}
-
-		.example-button.demo:hover {
-			background: linear-gradient(45deg, #218838, #1fa187);
-			box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
-		}
-
-		.quick-start {
-			background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-			border-radius: 15px;
-			padding: 30px;
-			margin: 40px 0;
-			border: 1px solid #dee2e6;
-		}
-
-		.quick-start h2 {
-			color: #2c3e50;
-			margin-top: 0;
-			font-size: 1.6em;
-			border-bottom: 3px solid #667eea;
-			padding-bottom: 10px;
-		}
-
-		.quick-start-steps {
-			display: grid;
-			grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-			gap: 20px;
-			margin: 30px 0;
-		}
-
-		.step-card {
-			background: white;
-			padding: 20px;
-			border-radius: 10px;
-			text-align: center;
-			box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-		}
-
-		.step-number {
-			background: #667eea;
-			color: white;
-			width: 40px;
-			height: 40px;
-			border-radius: 50%;
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			margin: 0 auto 15px auto;
-			font-weight: bold;
-			font-size: 1.2em;
-		}
-
-		.resources-section {
-			background: #f8f9fa;
-			border-radius: 15px;
-			padding: 30px;
-			margin: 40px 0;
-		}
-
-		.resources-section h2 {
-			color: #2c3e50;
-			margin-top: 0;
-			text-align: center;
-		}
-
-		.resources-grid {
-			display: grid;
-			grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-			gap: 20px;
-			margin-top: 30px;
-		}
-
-		.resource-item {
-			text-align: center;
-			padding: 20px;
-			background: white;
-			border-radius: 10px;
-			box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-			transition: transform 0.3s ease;
-		}
-
-		.resource-item:hover {
-			transform: translateY(-3px);
-		}
-
-		.resource-icon {
-			font-size: 2.5em;
-			margin-bottom: 15px;
-		}
-
-		.footer {
-			background: #2c3e50;
-			color: white;
-			text-align: center;
-			padding: 30px 20px;
-			margin-top: 60px;
-		}
-
-		.footer p {
-			margin: 0;
-			opacity: 0.8;
 		}
 
 		.badge {
@@ -335,12 +375,152 @@
 		}
 
 		@media (max-width: 768px) {
-			.hero-section h1 {
+			.nav-tabs {
+				flex-direction: column;
+			}
+			
+			.header h1 {
 				font-size: 2em;
 			}
+			
+			.grid {
+				grid-template-columns: 1fr;
+			}
+			
+			.examples-grid {
+				grid-template-columns: 1fr;
+			}
 
-			.hero-section p {
-				font-size: 1.1em;
+			.example-card {
+				padding: 20px;
+			}
+		}
+
+		.examples-grid {
+			display: grid;
+			grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+			gap: 30px;
+			margin: 40px 0;
+		}
+
+		.example-card {
+			background: white;
+			border-radius: 15px;
+			padding: 30px;
+			box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+			transition: all 0.3s ease;
+			border: 1px solid #e9ecef;
+			position: relative;
+			overflow: hidden;
+		}
+
+		.example-card::before {
+			content: '';
+			position: absolute;
+			top: 0;
+			left: 0;
+			right: 0;
+			height: 4px;
+			background: linear-gradient(90deg, #667eea, #764ba2);
+		}
+
+		.example-card:hover {
+			transform: translateY(-5px);
+			box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+		}
+
+		.example-card h3 {
+			color: #2c3e50;
+			margin: 0 0 15px 0;
+			font-size: 1.4em;
+			font-weight: 600;
+		}
+
+		.example-card .description {
+			color: #6c757d;
+			margin-bottom: 20px;
+			line-height: 1.6;
+			font-size: 0.95em;
+		}
+
+		.example-card .features {
+			list-style: none;
+			padding: 0;
+			margin: 20px 0;
+		}
+
+		.example-card .features li {
+			margin: 8px 0;
+			padding-left: 20px;
+			position: relative;
+			color: #495057;
+		}
+
+		.example-card .features li::before {
+			content: '✓';
+			position: absolute;
+			left: 0;
+			color: #28a745;
+			font-weight: bold;
+		}
+
+		.example-button {
+			display: inline-block;
+			background: linear-gradient(45deg, #667eea, #764ba2);
+			color: white;
+			padding: 12px 24px;
+			text-decoration: none;
+			border-radius: 8px;
+			font-weight: 500;
+			transition: all 0.3s ease;
+			box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+		}
+
+		.example-button:hover {
+			background: linear-gradient(45deg, #5a6fd8, #6a3d8f);
+			transform: translateY(-2px);
+			box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+		}
+
+		.badge {
+			display: inline-block;
+			background: #28a745;
+			color: white;
+			padding: 4px 8px;
+			border-radius: 12px;
+			font-size: 0.75em;
+			font-weight: 500;
+			margin-left: 8px;
+		}
+
+		.badge.new {
+			background: #007bff;
+		}
+
+		.badge.advanced {
+			background: #fd7e14;
+		}
+
+		@media (max-width: 768px) {
+			.container {
+				margin: 10px;
+				border-radius: 10px;
+			}
+			
+			.header {
+				padding: 40px 20px;
+			}
+			
+			.header h1 {
+				font-size: 2em;
+			}
+			
+			.header .subtitle {
+				font-size: 1em;
+			}
+
+			.nav-tabs {
+				flex-direction: column;
 			}
 
 			.examples-grid {
@@ -350,134 +530,228 @@
 			.example-card {
 				padding: 20px;
 			}
+			
+			.content {
+				padding: 20px;
+			}
+			
+			.grid {
+				grid-template-columns: 1fr;
+			}
+		}
+
+		.footer {
+			background: #f8f9fa;
+			padding: 20px;
+			text-align: center;
+			border-top: 1px solid #dee2e6;
+			color: #6c757d;
+			font-size: 0.9em;
+		}
+
+		.footer p {
+			margin: 0;
 		}
 	</style>
 </head>
 
 <body>
-	<div class="hero-section">
-		<h1>ModuWeb - 모두를 위한 웹 접근성 도우미</h1>
-		<p>
-			ModuWeb의 다양한 사용법과 실전 예제<br>
-			ModuWeb (Web Accessibility Tools) - 웹 접근성을 향상시키기 위한 도구 모음입니다.
-		</p>
-	</div>
-
 	<div class="container">
-		<div class="quick-start">
-			<h2>🚀 빠른 시작 가이드</h2>
-			<div class="quick-start-steps">
-				<div class="step-card">
-					<div class="step-number">1</div>
-					<h4>라이브러리 추가</h4>
-					<p>HTML에 스크립트 파일을 추가합니다</p>
-				</div>
-				<div class="step-card">
-					<div class="step-number">2</div>
-					<h4>인스턴스 생성</h4>
-					<p>JavaScript에서 WAT 클래스로 인스턴스를 생성합니다</p>
-				</div>
-				<div class="step-card">
-					<div class="step-number">3</div>
-					<h4>초기화 실행</h4>
-					<p>init() 메서드를 호출하여 WAT를 초기화합니다</p>
-				</div>
-				<div class="step-card">
-					<div class="step-number">4</div>
-					<h4>기능 활용</h4>
-					<p>TTS, STT, 포커스 읽기 등 다양한 기능을 활용합니다</p>
-				</div>
-			</div>
+		<div class="header">
+			<h1>ModuWeb - 모두를 위한 웹 접근성 도우미</h1>
+			<div class="subtitle">ModuWeb의 다양한 사용법과 실전 예제</div>
 		</div>
 
-		<div class="examples-grid">
-			<div class="example-card">
-				<h3>📖 기본 사용법 <span class="badge">Essential</span></h3>
-				<div class="description">
-					WAT의 기본적인 사용법과 초기화 방법을 학습합니다.
-					처음 WAT를 사용하는 개발자를 위한 필수 예제입니다.
-				</div>
-				<ul class="features">
-					<li>기본 초기화 방법</li>
-					<li>TTS 기본 사용법</li>
-					<li>포커스 기반 읽기</li>
-					<li>이벤트 리스너 등록</li>
-				</ul>
-				<a href="basic.html" class="example-button">예제 보기</a>
+		<div class="content">
+			<div class="nav-tabs">
+				<button class="nav-tab active" onclick="showTab(event, 'quickstart')">🚀 빠른 시작</button>
+				<button class="nav-tab" onclick="showTab(event, 'examples')">📚 예제 모음</button>
+				<button class="nav-tab" onclick="showTab(event, 'resources')">📖 리소스</button>
+				<button class="nav-tab" onclick="showTab(event, 'guide')">🎯 학습 가이드</button>
 			</div>
 
-			<div class="example-card">
-				<h3>⚙️ 커스텀 설정 예제 <span class="badge new">New</span></h3>
-				<div class="description">
-					WAT의 고급 설정 옵션과 커스텀 초기화 방법을 학습합니다.
-					프로젝트 요구사항에 맞춘 세부 설정이 가능합니다.
+			<!-- 빠른 시작 탭 -->
+			<div id="quickstart" class="tab-content active">
+				<div class="section">
+					<h2>🚀 빠른 시작 가이드</h2>
+					<div class="highlight-box">
+						<h3>ModuWeb 시작하기</h3>
+						<h4>WAT: Web Accessibility Tools</h4>
+						<p>
+							ModuWeb은 웹 접근성 지원 도구입니다. 다양한 사용자의 접근성 요구사항을 충족시키기 위해 설계된 모듈형 플러그인 시스템입니다.
+							웹사이트 관리자 및 개발자는 최소한의 노력으로 웹 접근성을 개선하고, 웹사이트 사용자에게 향상된 경험을 제공할 수 있습니다.
+						</p>
+					</div>
+
+					<h3>🎯 시작 단계</h3>
+					<div class="grid">
+						<div class="card">
+							<h3>1. 라이브러리 추가</h3>
+							<ul>
+								<li>HTML에 스크립트 파일을 추가합니다</li>
+								<li>CSS 파일을 포함합니다</li>
+								<li>기본 설정을 확인합니다</li>
+							</ul>
+						</div>
+						<div class="card">
+							<h3>2. 인스턴스 생성</h3>
+							<ul>
+								<li>JavaScript에서 WAT 클래스로 인스턴스를 생성합니다</li>
+								<li>초기 설정 옵션을 구성합니다</li>
+								<li>이벤트 리스너를 등록합니다</li>
+							</ul>
+						</div>
+						<div class="card">
+							<h3>3. 초기화 실행</h3>
+							<ul>
+								<li>init() 메서드를 호출하여 WAT를 초기화합니다</li>
+								<li>기본 기능들이 활성화됩니다</li>
+								<li>사용자 인터페이스가 표시됩니다</li>
+							</ul>
+						</div>
+						<div class="card">
+							<h3>4. 기능 활용</h3>
+							<ul>
+								<li>TTS, STT, 포커스 읽기 등 다양한 기능을 활용합니다</li>
+								<li>사용자 설정을 조정합니다</li>
+								<li>접근성 향상을 확인합니다</li>
+							</ul>
+						</div>
+					</div>
 				</div>
-				<ul class="features">
-					<li>커스텀 초기화 설정</li>
-					<li>TTS/STT 세부 옵션</li>
-					<li>상태 관리 시스템</li>
-					<li>이벤트 시스템 활용</li>
-				</ul>
-				<a href="custom-examples.html" class="example-button">예제 보기</a>
 			</div>
 
-			<div class="example-card">
-				<h3>🔧 API 함수 호출 <span class="badge advanced">Advanced</span></h3>
-				<div class="description">
-					WAT의 모든 API 함수들을 실제로 호출해보고 테스트할 수 있는
-					인터랙티브 예제 페이지입니다.
+			<!-- 예제 모음 탭 -->
+			<div id="examples" class="tab-content">
+				<div class="section">
+					<h2>📚 예제 모음</h2>
+					<div class="examples-grid">
+						<div class="example-card">
+							<h3>📖 기본 사용법 <span class="badge">Essential</span></h3>
+							<div class="description">
+								WAT의 기본적인 사용법과 초기화 방법을 학습합니다.
+								처음 WAT를 사용하는 개발자를 위한 필수 예제입니다.
+							</div>
+							<ul class="features">
+								<li>기본 초기화 방법</li>
+								<li>TTS 기본 사용법</li>
+								<li>포커스 기반 읽기</li>
+								<li>이벤트 리스너 등록</li>
+							</ul>
+							<a href="basic.html" class="example-button">예제 보기</a>
+						</div>
+
+						<div class="example-card">
+							<h3>⚙️ 커스텀 설정 예제 <span class="badge new">New</span></h3>
+							<div class="description">
+								WAT의 고급 설정 옵션과 커스텀 초기화 방법을 학습합니다.
+								프로젝트 요구사항에 맞춘 세부 설정이 가능합니다.
+							</div>
+							<ul class="features">
+								<li>커스텀 초기화 설정</li>
+								<li>TTS/STT 세부 옵션</li>
+								<li>상태 관리 시스템</li>
+								<li>이벤트 시스템 활용</li>
+							</ul>
+							<a href="custom-examples.html" class="example-button">예제 보기</a>
+						</div>
+
+						<div class="example-card">
+							<h3>🔧 API 함수 호출 <span class="badge advanced">Advanced</span></h3>
+							<div class="description">
+								WAT의 모든 API 함수들을 실제로 호출해보고 테스트할 수 있는
+								인터랙티브 예제 페이지입니다.
+							</div>
+							<ul class="features">
+								<li>TTS API 함수 테스트</li>
+								<li>STT API 함수 테스트</li>
+								<li>사전 검색 테스트</li>
+							</ul>
+							<a href="api-examples.html" class="example-button">예제 보기</a>
+						</div>
+					</div>
 				</div>
-				<ul class="features">
-					<li>TTS API 함수 테스트</li>
-					<li>STT API 함수 테스트</li>
-					<li>사전 검색 테스트</li>
-				</ul>
-				<a href="api-examples.html" class="example-button">예제 보기</a>
+			</div>
+
+			<!-- 리소스 탭 -->
+			<div id="resources" class="tab-content">
+				<div class="section">
+					<h2>📖 추가 리소스</h2>
+					<div class="highlight-box">
+						<h3>개발 도구 및 참고 자료</h3>
+						<p>
+							ModuWeb 개발과 관련된 유용한 도구들과 참고 자료를 제공합니다.
+							프로젝트 구조와 설계 문서를 통해 더 깊이 있는 이해를 얻을 수 있습니다.
+						</p>
+					</div>
+
+					<h3>🏗️ 프로젝트 문서</h3>
+					<div class="grid">
+						<div class="card">
+							<h3>🏗️ 시스템 아키텍처</h3>
+							<ul>
+								<li>전체 시스템 구조도</li>
+								<li>모듈 간 상호작용</li>
+								<li>데이터 흐름 다이어그램</li>
+								<li>API 설계 문서</li>
+							</ul>
+							<a href="../docs/project-overview.html" class="example-button">문서 보기</a>
+						</div>
+						<div class="card">
+							<h3>📋 API 레퍼런스</h3>
+							<ul>
+								<li>TTS API 함수 목록</li>
+								<li>STT API 함수 목록</li>
+								<li>이벤트 시스템</li>
+								<li>설정 옵션</li>
+							</ul>
+							<a href="api-examples.html" class="example-button">API 테스트</a>
+						</div>
+						<div class="card">
+							<h3>🎓 Git Repository</h3>
+							<ul>
+								<li>Github</li>
+							</ul>
+							<a href="https://github.com/Daegu-Cyber-University/ModuWeb" target="_blank" class="example-button">GitHub Repository</a>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- 학습 가이드 탭 -->
+			<div id="guide" class="tab-content">
+				<div class="section">
+					<h2>🎯 학습 가이드</h2>
+					<div class="card" style="margin-bottom: 30px;">
+						<h3>💡 실제 프로젝트에서 사용하기</h3>
+						<p style="margin-bottom: 20px;">
+							위 예제들을 참고하여 실제 프로젝트에 WAT를 적용해보세요.
+							다양한 설정 옵션을 조합하여 프로젝트에 최적화된 접근성 도구를 구성할 수 있습니다.
+						</p>
+						
+						<div style="background: rgba(255,255,255,0.2); padding: 20px; border-radius: 10px; margin: 20px 0;">
+							<h4 style="margin-top: 0; color: white;">🎯 권장 시작 순서</h4>
+							<ol style="line-height: 1.8; color: white;">
+								<li><strong>기본 사용법</strong>부터 시작하여 WAT의 기본 개념을 이해</li>
+								<li><strong>커스텀 설정</strong>으로 고급 옵션 활용법 숙지</li>
+								<li><strong>API 함수 호출</strong>로 프로그래밍 방식 제어 방법 학습</li>
+								<li>실제 프로젝트에 적용하여 접근성 향상 구현</li>
+							</ol>
+						</div>
+
+						<div style="text-align: center; margin-top: 30px;">
+							<a href="basic.html" class="example-button" style="font-size: 1.1em; padding: 15px 30px;">
+								🚀 기본 사용법부터 시작하기
+							</a>
+						</div>
+					</div>
+				</div>
+			</div>
+			
+			<div class="footer">
+				<p>© 2025 ModuWeb (Web Accessibility Tools) - 더 접근 가능한 웹을 만들어 갑니다 🌟</p>
 			</div>
 		</div>
-
-		<div class="resources-section">
-			<h2>📚 추가 리소스</h2>
-			<div class="resources-grid">
-				<div class="resource-item">
-					<div class="resource-icon">🏗️</div>
-					<h4>아키텍처</h4>
-					<p>WAT 프로젝트의 전체 구조와 설계를 확인</p>
-					<a href="../docs/architecture-diagram.html" class="example-button">보기</a>
-				</div>
-			</div>
-		</div>
-
-		<div class="example-card"
-			style="grid-column: 1 / -1; text-align: center; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
-			<h3>💡 실제 프로젝트에서 사용하기</h3>
-			<div class="description" style="font-size: 1.1em; margin-bottom: 30px;">
-				위 예제들을 참고하여 실제 프로젝트에 WAT를 적용해보세요.
-				다양한 설정 옵션을 조합하여 프로젝트에 최적화된 접근성 도구를 구성할 수 있습니다.
-			</div>
-
-			<div
-				style="background: white; padding: 20px; border-radius: 10px; margin: 20px 0; text-align: left;">
-				<h4 style="margin-top: 0; color: #667eea;">🎯 권장 시작 순서</h4>
-				<ol style="line-height: 1.8; color: #495057;">
-					<li><strong>기본 사용법</strong>부터 시작하여 WAT의 기본 개념을 이해</li>
-					<li><strong>커스텀 설정</strong>으로 고급 옵션 활용법 숙지</li>
-					<li><strong>API 함수 호출</strong>로 프로그래밍 방식 제어 방법 학습</li>
-					<li>실제 프로젝트에 적용하여 접근성 향상 구현</li>
-				</ol>
-			</div>
-
-			<div style="margin-top: 30px;">
-				<a href="basic.html" class="example-button"
-					style="font-size: 1.1em; padding: 15px 30px;">
-					🚀 기본 사용법부터 시작하기
-				</a>
-			</div>
-		</div>
-	</div>
-
-	<div class="footer">
-		<p>© 2025 ModuWeb (Web Accessibility Tools) - 더 접근 가능한 웹을 만들어 갑니다 🌟</p>
 	</div>
 
 </body>
