@@ -11253,7 +11253,7 @@ if (window.WAT) {
 					li.classList.add('pgStruct_item', 'heading', heading.tagName.toLowerCase());
 					const btn_marker = document.createElement('button');
 				btn_marker.classList.add('btn_marker');
-				btn_marker.innerHTML = `<img class="img_icon marker" src="${basePath}/images/icon_pgStructure_marker.svg" alt="${this.getLocalizedText('panel.personal.options.pageStructure.options.marker')}">`;
+				btn_marker.innerHTML = `<img class="img_icon marker" src="${basePath}assets/images/icon_pgStructure_marker.svg" alt="${this.getLocalizedText('panel.personal.options.pageStructure.options.marker')}">`;
 				btn_marker.title = this.getLocalizedText('panel.personal.options.pageStructure.options.marker');
 					li.appendChild(btn_marker);
 		
@@ -11305,13 +11305,13 @@ if (window.WAT) {
 					tag_a.classList.add('pgStruct_link');
 							const img_link = document.createElement('img');
 				img_link.classList.add('img_icon', 'link');
-				img_link.src = `${basePath}/images/icon_pgStructure_link.svg`;
+				img_link.src = `${basePath}assets/images/icon_pgStructure_link.svg`;
 				img_link.alt = this.getLocalizedText('panel.personal.options.pageStructure.options.link');
 					tag_a.appendChild(img_link);
 					li.appendChild(tag_a);
 				
 					const btn_marker = document.createElement('button');				btn_marker.classList.add('btn_marker');
-				btn_marker.innerHTML = `<img class="img_icon marker" src="${basePath}/images/icon_pgStructure_marker.svg" alt="${this.getLocalizedText('panel.personal.options.pageStructure.options.marker')}">`;
+				btn_marker.innerHTML = `<img class="img_icon marker" src="${basePath}assets/images/icon_pgStructure_marker.svg" alt="${this.getLocalizedText('panel.personal.options.pageStructure.options.marker')}">`;
 				btn_marker.addEventListener('click', () => {
 						this.closePageStructure();
 						link.scrollIntoView({ behavior: 'smooth' });
