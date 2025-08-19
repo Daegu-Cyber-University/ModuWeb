@@ -346,30 +346,6 @@ document.addEventListener('wat:fontSizeChanged', (event) => {
 - **WCAG 2.1 AA**: Web Content Accessibility Guidelines
 - **KWCAG 2.1**: 한국형 웹 콘텐츠 접근성 가이드라인
 
-## 🤝 기여하기
-
-프로젝트에 기여해주셔서 감사합니다! 
-
-### 기여 방법
-
-1. 이 저장소를 포크하세요
-2. 새로운 기능 브랜치를 생성하세요 (`git checkout -b feature/AmazingFeature`)
-3. 변경사항을 커밋하세요 (`git commit -m 'Add some AmazingFeature'`)
-4. 브랜치에 푸시하세요 (`git push origin feature/AmazingFeature`)
-5. Pull Request를 열어주세요
-
-### 개발 환경 설정
-
-```bash
-# 저장소 클론
-git clone https://github.com/Daegu-Cyber-University/ModuWeb.git
-cd ModuWeb
-
-# 개발 서버 실행 (HTTP 서버 필요)
-python -m http.server 8000
-# 또는
-npx serve .
-```
 
 ### 버그 리포트 및 기능 요청
 
@@ -422,14 +398,6 @@ limitations under the License.
 - 💬 **토론**: [GitHub Discussions](https://github.com/Daegu-Cyber-University/ModuWeb/discussions)
 - 📋 **릴리스 노트**: [GitHub Releases](https://github.com/Daegu-Cyber-University/ModuWeb/releases)
 
----
-
-## 👥 기여자
-
-이 프로젝트에 기여해 주신 모든 분들께 감사드립니다.
-
-- **대구사이버대학교 개발팀**
-- **웹 접근성 연구팀**
 
 ---
 
