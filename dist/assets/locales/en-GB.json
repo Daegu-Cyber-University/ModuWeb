@@ -1,0 +1,603 @@
+{
+	"toolTitle": "Web Accessibility Support Tool",
+	"displayLanguage": "English (UK)",
+	"panel": {
+		"__comment__": "Panel management. Set the panel title, description, and open/close button text.",
+		"settings": {
+			"title": "Preferences",
+			"desc": "You can modify your preferences.",
+			"manage": {
+				"title": "Tool Management",
+				"desc": "Adjust and manage the tool settings.",
+				"options": {
+					"viewMode": {
+						"title": "View Mode",
+						"desc": "Change the view mode. Supported options: [List View, Icon View].",
+						"listMode": {
+							"title": "List View",
+							"desc": "Displays in a list format."
+						},
+						"iconMode": {
+							"title": "Icon View",
+							"desc": "Displays in an icon format."
+						}
+					},
+					"language": {
+						"title": "Language Settings",
+						"desc": "You can change the language of the tool.",
+						"options": {
+							"ko": "Korean",
+							"en-US": "English (US)",
+							"en-GB": "English (UK)",
+							"ja": "Japanese",
+							"zh": "Chinese",
+							"de": "German"
+						}
+					},
+					"storage": {
+						"title": "Storage Settings",
+						"desc": "Save or reset your preferences.",
+						"options": {
+							"save": "Save",
+							"autoSave": "Auto Save",
+							"delete": "Reset",
+							"check": "Check Save"
+						}
+					},
+					"position": {
+						"title": "Position Settings",
+						"desc": "Change the tool's position.",
+						"options": {
+							"left": "Left",
+							"right": "Right"
+						}
+					}
+				}
+			},
+			"profile": {
+				"title": "Profile",
+				"desc": "Change your profile. The selected profile will apply preset personal settings.",
+				"options": {
+					"visualImpairment": {
+						"title": "Visual Impairment",
+						"desc": "Settings for visual impairment."
+					},
+					"lowVision": {
+						"title": "Low Vision",
+						"desc": "Settings for low vision."
+					},
+					"hearingImpairment": {
+						"title": "Hearing Impairment",
+						"desc": "Settings for hearing impairment."
+					},
+					"physicalDisability": {
+						"title": "Physical Disability",
+						"desc": "Settings for physical disabilities."
+					},
+					"colorBlindness": {
+						"title": "Colour Blindness",
+						"desc": "Settings for colour blindness."
+					},
+					"dyslexia": {
+						"title": "Dyslexia",
+						"desc": "Settings for dyslexia and ADHD."
+					}
+				}
+			}
+		},
+		"personal": {
+			"title": "Personal Preferences",
+			"desc": "Modify your individual settings.",
+			"options": {
+				"colorMode": {
+					"title": "Colour Mode",
+					"desc": "Set the display colours.",
+					"options": {
+						"initial": "Default",
+						"light": "Light",
+						"dark": "Dark",
+						"reverse": "Reverse"
+					}
+				},
+				"saturation": {
+					"title": "Saturation Adjustment",
+					"desc": "Adjust the display saturation.",
+					"options": {
+						"initial": "Default",
+						"high": "High",
+						"low": "Low",
+						"monochrome": "Monochrome"
+					}
+				},
+				"fontSize": {
+					"title": "Font Size",
+					"desc": "Change the text size.",
+					"options": {
+						"initial": "Default",
+						"size-1p2x": "1.2x",
+						"size-1p5x": "1.5x",
+						"size-2x": "2x"
+					}
+				},
+				"fontFamily": {
+					"title": "Font Family",
+					"desc": "Change the text font.",
+					"options": {
+						"initial": "Default",
+						"Koddi Udon Gothic": "Koddi Udon Gothic",
+						"nanum-maruburi": "Nanum Maruburi",
+						"nanum-square-neo": "Nanum Square Neo",
+						"nanum-myeongjo": "Nanum Myeongjo",
+						"noto-serif-kr": "Noto Serif"
+					}
+				},
+				"screenScale": {
+					"title": "Screen Zoom",
+					"desc": "Change the screen zoom ratio.",
+					"options": {
+						"initial": "Default",
+						"scale-1p2x": "1.2x",
+						"scale-1p5x": "1.5x",
+						"scale-2x": "2x"
+					}
+				},
+				"letterSpacing": {
+					"title": "Letter Spacing",
+					"desc": "Adjust the spacing between letters.",
+					"options": {
+						"initial": "Default",
+						"wide_little": "Slightly Wide",
+						"wide_normal": "Wide",
+						"wide_more": "Extra Wide"
+					}
+				},
+				"txtAlign": {
+					"title": "Text Alignment",
+					"desc": "Change the text alignment.",
+					"options": {
+						"initial": "Default",
+						"left": "Left",
+						"center": "Centre",
+						"right": "Right"
+					}
+				},
+				"readGuide": {
+					"title": "Focus Guide Mode",
+					"desc": "Emphasise the location of the mouse cursor.",
+					"options": {
+						"unset": "Off",
+						"mask": "Mask",
+						"underline": "Underline",
+						"bigCursor": "Large Cursor"
+					}
+				},
+				"hideImages": {
+					"title": "Hide Images",
+					"desc": "Choose whether to display images.",
+					"options": {
+						"show": "Show",
+						"hide": "Hide"
+					}
+				},
+				"imgTextConvert": {
+					"title": "Image Text Conversion",
+					"desc": "Choose whether to display alternative text or the image.",
+					"options": {
+						"on": "Show Text",
+						"off": "Show Image"
+					},
+					"msg": {
+						"noAlt": "Image (no description)"
+					}
+				},
+				"imgDisplayMode": {
+					"title": "Image Display Mode",
+					"desc": "Set the image display mode.",
+					"options": {
+						"initial": "Default",
+						"hide": "Hide",
+						"convert": "Text Conversion"
+					}
+				},
+				"mediaControl": {
+					"title": "Media Control",
+					"desc": "Control the playback state of media.",
+					"options": {
+						"play": "Playable",
+						"stop": "Stop",
+						"pause": "Pause"
+					}
+				},
+				"soundControl": {
+					"title": "Sound Control",
+					"desc": "Control the sound state.",
+					"options": {
+						"mute": "Mute",
+						"unmute": "Unmute"
+					}
+				},
+				"animationControl": {
+					"title": "Animation Control",
+					"desc": "Control animation playback.",
+					"options": {
+						"play": "Play",
+						"stop": "Stop"
+					}
+				},
+				"pageScroll": {
+					"title": "Page Scrolling",
+					"desc": "Control the page scrolling.",
+					"options": {
+						"start": "Start",
+						"stop": "Stop",
+						"up": "Scroll Up",
+						"down": "Scroll Down"
+					}
+				},
+				"tts": {
+					"title": "Text-to-Speech",
+					"desc": "Control text-to-speech.",
+					"options": {
+						"speed": "Speed",
+						"language": "Language",
+						"start": "Start",
+						"stop": "Stop",
+						"pause": "Pause",
+						"resume": "Resume",
+						"prev": "Previous",
+						"next": "Next",
+						"focus-start": "Start Focus Detection",
+						"focus-stop": "Stop Focus Detection"
+					},
+					"msg": {
+						"noSupport": "This browser does not support text-to-speech.",
+						"error": "An error occurred during text-to-speech.",
+						"start": "Starting text-to-speech.",
+						"stop": "Stopping text-to-speech.",
+						"pause": "Pausing text-to-speech.",
+						"resume": "Resuming text-to-speech.",
+						"prev": "Moving to the previous sentence.",
+						"next": "Moving to the next sentence.",
+						"lastArea": "This is the last section. No further section available for reading.",
+						"firstArea": "This is the first section. No previous section available for reading.",
+						"endOfRead": "Reading complete.",
+						"endOfReadArea": "Current section reading complete.",
+						"endOfReadPage": "Reading of this page is complete.",
+						"focus-start": "Starting focus detection.",
+						"focus-stop": "Stopping focus detection."
+					}
+				},
+				"stt": {
+					"title": "Speech Recognition",
+					"desc": "Control speech recognition.",
+					"options": {
+						"start": "Start",
+						"stop": "Stop"
+					},
+					"msg": {
+						"noSupport": "This browser does not support speech recognition.",
+						"error": "An error occurred during speech recognition.",
+						"start": "Starting speech recognition.",
+						"stop": "Stopping speech recognition."
+					}
+				},
+				"diction": {
+					"title": "Dictionary Lookup",
+					"desc": "Lookup words using an Open API dictionary.",
+					"options": {
+						"on": "On",
+						"off": "Off"
+					}
+				},
+				"lineHeight": {
+					"title": "Line Height",
+					"desc": "Adjust the spacing between lines.",
+					"options": {
+						"initial": "Default",
+						"size-1p5x": "1.5x",
+						"size-1p75x": "1.75x",
+						"size-2x": "2x"
+					}
+				},
+				"pageStructure": {
+					"title": "Page Structure",
+					"desc": "Display the structure of the page in text.",
+					"options": {
+						"show": "Show",
+						"hide": "Hide",
+						"marker": "Jump to Section",
+						"link": "Activate Link"
+					},
+					"text": {
+						"tabList-heading": "Headings",
+						"tabList-section": "Sections",
+						"tabList-semantic": "Semantics",
+						"tabList-link": "Links"
+					}
+				}
+			}
+		}
+	},
+	"command": {
+		"__comment__": "Command management. Set the names of commands.",
+		"move": "Move, Activate",
+		"open": "Open",
+		"close": "Close",
+		"on": "On, Activate, Start",
+		"off": "Off, Deactivate, Stop, End",
+		"minimize": "Minimize Window",
+		"restore": "Restore Window"
+	},
+	"patterns": {
+		"__comment__": "Search pattern management. Set the titles and search terms.",
+		"properNoun": {
+			"title": "Proper Noun",
+			"list": "(남도|북도|도|군|시|구|읍|면)"
+		},
+		"particles": {
+			"title": "Particles",
+			"list": "(이|가|을|를|에|에서|로|으로|와|과|의|로서|로써|에게|한테|께|로부터|으로부터|에게서|한테서|께서|로서|로써|에게로|한테로|께로|로부터로|으로부터로|에게서로|한테서로|께서로|로서로|로써로|에게로서|한테로서|께로서|로부터로서|으로부터로서|에게서로서|한테서로서|께서로서|로서로서|로써로서)"
+		}
+	},
+	"tags": {
+		"a": {
+			"tagTitle": "Link",
+			"attr": {
+				"target": {
+					"self": "Current Window",
+					"blank": "New Window",
+					"parent": "Parent Window",
+					"top": "Top Window"
+				}
+			},
+			"text": {
+				"newWindowTitles": "New Window|New Window"
+			}
+		},
+		"img": {
+			"tagTitle": "Image File",
+			"attr": {
+				"alt": "Alternate Text",
+				"src": "Image Path"
+			}
+		},
+		"button": {
+			"tagTitle": "Button",
+			"attr": {
+				"type": {
+					"submit": "Submit",
+					"reset": "Reset",
+					"cancel": "Cancel",
+					"button": "Button",
+					"toggle": "Toggle Switch",
+					"option": "Option"
+				}
+			},
+			"text": {
+				"save": "Save",
+				"open": "Open",
+				"close": "Close",
+				"stateOpen": "Open",
+				"stateClose": "Close",
+				"option": "Option",
+				"optionsOpen": "Options Open",
+				"optionsClose": "Options Close",
+				"ok": "OK",
+				"yes": "Yes",
+				"no": "No",
+				"on": "On",
+				"off": "Off",
+				"stateOn": "On",
+				"stateOff": "Off",
+				"up": "Up",
+				"down": "Down",
+				"add": "Add",
+				"remove": "Remove",
+				"edit": "Edit",
+				"change": "Change",
+				"start": "Start",
+				"stop": "Stop",
+				"prev": "Previous",
+				"next": "Next",
+				"prevOpt": "Previous Option",
+				"nextOpt": "Next Option",
+				"back": "Back",
+				"forward": "Forward",
+				"expand": "Expand",
+				"collapse": "Collapse",
+				"select": "Select",
+				"upload": "Upload",
+				"download": "Download",
+				"search": "Search",
+				"print": "Print",
+				"share": "Share",
+				"refresh": "Refresh",
+				"file": "File Upload"
+			}
+		},
+		"progress": {
+			"tagTitle": "Progress Bar",
+			"attr": {
+				"current": "Current",
+				"value": "Progress",
+				"max": "Maximum"
+			}
+		},
+		"input": {
+			"undefined": {
+				"tagTitle": "Input Field"
+			},
+			"radio": {
+				"tagTitle": "Radio Button"
+			},
+			"checkbox": {
+				"tagTitle": "Checkbox"
+			},
+			"text": {
+				"tagTitle": "Text Input"
+			},
+			"textarea": {
+				"tagTitle": "Text Area"
+			},
+			"select": {
+				"tagTitle": "Select Box",
+				"attr": {
+					"option": "Options"
+				},
+				"msg": {
+					"select": "select!"
+				}
+			},
+			"file": {
+				"tagTitle": "File Input",
+				"attr": {
+					"select": "Select File",
+					"change": "Change File"
+				}
+			},
+			"button": {
+				"tagTitle": "Button"
+			},
+			"submit": {
+				"tagTitle": "Submit Button"
+			},
+			"reset": {
+				"tagTitle": "Reset Button"
+			},
+			"image": {
+				"tagTitle": "Image Button"
+			},
+			"password": {
+				"tagTitle": "Password Input"
+			},
+			"email": {
+				"tagTitle": "Email Input"
+			},
+			"url": {
+				"tagTitle": "URL Input"
+			},
+			"number": {
+				"tagTitle": "Number Input"
+			},
+			"range": {
+				"tagTitle": "Range Input",
+				"attr": {
+					"current": "Current",
+					"min": "Minimum",
+					"max": "Maximum",
+					"step": "Step"
+				}
+			},
+			"date": {
+				"tagTitle": "Date Input",
+				"attr": {
+					"current": "Current Date",
+					"min": "Minimum Date",
+					"max": "Maximum Date"
+				}
+			},
+			"time": {
+				"tagTitle": "Time Input",
+				"attr": {
+					"current": "Current Time",
+					"min": "Minimum Time",
+					"max": "Maximum Time",
+					"step": "Step"
+				}
+			},
+			"datetime": {
+				"tagTitle": "Datetime Input",
+				"attr": {
+					"current": "Current Datetime",
+					"min": "Minimum Datetime",
+					"max": "Maximum Datetime"
+				}
+			},
+			"color": {
+				"tagTitle": "Colour Input",
+				"attr": {
+					"current": "Current Colour",
+					"hex": "HEX Code",
+					"rgb": "RGB Code",
+					"hsl": "HSL Code"
+				}
+			},
+			"search": {
+				"tagTitle": "Search Input"
+			},
+			"progress": {
+				"tagTitle": "Progress Bar"
+			}
+		},
+		"select": {
+			"tagTitle": "Select Box"
+		},
+		"textarea": {
+			"tagTitle": "Text Area"
+		},
+		"table": {
+			"tagTitle": "Table",
+			"caption": "Caption",
+			"summary": "Summary",
+			"header": "Header",
+			"footer": "Footer",
+			"row": "Row",
+			"col": "Column",
+			"cell": "Cell",
+			"cellHeader": "Header Cell",
+			"cellData": "Data Cell",
+			"colspan": "Column Span",
+			"rowspan": "Row Span"
+		}
+	},
+	"msg": {
+		"success": {
+			"save": "Saved successfully."
+		},
+		"error": {
+			"default": "An error has occurred.",
+			"save": "An error occurred while saving.",
+			"load": "An error occurred while loading.",
+			"selectorNotFound": "Element \"{selector}\" not found.",
+			"fetchSearchResults": "No search results found.",
+			"unsupportedTagTTS": "Text-to-speech is not supported for this tag.",
+			"undefinedTarget": "Target is not defined.",
+			"undefinedAttribute": "Attribute is not defined.",
+			"undefinedValue": "Value is not defined.",
+			"undefinedOption": "Option is not defined.",
+			"invalidTarget": "Invalid target.",
+			"noSelectedText": "No text selected.",
+			"noElementsFound": "No readable elements found.",
+			"ttsNotSupported": "Text-to-speech is not supported in this browser.",
+			"ttsExecutionFailed": "An error occurred during text-to-speech execution."
+		},
+		"warning": {
+			"noChange": "No changes made.",
+			"optionNotNode": "Option \"{option}\" is not a Node and will be skipped.",
+			"noSettingsChecked": "No settings checked.",
+			"languageNotFound": "Language not supported."
+		}
+	},
+	"text": {
+		"fileSelected": "Selected file",
+		"fileName": "File Name",
+		"noFileSelected": "No file selected",
+		"imgFile": "Image File",
+		"value": "Value",
+		"disabled": "Disabled",
+		"enabled": "Enabled",
+		"hidden": "Hidden",
+		"visible": "Visible",
+		"required": "Required",
+		"optional": "Optional",
+		"checked": "Checked",
+		"selected": "Selected",
+		"unchecked": "Unchecked",
+		"expanded": "Expanded",
+		"collapsed": "Collapsed",
+		"newWindow": "New Window",
+		"empty": "Empty",
+		"strong": "Strong",
+		"emphasise": "Emphasise"
+	}
+}

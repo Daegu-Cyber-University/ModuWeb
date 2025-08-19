@@ -1,0 +1,72 @@
+/**
+ * Koddi Udon Gothic Font Family
+ * Local web font definition for WAT accessibility plugin
+ * 
+ * 'KoddiUD 온고딕'의 일체 소유권 및 지적재산권은 한국장애인개발원에 있습니다.
+ * 이 폰트는 한국장애인개발원에서 제공하는 오픈 라이선스에 따라 사용됩니다.
+ * 이 폰트는 개인/기업 구분없이 누구나 사용 가능한 정책에 따라 샘플 코드로 제공됩니다. CI, BI, 슬로건, 마크, 브랜드명, 상품명 등에 사용하거나, 관련된 디자인 등록, 특허 출원, 상표등록 등을 할 수 없습니다.
+ * 
+ * Font weights available:
+ * - Regular (400)
+ * - Bold (700) 
+ * - ExtraBold (800)
+ */
+
+/* Regular Weight */
+@font-face {
+    font-family: 'Koddi Udon Gothic';
+    src: url('./KoddiUDOnGothic-Regular.eot'); /* IE9 Compat Modes */
+    src: url('./KoddiUDOnGothic-Regular.eot?#iefix') format('embedded-opentype'), /* IE6-IE8 */
+         url('./KoddiUDOnGothic-Regular.woff2') format('woff2'), /* Modern Browsers */
+         url('./KoddiUDOnGothic-Regular.woff') format('woff'); /* Pretty Modern Browsers */
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap; /* 웹폰트 로딩 최적화 - 폰트 로딩 중 시스템 폰트 표시 */
+}
+
+/* Bold Weight */
+@font-face {
+    font-family: 'Koddi Udon Gothic';
+    src: url('./KoddiUDOnGothic-Bold.eot');
+    src: url('./KoddiUDOnGothic-Bold.eot?#iefix') format('embedded-opentype'),
+         url('./KoddiUDOnGothic-Bold.woff2') format('woff2'),
+         url('./KoddiUDOnGothic-Bold.woff') format('woff');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+}
+
+/* ExtraBold Weight */
+@font-face {
+    font-family: 'Koddi Udon Gothic';
+    src: url('./KoddiUDOnGothic-ExtraBold.eot');
+    src: url('./KoddiUDOnGothic-ExtraBold.eot?#iefix') format('embedded-opentype'),
+         url('./KoddiUDOnGothic-ExtraBold.woff2') format('woff2'),
+         url('./KoddiUDOnGothic-ExtraBold.woff') format('woff');
+    font-weight: 800;
+    font-style: normal;
+    font-display: swap;
+}
+
+/* Font weight aliases for common usage */
+@font-face {
+    font-family: 'Koddi Udon Gothic';
+    src: url('./KoddiUDOnGothic-Regular.eot');
+    src: url('./KoddiUDOnGothic-Regular.eot?#iefix') format('embedded-opentype'),
+         url('./KoddiUDOnGothic-Regular.woff2') format('woff2'),
+         url('./KoddiUDOnGothic-Regular.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Koddi Udon Gothic';
+    src: url('./KoddiUDOnGothic-Bold.eot');
+    src: url('./KoddiUDOnGothic-Bold.eot?#iefix') format('embedded-opentype'),
+         url('./KoddiUDOnGothic-Bold.woff2') format('woff2'),
+         url('./KoddiUDOnGothic-Bold.woff') format('woff');
+    font-weight: bold;
+    font-style: normal;
+    font-display: swap;
+}

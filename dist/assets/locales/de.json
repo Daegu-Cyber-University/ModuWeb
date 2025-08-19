@@ -1,0 +1,603 @@
+{
+	"toolTitle": "Web-Zugänglichkeitsunterstützungstool",
+	"displayLanguage": "Deutsch",
+	"panel": {
+		"__comment__": "Panelverwaltung. Legen Sie den Titel, die Beschreibung und den Text der Öffnen/Schließen-Schaltfläche fest.",
+		"settings": {
+			"title": "Einstellungen",
+			"desc": "Sie können Ihre Einstellungen ändern.",
+			"manage": {
+				"title": "Tool-Verwaltung",
+				"desc": "Ändern und verwalten Sie die Tool-Einstellungen.",
+				"options": {
+					"viewMode": {
+						"title": "Ansichtsmodus",
+						"desc": "Ändern Sie den Ansichtsmodus. Unterstützte Optionen: [Listenansicht, Symbolansicht].",
+						"listMode": {
+							"title": "Listenansicht",
+							"desc": "Wird in Listenform angezeigt."
+						},
+						"iconMode": {
+							"title": "Symbolansicht",
+							"desc": "Wird in Symbolform angezeigt."
+						}
+					},
+					"language": {
+						"title": "Spracheinstellungen",
+						"desc": "Sie können die Sprache des Tools ändern.",
+						"options": {
+							"ko": "Koreanisch",
+							"en-US": "Englisch (USA)",
+							"en-GB": "Englisch (UK)",
+							"ja": "Japanisch",
+							"zh": "Chinesisch",
+							"de": "Deutsch"
+						}
+					},
+					"storage": {
+						"title": "Speichereinstellungen",
+						"desc": "Sie können Ihre Einstellungen speichern oder zurücksetzen.",
+						"options": {
+							"save": "Speichern",
+							"autoSave": "Automatisches Speichern",
+							"delete": "Zurücksetzen",
+							"check": "Speicherstatus prüfen"
+						}
+					},
+					"position": {
+						"title": "Positionseinstellungen",
+						"desc": "Ändern Sie die Position des Tools.",
+						"options": {
+							"left": "Links",
+							"right": "Rechts"
+						}
+					}
+				}
+			},
+			"profile": {
+				"title": "Profil",
+				"desc": "Ändern Sie Ihr Profil. Das ausgewählte Profil wendet voreingestellte persönliche Einstellungen an.",
+				"options": {
+					"visualImpairment": {
+						"title": "Sehbehinderung",
+						"desc": "Einstellungen für Sehbehinderte."
+					},
+					"lowVision": {
+						"title": "Sehschwäche",
+						"desc": "Einstellungen für Sehschwache."
+					},
+					"hearingImpairment": {
+						"title": "Hörbehinderung",
+						"desc": "Einstellungen für Hörbehinderte."
+					},
+					"physicalDisability": {
+						"title": "Körperliche Behinderung",
+						"desc": "Einstellungen für körperlich Behinderte."
+					},
+					"colorBlindness": {
+						"title": "Farbblindheit",
+						"desc": "Einstellungen für Farbblinde."
+					},
+					"dyslexia": {
+						"title": "Legasthenie",
+						"desc": "Einstellungen für Legastheniker und ADHS-Betroffene."
+					}
+				}
+			}
+		},
+		"personal": {
+			"title": "Persönliche Einstellungen",
+			"desc": "Passen Sie Ihre individuellen Einstellungen an.",
+			"options": {
+				"colorMode": {
+					"title": "Farbmodus",
+					"desc": "Legen Sie die angezeigten Farben fest.",
+					"options": {
+						"initial": "Standard",
+						"light": "Hell",
+						"dark": "Dunkel",
+						"reverse": "Invertiert"
+					}
+				},
+				"saturation": {
+					"title": "Sättigungsanpassung",
+					"desc": "Passen Sie die Sättigung der Anzeige an.",
+					"options": {
+						"initial": "Standard",
+						"high": "Hoch",
+						"low": "Niedrig",
+						"monochrome": "Monochrom"
+					}
+				},
+				"fontSize": {
+					"title": "Schriftgröße",
+					"desc": "Ändern Sie die Textgröße.",
+					"options": {
+						"initial": "Standard",
+						"size-1p2x": "1,2x",
+						"size-1p5x": "1,5x",
+						"size-2x": "2x"
+					}
+				},
+				"fontFamily": {
+					"title": "Schriftart",
+					"desc": "Ändern Sie die Schriftart des Textes.",
+					"options": {
+						"initial": "Standard",
+						"Koddi Udon Gothic": "Koddi Udon Gothic",
+						"nanum-maruburi": "Nanum Maruburi",
+						"nanum-square-neo": "Nanum Square Neo",
+						"nanum-myeongjo": "Nanum Myeongjo",
+						"noto-serif-kr": "Noto Serif"
+					}
+				},
+				"screenScale": {
+					"title": "Bildschirmvergrößerung",
+					"desc": "Ändern Sie das Vergrößerungsverhältnis des Bildschirms.",
+					"options": {
+						"initial": "Standard",
+						"scale-1p2x": "1,2x",
+						"scale-1p5x": "1,5x",
+						"scale-2x": "2x"
+					}
+				},
+				"letterSpacing": {
+					"title": "Zeichenabstand",
+					"desc": "Passen Sie den Abstand zwischen den Zeichen an.",
+					"options": {
+						"initial": "Standard",
+						"wide_little": "Leicht erweitert",
+						"wide_normal": "Erweitert",
+						"wide_more": "Stark erweitert"
+					}
+				},
+				"txtAlign": {
+					"title": "Textausrichtung",
+					"desc": "Ändern Sie die Ausrichtung des Textes.",
+					"options": {
+						"initial": "Standard",
+						"left": "Links",
+						"center": "Zentriert",
+						"right": "Rechts"
+					}
+				},
+				"readGuide": {
+					"title": "Fokusführungsmodus",
+					"desc": "Hebt die Position des Mauszeigers hervor.",
+					"options": {
+						"unset": "Aus",
+						"mask": "Maskieren",
+						"underline": "Unterstreichen",
+						"bigCursor": "Großer Cursor"
+					}
+				},
+				"hideImages": {
+					"title": "Bilder ausblenden",
+					"desc": "Wählen Sie, ob Bilder angezeigt werden sollen.",
+					"options": {
+						"show": "Anzeigen",
+						"hide": "Ausblenden"
+					}
+				},
+				"imgTextConvert": {
+					"title": "Bild-Text-Konvertierung",
+					"desc": "Wählen Sie, ob alternativer Text oder das Bild angezeigt werden soll.",
+					"options": {
+						"on": "Text anzeigen",
+						"off": "Bild anzeigen"
+					},
+					"msg": {
+						"noAlt": "Bild (ohne Beschreibung)"
+					}
+				},
+				"imgDisplayMode": {
+					"title": "Bildanzeige-Modus",
+					"desc": "Stellen Sie den Bildanzeige-Modus ein.",
+					"options": {
+						"initial": "Standard",
+						"hide": "Ausblenden",
+						"convert": "Textkonvertierung"
+					}
+				},
+				"mediaControl": {
+					"title": "Mediensteuerung",
+					"desc": "Steuern Sie den Wiedergabestatus von Medien.",
+					"options": {
+						"play": "Abspielbar",
+						"stop": "Stopp",
+						"pause": "Pause"
+					}
+				},
+				"soundControl": {
+					"title": "Tonsteuerung",
+					"desc": "Steuern Sie den Tonstatus.",
+					"options": {
+						"mute": "Stumm",
+						"unmute": "Ton an"
+					}
+				},
+				"animationControl": {
+					"title": "Animationsteuerung",
+					"desc": "Steuern Sie den Wiedergabestatus von Animationen.",
+					"options": {
+						"play": "Abspielen",
+						"stop": "Stopp"
+					}
+				},
+				"pageScroll": {
+					"title": "Seitenscrollen",
+					"desc": "Steuern Sie das Scrollen der aktuellen Seite.",
+					"options": {
+						"start": "Start",
+						"stop": "Stopp",
+						"up": "Nach oben scrollen",
+						"down": "Nach unten scrollen"
+					}
+				},
+				"tts": {
+					"title": "Bildschirmvorlesung",
+					"desc": "Steuern Sie die Bildschirmvorlesung.",
+					"options": {
+						"speed": "Geschwindigkeit",
+						"language": "Sprache",
+						"start": "Starten",
+						"stop": "Stoppen",
+						"pause": "Pause",
+						"resume": "Fortsetzen",
+						"prev": "Vorheriger",
+						"next": "Nächster",
+						"focus-start": "Fokusdetektion starten",
+						"focus-stop": "Fokusdetektion stoppen"
+					},
+					"msg": {
+						"noSupport": "Dieser Browser unterstützt keine Bildschirmvorlesung.",
+						"error": "Während der Bildschirmvorlesung ist ein Fehler aufgetreten.",
+						"start": "Starte die Bildschirmvorlesung.",
+						"stop": "Beende die Bildschirmvorlesung.",
+						"pause": "Pausiere die Bildschirmvorlesung.",
+						"resume": "Setze die Bildschirmvorlesung fort.",
+						"prev": "Wechsel zum vorherigen Satz.",
+						"next": "Wechsel zum nächsten Satz.",
+						"lastArea": "Dies ist der letzte Bereich. Es gibt keinen weiteren Bereich zum Vorlesen.",
+						"firstArea": "Dies ist der erste Bereich. Es gibt keinen vorherigen Bereich zum Vorlesen.",
+						"endOfRead": "Vorlesung abgeschlossen.",
+						"endOfReadArea": "Die Vorlesung dieses Bereichs ist abgeschlossen.",
+						"endOfReadPage": "Die Vorlesung dieser Seite ist abgeschlossen.",
+						"focus-start": "Fokusdetektion wird gestartet.",
+						"focus-stop": "Fokusdetektion wird gestoppt."
+					}
+				},
+				"stt": {
+					"title": "Spracherkennung",
+					"desc": "Steuern Sie die Spracherkennung.",
+					"options": {
+						"start": "Starten",
+						"stop": "Stoppen"
+					},
+					"msg": {
+						"noSupport": "Dieser Browser unterstützt keine Spracherkennung.",
+						"error": "Während der Spracherkennung ist ein Fehler aufgetreten.",
+						"start": "Starte die Spracherkennung.",
+						"stop": "Beende die Spracherkennung."
+					}
+				},
+				"diction": {
+					"title": "Wörterbuchsuche",
+					"desc": "Suchen Sie Wörter mit einem Open API-Wörterbuch.",
+					"options": {
+						"on": "Ein",
+						"off": "Aus"
+					}
+				},
+				"lineHeight": {
+					"title": "Zeilenhöhe",
+					"desc": "Passen Sie den Abstand zwischen den Zeilen an.",
+					"options": {
+						"initial": "Standard",
+						"size-1p5x": "1,5x",
+						"size-1p75x": "1,75x",
+						"size-2x": "2x"
+					}
+				},
+				"pageStructure": {
+					"title": "Seitenstruktur",
+					"desc": "Zeigt die Struktur der Seite in Textform an.",
+					"options": {
+						"show": "Anzeigen",
+						"hide": "Ausblenden",
+						"marker": "Zum Abschnitt springen",
+						"link": "Link aktivieren"
+					},
+					"text": {
+						"tabList-heading": "Überschriften",
+						"tabList-section": "Abschnitte",
+						"tabList-semantic": "Semantik",
+						"tabList-link": "Links"
+					}
+				}
+			}
+		}
+	},
+	"command": {
+		"__comment__": "Befehlsverwaltung. Legen Sie die Namen der Befehle fest.",
+		"move": "Bewegen, Aktivieren",
+		"open": "Öffnen",
+		"close": "Schließen",
+		"on": "Ein, Aktivieren, Starten",
+		"off": "Aus, Deaktivieren, Stoppen, Beenden",
+		"minimize": "Fenster minimieren",
+		"restore": "Fenster wiederherstellen"
+	},
+	"patterns": {
+		"__comment__": "Suchmusterverwaltung. Legen Sie die Titel und Suchbegriffe fest.",
+		"properNoun": {
+			"title": "Eigenname",
+			"list": "(남도|북도|도|군|시|구|읍|면)"
+		},
+		"particles": {
+			"title": "Partikeln",
+			"list": "(이|가|을|를|에|에서|로|으로|와|과|의|로서|로써|에게|한테|께|로부터|으로부터|에게서|한테서|께서|로서|로써|에게로|한테로|께로|로부터로|으로부터로|에게서로|한테서로|께서로|로서로|로써로|에게로서|한테로서|께로서|로부터로서|으로부터로서|에게서로서|한테서로서|께서로서|로서로서|로써로서)"
+		}
+	},
+	"tags": {
+		"a": {
+			"tagTitle": "Link",
+			"attr": {
+				"target": {
+					"self": "Aktuelles Fenster",
+					"blank": "Neues Fenster",
+					"parent": "Elternfenster",
+					"top": "Oberstes Fenster"
+				}
+			},
+			"text": {
+				"newWindowTitles": "Neues Fenster|Neues Fenster"
+			}
+		},
+		"img": {
+			"tagTitle": "Bilddatei",
+			"attr": {
+				"alt": "Alternativtext",
+				"src": "Bildpfad"
+			}
+		},
+		"button": {
+			"tagTitle": "Schaltfläche",
+			"attr": {
+				"type": {
+					"submit": "Absenden",
+					"reset": "Zurücksetzen",
+					"cancel": "Abbrechen",
+					"button": "Schaltfläche",
+					"toggle": "Umschalten",
+					"option": "Option"
+				}
+			},
+			"text": {
+				"save": "Speichern",
+				"open": "Öffnen",
+				"close": "Schließen",
+				"stateOpen": "Öffnen",
+				"stateClose": "Schließen",
+				"option": "Option",
+				"optionsOpen": "Optionen öffnen",
+				"optionsClose": "Optionen schließen",
+				"ok": "OK",
+				"yes": "Ja",
+				"no": "Nein",
+				"on": "Ein",
+				"off": "Aus",
+				"stateOn": "Aktiviert",
+				"stateOff": "Deaktiviert",
+				"up": "Nach oben",
+				"down": "Nach unten",
+				"add": "Hinzufügen",
+				"remove": "Entfernen",
+				"edit": "Bearbeiten",
+				"change": "Ändern",
+				"start": "Starten",
+				"stop": "Stoppen",
+				"prev": "Vorherige",
+				"next": "Nächste",
+				"prevOpt": "Vorherige Option",
+				"nextOpt": "Nächste Option",
+				"back": "Zurück",
+				"forward": "Weiter",
+				"expand": "Erweitern",
+				"collapse": "Einklappen",
+				"select": "Auswählen",
+				"upload": "Hochladen",
+				"download": "Herunterladen",
+				"search": "Suchen",
+				"print": "Drucken",
+				"share": "Teilen",
+				"refresh": "Aktualisieren",
+				"file": "Datei hochladen"
+			}
+		},
+		"progress": {
+			"tagTitle": "Fortschrittsbalken",
+			"attr": {
+				"current": "Aktueller Wert",
+				"value": "Fortschritt",
+				"max": "Maximalwert"
+			}
+		},
+		"input": {
+			"undefined": {
+				"tagTitle": "Eingabefeld"
+			},
+			"radio": {
+				"tagTitle": "Optionsfeld"
+			},
+			"checkbox": {
+				"tagTitle": "Kontrollkästchen"
+			},
+			"text": {
+				"tagTitle": "Texteingabe"
+			},
+			"textarea": {
+				"tagTitle": "Textbereich"
+			},
+			"select": {
+				"tagTitle": "Auswahlbox",
+				"attr": {
+					"option": "Options"
+				},
+				"msg": {
+					"select": "Auswahl!"
+				}
+			},
+			"file": {
+				"tagTitle": "Dateieingabe",
+				"attr": {
+					"select": "Datei auswählen",
+					"change": "Datei ändern"
+				}
+			},
+			"button": {
+				"tagTitle": "Schaltfläche"
+			},
+			"submit": {
+				"tagTitle": "Absenden-Schaltfläche"
+			},
+			"reset": {
+				"tagTitle": "Zurücksetzen-Schaltfläche"
+			},
+			"image": {
+				"tagTitle": "Bild-Schaltfläche"
+			},
+			"password": {
+				"tagTitle": "Passworteingabe"
+			},
+			"email": {
+				"tagTitle": "E-Mail-Eingabe"
+			},
+			"url": {
+				"tagTitle": "URL-Eingabe"
+			},
+			"number": {
+				"tagTitle": "Zahleneingabe"
+			},
+			"range": {
+				"tagTitle": "Bereichseingabe",
+				"attr": {
+					"current": "Aktueller Wert",
+					"min": "Minimalwert",
+					"max": "Maximalwert",
+					"step": "Schrittweite"
+				}
+			},
+			"date": {
+				"tagTitle": "Datumseingabe",
+				"attr": {
+					"current": "Aktuelles Datum",
+					"min": "Frühestes Datum",
+					"max": "Spätestes Datum"
+				}
+			},
+			"time": {
+				"tagTitle": "Zeiteingabe",
+				"attr": {
+					"current": "Aktuelle Zeit",
+					"min": "Früheste Zeit",
+					"max": "Späteste Zeit",
+					"step": "Schrittweite"
+				}
+			},
+			"datetime": {
+				"tagTitle": "Datum-/Zeiteingabe",
+				"attr": {
+					"current": "Aktuelles Datum/Zeit",
+					"min": "Frühestes Datum/Zeit",
+					"max": "Spätestes Datum/Zeit"
+				}
+			},
+			"color": {
+				"tagTitle": "Farbeingabe",
+				"attr": {
+					"current": "Aktuelle Farbe",
+					"hex": "HEX-Code",
+					"rgb": "RGB-Code",
+					"hsl": "HSL-Code"
+				}
+			},
+			"search": {
+				"tagTitle": "Sucheingabe"
+			},
+			"progress": {
+				"tagTitle": "Fortschrittsbalken"
+			}
+		},
+		"select": {
+			"tagTitle": "Auswahlbox"
+		},
+		"textarea": {
+			"tagTitle": "Textbereich"
+		},
+		"table": {
+			"tagTitle": "Tabelle",
+			"caption": "Beschriftung",
+			"summary": "Zusammenfassung",
+			"header": "Kopfzeile",
+			"footer": "Fußzeile",
+			"row": "Zeile",
+			"col": "Spalte",
+			"cell": "Zelle",
+			"cellHeader": "Kopfzeilenzelle",
+			"cellData": "Datenzelle",
+			"colspan": "Spaltenzusammenführung",
+			"rowspan": "Zeilenzusammenführung"
+		}
+	},
+	"msg": {
+		"success": {
+			"save": "Erfolgreich gespeichert."
+		},
+		"error": {
+			"default": "Ein Fehler ist aufgetreten.",
+			"save": "Beim Speichern ist ein Fehler aufgetreten.",
+			"load": "Beim Laden ist ein Fehler aufgetreten.",
+			"selectorNotFound": "Element \"{selector}\" wurde nicht gefunden.",
+			"fetchSearchResults": "Keine Suchergebnisse gefunden.",
+			"unsupportedTagTTS": "Text-to-Speech wird für diesen Tag nicht unterstützt.",
+			"undefinedTarget": "Ziel ist nicht definiert.",
+			"undefinedAttribute": "Attribut ist nicht definiert.",
+			"undefinedValue": "Wert ist nicht definiert.",
+			"undefinedOption": "Option ist nicht definiert.",
+			"invalidTarget": "Ungültiges Ziel.",
+			"noSelectedText": "Kein Text ausgewählt.",
+			"noElementsFound": "Keine lesbaren Elemente gefunden.",
+			"ttsNotSupported": "Text-zu-Sprache wird in diesem Browser nicht unterstützt.",
+			"ttsExecutionFailed": "Fehler bei der Ausführung von Text-zu-Sprache aufgetreten."
+		},
+		"warning": {
+			"noChange": "Keine Änderungen vorgenommen.",
+			"optionNotNode": "Option \"{option}\" ist kein Node und wird übersprungen.",
+			"noSettingsChecked": "Keine Einstellungen ausgewählt.",
+			"languageNotFound": "Sprache nicht gefunden"
+		}
+	},
+	"text": {
+		"fileSelected": "Ausgewählte Datei",
+		"fileName": "Dateiname",
+		"noFileSelected": "Keine Datei ausgewählt",
+		"imgFile": "Bilddatei",
+		"value": "Wert",
+		"disabled": "Deaktiviert",
+		"enabled": "Aktiviert",
+		"hidden": "Versteckt",
+		"visible": "Sichtbar",
+		"required": "Erforderlich",
+		"optional": "Optional",
+		"checked": "Ausgewählt",
+		"selected": "Ausgewählt",
+		"unchecked": "Nicht ausgewählt",
+		"expanded": "Erweitert",
+		"collapsed": "Eingeklappt",
+		"newWindow": "Neues Fenster",
+		"empty": "Leer",
+		"strong": "Fett",
+		"emphasize": "Hervorheben"
+	}
+}

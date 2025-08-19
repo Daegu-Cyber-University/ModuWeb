@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>WAT 커스텀 설정 예제</title>
+	<link rel="stylesheet" href="../dist/assets/css/webAccTools.css">
+	<link rel="stylesheet" href="./assets/css/example.css">
+	<script src="../dist/webAccTools.js"></script>
+	<style>
+		.setting-group {
+			background: #f8f9fa;
+			border: 1px solid #dee2e6;
+			border-radius: 8px;
+			padding: 20px;
+			margin: 20px 0;
+		}
+
+		.setting-group h3 {
+			color: #495057;
+			margin-top: 0;
+			border-bottom: 2px solid #6f42c1;
+			padding-bottom: 10px;
+		}
+
+		.button-group {
+			display: flex;
+			gap: 10px;
+			flex-wrap: wrap;
+			margin: 15px 0;
+		}
+
+		.demo-button {
+			background: #6f42c1;
+			color: white;
+			border: none;
+			padding: 10px 20px;
+			border-radius: 5px;
+			cursor: pointer;
+			font-size: 14px;
+			transition: background-color 0.3s;
+		}
+
+		.demo-button:hover {
+			background: #5a32a3;
+		}
+
+		.demo-button:disabled {
+			background: #6c757d;
+			cursor: not-allowed;
+		}
+
+		.status-display {
+			background: #e9ecef;
+			padding: 10px;
+			border-radius: 4px;
+			margin: 10px 0;
+			font-family: monospace;
+			font-size: 14px;
+		}
+
+		.code-example {
+			background: #f8f9fa;
+			border: 1px solid #e9ecef;
+			border-radius: 6px;
+			padding: 15px;
+			margin: 15px 0;
+			overflow-x: auto;
+		}
+
+		.code-example pre {
+			margin: 0;
+			font-family: 'Courier New', monospace;
+			font-size: 13px;
+			line-height: 1.4;
+		}
+	</style>
+	<script>
+		let watOptions = {};
+		document.addEventListener('DOMContentLoaded', () => {
+			watOptions = {
+					configPath: '../config.json',		// config.json
+
+					colorTheme: false,
+					//fontSize: false,
+					//toolWidth: 400,
+					containerTargetSelector: '#mainContent',
+					//applySelector: '#mainBody',
+					excludeSelector: '#navWrap, #codeWrap',
+					fontFamily: {
+						'Koddi Udon Gothic': {
+							enabled: true,
+							url: '../dist/assets/fonts/koddi-udon-gothic/koddi-udon-gothic.css'
+						},
+						'Winky Rough': {
+							enabled: true,
+							url: 'https://fonts.googleapis.com/css2?family=Winky+Rough:ital,wght@0,300..900;1,300..900&display=swap'
+						},
+						'Nanum Pen Script': {
+							enabled: true,
+							url: 'https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&display=swap'
+						}
+					},
+					// TTS 관련 설정
+					ttsSpeechRate: 2.0,		// TTS 읽기 속도 (0.1 ~ 10, 기본값: 1.6)
+					ttsAutoAdvanceDelay: 2000,	// 자동 진행 지연시간 (밀리초, 기본값: 1000)
+			
+					language: { languages: ["ko", "en-US", "ja"]},             // 다중 언어에서 기본 언어 지정
+					// language 옵션이 없으면: 모든 지원 언어 표시, defaultLanguage: "ko", showSelector: true
+					fontSizeOptions: {
+						'size-1p2x': false, // 기존 옵션 비활성화
+						'size-large': {
+							ratio: 2.5,
+							label: '매우 큰 글씨',
+							enabled: true
+						},
+						'size-custom': {
+							ratio: 1.8,
+							label: '사용자 정의 크기'
+						}
+					}
+			};
+			const wat = new WAT(watOptions);
+			window.watPlugin = wat;
+			wat.init();
+
+			// 초기화 완료 후 환영 메시지
+			document.addEventListener('wat:initialized', (event) => {
+				console.log('커스텀 WAT 초기화 완료:', event.detail);
+				checkWATStatus();
+			});
+		});
+
+		// WAT 상태 확인
+		function checkWATStatus() {
+			if (watOptions) {
+				const status = {
+					initialized: watOptions.isInitialized || false,
+					ttsEnabled: watOptions.ttsManager ? true : false,
+					sttEnabled: watOptions.sttManager ? true : false,
+					focusTTSEnabled: watOptions.focusTTS ? true : false
+				};
+				document.getElementById('watStatus').innerHTML =
+					`<strong>WAT 상태:</strong><br>
+					초기화됨: ${status.initialized}<br>
+					TTS 활성화: ${status.ttsEnabled}<br>
+					STT 활성화: ${status.sttEnabled}<br>
+					포커스 TTS 활성화: ${status.focusTTSEnabled}`;
+			}
+		}
+
+		// TTS 예제 함수들
+		function speakSimpleText() {
+			if (watOptions && watOptions.ttsManager) {
+				watOptions.ttsManager.speakText('안녕하세요! WAT TTS 기능입니다.');
+			}
+		}
+
+		function speakLongText() {
+			if (watOptions && watOptions.ttsManager) {
+				const longText = '이것은 긴 텍스트 예제입니다. WAT의 TTS 기능을 사용하여 이 긴 텍스트를 음성으로 변환하고 있습니다. 다양한 설정을 통해 읽기 속도, 음높이, 볼륨 등을 조절할 수 있습니다.';
+				watOptions.ttsManager.speakText(longText);
+			}
+		}
+
+		function speakWithOptions() {
+			if (watOptions && watOptions.ttsManager) {
+				watOptions.ttsManager.speakText('빠른 속도로 높은 음성으로 읽어보겠습니다!', {
+					rate: 2.0,
+					pitch: 1.5,
+					volume: 0.9
+				});
+			}
+		}
+
+		function pauseTTS() {
+			if (watOptions && watOptions.ttsManager) {
+				watOptions.ttsManager.pause();
+				console.log('TTS 일시정지됨');
+			}
+		}
+
+		function resumeTTS() {
+			if (watOptions && watOptions.ttsManager) {
+				watOptions.ttsManager.resume();
+				console.log('TTS 재개됨');
+			}
+		}
+
+		function stopTTS() {
+			if (watOptions && watOptions.ttsManager) {
+				watOptions.ttsManager.stop();
+				console.log('TTS 중지됨');
+			}
+		}
+
+		function getTTSStatus() {
+			if (watOptions && watOptions.ttsManager) {
+				const status = watOptions.ttsManager.getStatus();
+				alert('TTS 상태: ' + JSON.stringify(status, null, 2));
+			}
+		}
+
+		// STT 예제 함수들
+		function startSTT() {
+			if (watOptions && watOptions.sttManager) {
+				document.getElementById('sttResult').textContent = '음성 인식 시작... 말씀해 주세요.';
+				watOptions.sttManager.start((result) => {
+					document.getElementById('sttResult').textContent = '인식된 텍스트: ' + result;
+				});
+			}
+		}
+
+		function stopSTT() {
+			if (watOptions && watOptions.sttManager) {
+				watOptions.sttManager.stop();
+				document.getElementById('sttResult').textContent = '음성 인식이 중지되었습니다.';
+			}
+		}
+
+		function getSTTStatus() {
+			if (watOptions && watOptions.sttManager) {
+				const status = watOptions.sttManager.getStatus();
+				alert('STT 상태: ' + JSON.stringify(status, null, 2));
+			}
+		}
+
+		// 이벤트 리스너 관리
+		let eventListenersAdded = false;
+		const eventHandlers = {
+			initialized: (event) => logEvent('WAT 초기화 완료', event.detail),
+			ttsStateChanged: (event) => logEvent('TTS 상태 변경', event.detail),
+			sttStateChanged: (event) => logEvent('STT 상태 변경', event.detail),
+			settingsChanged: (event) => logEvent('설정 변경', event.detail)
+		};
+
+		function addEventListeners() {
+			if (!eventListenersAdded) {
+				document.addEventListener('wat:initialized', eventHandlers.initialized);
+				document.addEventListener('wat:tts:stateChanged', eventHandlers.ttsStateChanged);
+				document.addEventListener('wat:stt:stateChanged', eventHandlers.sttStateChanged);
+				document.addEventListener('wat:settings:changed', eventHandlers.settingsChanged);
+				eventListenersAdded = true;
+				logEvent('이벤트 리스너 등록 완료', null);
+			}
+		}
+
+		function removeEventListeners() {
+			if (eventListenersAdded) {
+				document.removeEventListener('wat:initialized', eventHandlers.initialized);
+				document.removeEventListener('wat:tts:stateChanged', eventHandlers.ttsStateChanged);
+				document.removeEventListener('wat:stt:stateChanged', eventHandlers.sttStateChanged);
+				document.removeEventListener('wat:settings:changed', eventHandlers.settingsChanged);
+				eventListenersAdded = false;
+				logEvent('이벤트 리스너 제거 완료', null);
+			}
+		}
+
+		function logEvent(eventName, detail) {
+			const eventLog = document.getElementById('eventLog');
+			const timestamp = new Date().toLocaleTimeString();
+			const logEntry = `[${timestamp}] ${eventName}${detail ? ': ' + JSON.stringify(detail) : ''}`;
+			eventLog.innerHTML = logEntry + '<br>' + eventLog.innerHTML;
+		}
+
+		// 상태 관리 함수들
+		function getGlobalState() {
+			if (customWAT && customWAT.stateManager) {
+				const state = customWAT.stateManager.get();
+				console.log('전역 상태:', state);
+				alert('전역 상태가 콘솔에 출력되었습니다.');
+			}
+		}
+
+		function updateSettings() {
+			if (customWAT && customWAT.stateManager) {
+				customWAT.stateManager.update('tts.rate', 1.5);
+				customWAT.stateManager.update('tts.pitch', 1.2);
+				alert('TTS 설정이 업데이트되었습니다. (속도: 1.5, 음높이: 1.2)');
+			}
+		}
+
+		function resetSettings() {
+			if (customWAT && customWAT.stateManager) {
+				customWAT.stateManager.merge('tts', {
+					rate: 1.0,
+					pitch: 1.0,
+					volume: 1.0
+				});
+				alert('TTS 설정이 초기화되었습니다.');
+			}
+		}
+
+		// 에러 처리 및 디버깅
+		function triggerError() {
+			try {
+				// 의도적으로 에러 발생
+				customWAT.nonExistentMethod();
+			} catch (error) {
+				console.error('의도적 에러:', error);
+				alert('의도적으로 에러가 발생했습니다. 콘솔을 확인하세요.');
+			}
+		}
+
+		function enableDebugMode() {
+			if (customWAT && typeof customWAT.setDebugMode === 'function') {
+				customWAT.setDebugMode(true);
+				alert('디버그 모드가 활성화되었습니다.');
+			} else {
+				alert('디버그 모드 함수를 찾을 수 없습니다.');
+			}
+		}
+
+		function getErrorLog() {
+			if (customWAT && typeof customWAT.getErrorLog === 'function') {
+				const errors = customWAT.getErrorLog();
+				console.log('에러 로그:', errors);
+				alert('에러 로그가 콘솔에 출력되었습니다.');
+			} else {
+				alert('에러 로그 함수를 찾을 수 없습니다.');
+			}
+		}
+	</script>
+</head>
+
+<body>
+	<div id="mainContent" class="content">
+		<div class="logo"><img src="./assets/images/logo.png" alt="대구사이버대학교"></div>
+		<h1>WAT 커스텀 설정 및 함수 호출 예제</h1>
+
+		<nav id="navWrap" class="navWrap">
+			<ul>
+				<!--
+				<li><a href="https://www.dcu.ac.kr" target="_blank">대구사이버대학교</a></li>
+				-->
+				<li><a href="./index.html">도구 안내</a></li>
+				<li><a href="#section1">섹션 1</a></li>
+				<li><a href="#section2">섹션 2</a></li>
+				<li><a href="#section3">섹션 3</a></li>
+			</ul>
+		</nav>
+
+		<main>
+			<section class="sectWrap">
+				<h2>1. 커스텀 초기화 설정</h2>
+				<p>다양한 설정 옵션으로 WAT를 초기화하는 방법을 보여줍니다.</p>
+
+				<div class="setting-group">
+					<h3>기본 커스텀 설정</h3>
+					<div id="codeWrap" class="codeWrap">
+<pre>
+<code class="code-block no-speech">
+watOptions = {
+		configPath: '../config.json',
+
+		colorTheme: false,
+		toolWidth: 400,
+		containerTargetSelector: '#wrap',
+		// 도구 예외영역 설정
+		excludeSelector: '#navWrap, #codeWrap',
+		fontFamily: {
+			'Koddi Udon Gothic': {
+				enabled: true,
+				url: '/assets/fonts/koddi-udon-gothic/koddi-udon-gothic.css'
+			},
+			'Nanum Pen Script': {
+				enabled: true,
+				url: 'https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&display=swap'
+			}
+		},
+		// TTS 관련 설정
+		ttsSpeechRate: 2.0,		// TTS 읽기 속도 (0.1 ~ 10, 기본값: 1.6)
+		ttsAutoAdvanceDelay: 2000,	// 자동 진행 지연시간 (밀리초, 기본값: 1000)
+
+		// 다중 언어에서 기본 언어 지정
+		language: { languages: ["ko", "en-US", "ja"]},
+		fontSizeOptions: {
+			'size-1p2x': false, // 기존 옵션 비활성화
+			'size-large': {
+				ratio: 2.5,
+				label: '매우 큰 글씨',
+				enabled: true
+			},
+			'size-custom': {
+				ratio: 1.8,
+				label: '사용자 정의 크기'
+			}
+		}
+};
+const wat = new WAT(watOptions);
+window.watPlugin = wat;
+wat.init();
+</code>
+</pre>
+					</div>
+				</div>
+
+				<div class="setting-group">
+					<h3>현재 WAT 인스턴스 정보</h3>
+					<div class="status-display" id="watStatus">
+						WAT 인스턴스 상태를 확인 중...
+					</div>
+					<button class="demo-button" onclick="checkWATStatus()">상태 새로고침</button>
+				</div>
+			</section>
+
+			<section class="sectWrap">
+				<h2>2. TTS (음성 합성) 함수 예제</h2>
+
+				<div class="setting-group">
+					<h3>기본 TTS 함수 호출</h3>
+					<div class="button-group">
+						<button class="demo-button" onclick="speakSimpleText()">간단한 텍스트
+							읽기</button>
+						<button class="demo-button" onclick="speakLongText()">긴 텍스트 읽기</button>
+						<button class="demo-button" onclick="speakWithOptions()">옵션과 함께
+							읽기</button>
+					</div>
+					<div class="code-example">
+						<pre><code>// 기본 텍스트 읽기
+customWAT.ttsManager.speakText('안녕하세요!');
+
+// 옵션과 함께 읽기
+customWAT.ttsManager.speakText('빠르게 읽어보겠습니다', {
+    rate: 2.0,
+    pitch: 1.2,
+    volume: 0.9
+});
+
+// 현재 페이지 제목 읽기
+customWAT.ttsManager.speakText(document.title);</code></pre>
+					</div>
+				</div>
+
+				<div class="setting-group">
+					<h3>TTS 제어 함수</h3>
+					<div class="button-group">
+						<button class="demo-button" onclick="pauseTTS()">TTS 일시정지</button>
+						<button class="demo-button" onclick="resumeTTS()">TTS 재개</button>
+						<button class="demo-button" onclick="stopTTS()">TTS 중지</button>
+						<button class="demo-button" onclick="getTTSStatus()">TTS 상태 확인</button>
+					</div>
+					<div class="code-example">
+						<pre><code>// TTS 일시정지
+customWAT.ttsManager.pause();
+
+// TTS 재개
+customWAT.ttsManager.resume();
+
+// TTS 중지
+customWAT.ttsManager.stop();
+
+// TTS 상태 확인
+const status = customWAT.ttsManager.getStatus();
+console.log('TTS 상태:', status);</code></pre>
+					</div>
+				</div>
+			</section>
+
+			<section class="sectWrap">
+				<h2>3. STT (음성 인식) 함수 예제</h2>
+
+				<div class="setting-group">
+					<h3>음성 인식 제어</h3>
+					<div class="button-group">
+						<button class="demo-button" onclick="startSTT()">음성 인식 시작</button>
+						<button class="demo-button" onclick="stopSTT()">음성 인식 중지</button>
+						<button class="demo-button" onclick="getSTTStatus()">STT 상태 확인</button>
+					</div>
+					<div class="status-display" id="sttResult">
+						음성 인식 결과가 여기에 표시됩니다...
+					</div>
+					<div class="code-example">
+						<pre><code>// 음성 인식 시작
+customWAT.sttManager.start((result) => {
+    console.log('인식된 텍스트:', result);
+    document.getElementById('sttResult').textContent = result;
+});
+
+// 음성 인식 중지
+customWAT.sttManager.stop();
+
+// STT 상태 확인
+const sttStatus = customWAT.sttManager.getStatus();
+console.log('STT 상태:', sttStatus);</code></pre>
+					</div>
+				</div>
+			</section>
+
+			<section class="sectWrap">
+				<h2>4. 포커스 TTS 및 이벤트 처리</h2>
+
+				<div class="setting-group">
+					<h3>포커스 기반 텍스트 읽기</h3>
+					<p>아래 요소들에 포커스를 맞춰보세요 (Tab 키 사용 또는 더블클릭):</p>
+					<div class="button-group">
+						<button tabindex="1">버튼 1 - 이 버튼에 포커스 시 텍스트를 읽습니다</button>
+						<input type="text" placeholder="이 입력 필드에 포커스해보세요" tabindex="2">
+						<select tabindex="3">
+							<option>선택 옵션 1</option>
+							<option>선택 옵션 2</option>
+						</select>
+					</div>
+					<div class="code-example">
+						<pre><code>// 포커스 TTS 수동 활성화
+customWAT.focusTTS.enable();
+
+// 포커스 TTS 비활성화
+customWAT.focusTTS.disable();
+
+// 특정 요소의 텍스트 강제 읽기
+const element = document.querySelector('#targetElement');
+customWAT.focusTTS.readElement(element);</code></pre>
+					</div>
+				</div>
+
+				<div class="setting-group">
+					<h3>이벤트 리스너 등록</h3>
+					<div class="button-group">
+						<button class="demo-button" onclick="addEventListeners()">이벤트 리스너
+							등록</button>
+						<button class="demo-button" onclick="removeEventListeners()">이벤트 리스너
+							제거</button>
+					</div>
+					<div class="status-display" id="eventLog">
+						이벤트 로그가 여기에 표시됩니다...
+					</div>
+					<div class="code-example">
+						<pre><code>// WAT 초기화 완료 이벤트
+document.addEventListener('wat:initialized', (event) => {
+    console.log('WAT 초기화 완료:', event.detail);
+});
+
+// TTS 상태 변경 이벤트
+document.addEventListener('wat:tts:stateChanged', (event) => {
+    console.log('TTS 상태 변경:', event.detail);
+});
+
+// STT 상태 변경 이벤트
+document.addEventListener('wat:stt:stateChanged', (event) => {
+    console.log('STT 상태 변경:', event.detail);
+});
+
+// 설정 변경 이벤트
+document.addEventListener('wat:settings:changed', (event) => {
+    console.log('설정 변경:', event.detail);
+});</code></pre>
+					</div>
+				</div>
+			</section>
+
+			<section class="sectWrap">
+				<h2>5. 고급 설정 및 상태 관리</h2>
+
+				<div class="setting-group">
+					<h3>상태 관리 함수</h3>
+					<div class="button-group">
+						<button class="demo-button" onclick="getGlobalState()">전역 상태 확인</button>
+						<button class="demo-button" onclick="updateSettings()">설정 업데이트</button>
+						<button class="demo-button" onclick="resetSettings()">설정 초기화</button>
+					</div>
+					<div class="code-example">
+						<pre><code>// 전역 상태 확인
+const state = customWAT.stateManager.get();
+console.log('현재 상태:', state);
+
+// 특정 설정 값 확인
+const ttsRate = customWAT.stateManager.get('tts.rate');
+console.log('TTS 속도:', ttsRate);
+
+// 설정 업데이트
+customWAT.stateManager.update('tts.rate', 1.5);
+
+// 여러 설정 한번에 업데이트
+customWAT.stateManager.merge('tts', {
+    rate: 1.3,
+    pitch: 1.1,
+    volume: 0.9
+});</code></pre>
+					</div>
+				</div>
+
+				<div class="setting-group">
+					<h3>에러 처리 및 디버깅</h3>
+					<div class="button-group">
+						<button class="demo-button" onclick="triggerError()">의도적 에러 발생</button>
+						<button class="demo-button" onclick="enableDebugMode()">디버그 모드
+							활성화</button>
+						<button class="demo-button" onclick="getErrorLog()">에러 로그 확인</button>
+					</div>
+					<div class="code-example">
+						<pre><code>// 에러 처리 리스너 등록
+document.addEventListener('wat:error', (event) => {
+    console.error('WAT 에러:', event.detail);
+});
+
+// 디버그 모드 활성화
+customWAT.setDebugMode(true);
+
+// 에러 로그 확인
+const errors = customWAT.getErrorLog();
+console.log('에러 로그:', errors);</code></pre>
+					</div>
+				</div>
+			</section>
+		</main>
+	</div>
+
+</body>
+
+</html>

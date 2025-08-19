@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+	<!-- 렌즈: 파란색 -->
+	<circle cx="10" cy="10" r="6" fill="#61B3E6" stroke="#3A88C3" stroke-width="1.5"/>
+	
+	<!-- 그림자/하이라이트: 보라색 -->
+	<ellipse cx="12" cy="12" rx="1.5" ry="1.5" fill="#9451C3" opacity="0.5"/>
+
+	<!-- 손잡이: 검정색 막대 -->
+	<rect x="14" y="14" width="6" height="1.5" rx="0.75" transform="rotate(45 14 14)" fill="#333"/>
+</svg>

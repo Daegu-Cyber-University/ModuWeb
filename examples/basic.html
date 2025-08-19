@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>WAT 기본 예제</title>
+	<link rel="stylesheet" href="../dist/assets/css/webAccTools.css">
+	<link rel="stylesheet" href="./assets/css/example.css">
+	<script src="../dist/webAccTools.js"></script>
+	<script type="text/javascript">
+		// DOM 로딩 완료 후 WAT 초기화
+		document.addEventListener('DOMContentLoaded', () => {
+			// 기본 설정으로 WAT 초기화
+			const wat = new WAT();
+			//const wat = new WAT(watOptions);
+			window.watPlugin = wat;
+			wat.init();
+
+			// 초기화 완료 후 환영 메시지
+			document.addEventListener('wat:initialized', () => {
+				console.log('웹 접근성 도구가 준비되었습니다!');
+			});
+		});
+	</script>
+</head>
+
+<body>
+	<div id="mainContent" class="content">
+		<div class="logo"><img src="./assets/images/logo.png" alt="대구사이버대학교"></div>
+		<h1>ModuWeb 기본 예제</h1>
+
+		<nav id="navWrap" class="navWrap">
+			<ul>
+				<!--
+				<li><a href="https://www.dcu.ac.kr" target="_blank">대구사이버대학교</a></li>
+				-->
+				<li><a href="./index.html">도구 안내</a></li>
+				<li><a href="#section1">섹션 1</a></li>
+				<li><a href="#section2">섹션 2</a></li>
+				<li><a href="#section3">섹션 3</a></li>
+			</ul>
+		</nav>
+
+		<main>
+			<section id="section0" class="sectWrap">
+				<h2>예제: 기본 사용</h2>
+				<p>이 페이지는 웹 접근성 도구(WAT)의 기본 사용 예제를 보여줍니다.</p>
+				<div id="codeWrap" class="codeWrap">
+<pre>
+<code class="code-block no-speech">
+// DOM 로딩 완료 후 WAT 초기화
+document.addEventListener('DOMContentLoaded', () => {
+	// 기본 설정으로 WAT 초기화
+	const wat = new WAT();
+	window.watPlugin = wat;
+	wat.init();
+});
+</code>
+</pre>
+				</div>
+			</section>
+
+			<section id="section1" class="sectWrap">
+				<h2>섹션 1: 텍스트 내용</h2>
+				<div style="position: relative; z-index: 1;">
+					대구사이버대학교를 방문해주신 여러분들을 진심으로 환영합니다.<br><br>
+
+					우리 대학은 성산 이영식 목사님께서 <span class="col_green">'사랑, 빛, 자유'</span>의 건학정신으로 설립하신 「학교법인 영광학원」 산하의 사이버대학으로 2002년 개교 이래 눈부신 발전을 거듭해 왔습니다. 사회적 약자를 보듬어 온 대구대학교의 형제학교로 '사랑, 빛, 자유'의 건학정신으로 세상을 밝히는 따뜻한 인재 양성을 위해 노력해 왔습니다. 그 결과 대구사이버대학교는 '특수교육, 사회복지, 상담·치료, 재활' 분야에서 아시아 최고를 자랑하는 특성화 사이버대학으로 자리매김하였습니다.<br><br>
+
+					다가올 미래에는 사이버대학이 고등교육을 선도하고 이끌어 나가는 시대가 도래하게 될 것입니다. 이에 우리 대학은 '혁신적인 스마트 교육'으로 다가오는 미래를 준비하고 숭고한 인류애의 정신적 기반 위에서 사람을 위하는 인류 공동의 만인 복지를 구현하기 위하여 대학 구성원 모두가 합심하여 노력하겠습니다.<br><br>
+
+					우리 대학은 미래융합교육을 선도하는 대학으로 거듭나기 위해 <span class="col_green">'U.C.A.N.'</span>을 새로운 교육철학 비전으로 설정하고 '사랑, 빛, 자유'의 건학정신을 바탕으로 '특별한 인재, 창의적 인재, 큰 뜻을 품은 인재' 양성으로 '정의롭고 아름다운 사회를 만들어 가는 따뜻한 전문인을 키워내는 전인교육'을 추구할 것입니다.<br><br>
+
+					<span class="col_green">'Uniqueness, Creativity, Ambition, iNtelligence'</span>는 우리 대학과 나아가 우리 사회가 궁극적으로 추구해야 할 미래 교육의 가치입니다. 이러한 가치 실현을 위해 우리 대학은 스마트 교육 역량을 강화하고 미래융합교육 기반을 고도화하여 사회적 가치를 창출함으로써 글로벌 경쟁력을 확보하고자 노력할 것입니다.<br><br>
+
+					우리 대학은 미래융합교육을 선도하는 사이버대학으로 세상을 밝히는 인재 양성을 통한 사회적 가치를 실현하여 미래 교육의 희망이 되겠습니다.<br><br>
+
+					다시 한번 여러분의 방문을 환영합니다.<br>
+					감사합니다.
+				</div>
+				<div class="effectLogo designWrap" aria-hidden="true">
+					<div class="center"></div>
+					<div class="round"></div>
+				</div>
+			</section>
+
+			<section id="section2" class="sectWrap">
+				<h2>섹션 2: 양식 예제</h2>
+				<p>아래 양식을 작성해 주세요.</p>
+				<form class="formWrap" action="#" method="post">
+					<ul>
+						<li><label for="name">이름:</label> <input type="text" id="name" name="name" required></li>
+						<li><label for="email">이메일:</label> <input type="email" id="email" name="email" required></li>
+						<li><label for="message">메시지:</label> <textarea id="message" name="message" rows="4"></textarea></li>
+					</ul>
+
+					<input type="submit" value="전송">
+				</form>
+			</section>
+
+			<section id="section3" class="sectWrap">
+				<h2>섹션 3: 미디어 콘텐츠</h2>
+				<p>이미지에 대한 설명입니다.</p>
+				<div class="imgWrap">
+					<img src="./assets/images/sample-img.png" alt="대구사이버대학교의 교육이념: 사랑, 빛, 자유" style="max-width: 100%; height: auto;">
+				</div>
+				<div class="videoWrap">
+					<video controls style="max-width: 100%; height: auto;">
+						<source src="//commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" type="video/mp4">
+						Your browser does not support the video tag.
+					</video>
+				</div>
+
+			</section>
+		</main>
+	</div>
+
+</body>
+
+</html>

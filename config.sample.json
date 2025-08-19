@@ -1,0 +1,40 @@
+{
+	"api": {
+		"dictionary": {
+			"enabled": true,
+			"serverEndpoint": "/examples/dict_sample.json",
+			"timeout": 5000,
+			"retryCount": 2,
+			"providers": {
+				"naver": {
+					"enabled": true,
+					"displayName": "네이버 사전",
+					"description": "네이버 백과사전 검색"
+				}
+			}
+		}
+	},
+	"settings": {
+		"ui": {
+			"modalWidth": 600,
+			"showPronunciation": true,
+			"autoClose": false,
+			"theme": "auto"
+		},
+		"behavior": {
+			"autoSearch": true,
+			"cacheResults": true,
+			"maxCacheSize": 100,
+			"debugMode": false
+		},
+		"language": {
+			"defaultLanguage": "ko",
+			"supportedLanguages": ["ko", "en"]
+		},
+		"accessibility": {
+			"highContrast": false,
+			"largeText": false,
+			"screenReader": true
+		}
+	}
+}

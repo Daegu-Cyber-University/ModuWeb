@@ -1,0 +1,603 @@
+{
+	"toolTitle": "网页无障碍辅助工具",
+	"displayLanguage": "中文",
+	"panel": {
+		"__comment__": "面板管理。设置面板的标题、说明以及开/关按钮的文本。",
+		"settings": {
+			"title": "环境设置",
+			"desc": "您可以更改设置。",
+			"manage": {
+				"title": "工具管理",
+				"desc": "可以更改和管理工具的设置。",
+				"options": {
+					"viewMode": {
+						"title": "显示模式",
+						"desc": "可以更改显示模式。支持的选项有【目录视图, 图标视图】。",
+						"listMode": {
+							"title": "目录视图",
+							"desc": "以目录形式显示。"
+						},
+						"iconMode": {
+							"title": "图标视图",
+							"desc": "以图标形式显示。"
+						}
+					},
+					"language": {
+						"title": "语言设置",
+						"desc": "可以更改工具的语言。",
+						"options": {
+							"ko": "韩语",
+							"en-US": "英语（美国）",
+							"en-GB": "英语（英国）",
+							"ja": "日语",
+							"zh": "中文",
+							"de": "德语"
+						}
+					},
+					"storage": {
+						"title": "存储设置",
+						"desc": "可以保存或重置设置。",
+						"options": {
+							"save": "保存",
+							"autoSave": "自动保存",
+							"delete": "重置",
+							"check": "检查保存"
+						}
+					},
+					"position": {
+						"title": "位置设置",
+						"desc": "可以更改工具的位置。",
+						"options": {
+							"left": "左侧",
+							"right": "右侧"
+						}
+					}
+				}
+			},
+			"profile": {
+				"title": "个人资料",
+				"desc": "可以更改用户的个人资料，所选资料会一并应用个人设置。",
+				"options": {
+					"visualImpairment": {
+						"title": "视力障碍",
+						"desc": "可更改针对视力障碍者的设置。"
+					},
+					"lowVision": {
+						"title": "低视力",
+						"desc": "可更改针对低视力者的设置。"
+					},
+					"hearingImpairment": {
+						"title": "听力障碍",
+						"desc": "可更改针对听力障碍者的设置。"
+					},
+					"physicalDisability": {
+						"title": "身体障碍",
+						"desc": "可更改针对身体障碍者的设置。"
+					},
+					"colorBlindness": {
+						"title": "色盲",
+						"desc": "可更改针对色盲者的设置。"
+					},
+					"dyslexia": {
+						"title": "阅读障碍",
+						"desc": "可更改针对阅读障碍和ADHD用户的设置。"
+					}
+				}
+			}
+		},
+		"personal": {
+			"title": "个性化设置",
+			"desc": "可以更改用户的个性化设置。",
+			"options": {
+				"colorMode": {
+					"title": "色彩模式",
+					"desc": "可以设置显示的颜色。",
+					"options": {
+						"initial": "默认",
+						"light": "明亮",
+						"dark": "暗",
+						"reverse": "反转"
+					}
+				},
+				"saturation": {
+					"title": "饱和度调整",
+					"desc": "可以设置显示的饱和度。",
+					"options": {
+						"initial": "默认",
+						"high": "高",
+						"low": "低",
+						"monochrome": "黑白"
+					}
+				},
+				"fontSize": {
+					"title": "字体大小",
+					"desc": "可以更改文本大小。",
+					"options": {
+						"initial": "默认",
+						"size-1p2x": "1.2倍",
+						"size-1p5x": "1.5倍",
+						"size-2x": "2倍"
+					}
+				},
+				"fontFamily": {
+					"title": "字体更换",
+					"desc": "可以更改文本字体。",
+					"options": {
+						"initial": "默认",
+						"Koddi Udon Gothic": "Koddi Udon Gothic",
+						"nanum-maruburi": "Nanum Maruburi",
+						"nanum-square-neo": "Nanum Square Neo",
+						"nanum-myeongjo": "Nanum Myeongjo",
+						"noto-serif-kr": "Noto Serif"
+					}
+				},
+				"screenScale": {
+					"title": "屏幕缩放",
+					"desc": "可以更改屏幕缩放比例。",
+					"options": {
+						"initial": "默认",
+						"scale-1p2x": "1.2倍",
+						"scale-1p5x": "1.5倍",
+						"scale-2x": "2倍"
+					}
+				},
+				"letterSpacing": {
+					"title": "字距",
+					"desc": "可以调整文本的字距。",
+					"options": {
+						"initial": "默认",
+						"wide_little": "稍宽",
+						"wide_normal": "宽",
+						"wide_more": "非常宽"
+					}
+				},
+				"txtAlign": {
+					"title": "文本对齐",
+					"desc": "可以更改文本对齐方式。",
+					"options": {
+						"initial": "默认",
+						"left": "左对齐",
+						"center": "居中",
+						"right": "右对齐"
+					}
+				},
+				"readGuide": {
+					"title": "光标引导模式",
+					"desc": "突出显示鼠标光标的位置。",
+					"options": {
+						"unset": "关闭",
+						"mask": "遮罩",
+						"underline": "下划线",
+						"bigCursor": "放大光标"
+					}
+				},
+				"hideImages": {
+					"title": "隐藏图像",
+					"desc": "选择图像的显示方式。",
+					"options": {
+						"show": "显示",
+						"hide": "隐藏"
+					}
+				},
+				"imgTextConvert": {
+					"title": "图像文字化",
+					"desc": "选择显示图像的替代文本还是图像。",
+					"options": {
+						"on": "显示文本",
+						"off": "显示图像"
+					},
+					"msg": {
+						"noAlt": "图像（无描述）"
+					}
+				},
+				"imgDisplayMode": {
+					"title": "图像显示模式",
+					"desc": "设置图像的显示模式。",
+					"options": {
+						"initial": "默认",
+						"hide": "隐藏",
+						"convert": "文本转换"
+					}
+				},
+				"mediaControl": {
+					"title": "媒体控制",
+					"desc": "可以控制媒体的播放状态。",
+					"options": {
+						"play": "可播放",
+						"stop": "停止",
+						"pause": "暂停"
+					}
+				},
+				"soundControl": {
+					"title": "声音控制",
+					"desc": "可以控制声音状态。",
+					"options": {
+						"mute": "静音",
+						"unmute": "取消静音"
+					}
+				},
+				"animationControl": {
+					"title": "动画控制",
+					"desc": "可以控制动画的播放状态。",
+					"options": {
+						"play": "播放",
+						"stop": "停止"
+					}
+				},
+				"pageScroll": {
+					"title": "页面滚动",
+					"desc": "控制当前页面的滚动。",
+					"options": {
+						"start": "开始",
+						"stop": "停止",
+						"up": "向上滚动",
+						"down": "向下滚动"
+					}
+				},
+				"tts": {
+					"title": "屏幕朗读",
+					"desc": "可以控制屏幕朗读。",
+					"options": {
+						"speed": "速度",
+						"language": "语言",
+						"start": "开始",
+						"stop": "停止",
+						"pause": "暂停",
+						"resume": "继续",
+						"prev": "上一句",
+						"next": "下一句",
+						"focus-start": "开始焦点检测",
+						"focus-stop": "停止焦点检测"
+					},
+					"msg": {
+						"noSupport": "此浏览器不支持屏幕朗读。",
+						"error": "屏幕朗读过程中发生错误。",
+						"start": "正在开始屏幕朗读。",
+						"stop": "正在停止屏幕朗读。",
+						"pause": "正在暂停屏幕朗读。",
+						"resume": "正在继续屏幕朗读。",
+						"prev": "移至上一句。",
+						"next": "移至下一句。",
+						"lastArea": "这是最后一部分，没有更多的可读区域。",
+						"firstArea": "这是第一部分，没有前一部分。",
+						"endOfRead": "朗读结束。",
+						"endOfReadArea": "当前区域朗读完毕。",
+						"endOfReadPage": "本页朗读完毕。",
+						"focus-start": "开始焦点检测。",
+						"focus-stop": "停止焦点检测。"
+					}
+				},
+				"stt": {
+					"title": "语音识别",
+					"desc": "可以控制语音识别。",
+					"options": {
+						"start": "开始",
+						"stop": "停止"
+					},
+					"msg": {
+						"noSupport": "此浏览器不支持语音识别。",
+						"error": "语音识别过程中发生错误。",
+						"start": "正在开始语音识别。",
+						"stop": "正在停止语音识别。"
+					}
+				},
+				"diction": {
+					"title": "词典查询",
+					"desc": "使用开放 API 词典查询单词。",
+					"options": {
+						"on": "开启",
+						"off": "关闭"
+					}
+				},
+				"lineHeight": {
+					"title": "行间距",
+					"desc": "调整行与行之间的间距。",
+					"options": {
+						"initial": "默认",
+						"size-1p5x": "1.5倍",
+						"size-1p75x": "1.75倍",
+						"size-2x": "2倍"
+					}
+				},
+				"pageStructure": {
+					"title": "页面结构",
+					"desc": "以文本形式展示页面结构。",
+					"options": {
+						"show": "显示",
+						"hide": "隐藏",
+						"marker": "跳转到该位置",
+						"link": "激活链接"
+					},
+					"text": {
+						"tabList-heading": "标题",
+						"tabList-section": "结构",
+						"tabList-semantic": "语义",
+						"tabList-link": "链接"
+					}
+				}
+			}
+		}
+	},
+	"command": {
+		"__comment__": "命令管理。设置命令的名称。",
+		"move": "移动, 执行",
+		"open": "打开",
+		"close": "关闭",
+		"on": "开启, 激活, 开始",
+		"off": "关闭, 非激活, 停止, 结束",
+		"minimize": "最小化窗口",
+		"restore": "恢复窗口"
+	},
+	"patterns": {
+		"__comment__": "搜索模式管理。设置搜索模式的标题和搜索词。",
+		"properNoun": {
+			"title": "专有名词",
+			"list": "(남도|북도|도|군|시|구|읍|면)"
+		},
+		"particles": {
+			"title": "助词",
+			"list": "(이|가|을|를|에|에서|로|으로|와|과|의|로서|로써|에게|한테|께|로부터|으로부터|에게서|한테서|께서|로서|로써|에게로|한테로|께로|로부터로|으로부터로|에게서로|한테서로|께서로|로서로|로써로|에게로서|한테로서|께로서|로부터로서|으로부터로서|에게서로서|한테서로서|께서로서|로서로서|로써로서)"
+		}
+	},
+	"tags": {
+		"a": {
+			"tagTitle": "链接",
+			"attr": {
+				"target": {
+					"self": "当前窗口",
+					"blank": "新窗口",
+					"parent": "父窗口",
+					"top": "顶层窗口"
+				}
+			},
+			"text": {
+				"newWindowTitles": "新窗口|新窗口"
+			}
+		},
+		"img": {
+			"tagTitle": "图像文件",
+			"attr": {
+				"alt": "替代文本",
+				"src": "图像路径"
+			}
+		},
+		"button": {
+			"tagTitle": "按钮",
+			"attr": {
+				"type": {
+					"submit": "提交",
+					"reset": "重置",
+					"cancel": "取消",
+					"button": "普通按钮",
+					"toggle": "切换按钮",
+					"option": "选项按钮"
+				}
+			},
+			"text": {
+				"save": "保存",
+				"open": "打开",
+				"close": "关闭",
+				"stateOpen": "已开启",
+				"stateClose": "已关闭",
+				"option": "选项",
+				"optionsOpen": "选项已开启",
+				"optionsClose": "选项已关闭",
+				"ok": "确认",
+				"yes": "是",
+				"no": "否",
+				"on": "开启",
+				"off": "关闭",
+				"stateOn": "已开启",
+				"stateOff": "已关闭",
+				"up": "向上",
+				"down": "向下",
+				"add": "添加",
+				"remove": "删除",
+				"edit": "编辑",
+				"change": "更改",
+				"start": "开始",
+				"stop": "停止",
+				"prev": "上一项",
+				"next": "下一项",
+				"prevOpt": "上一个选项",
+				"nextOpt": "下一个选项",
+				"back": "返回",
+				"forward": "前进",
+				"expand": "展开",
+				"collapse": "折叠",
+				"select": "选择",
+				"upload": "上传",
+				"download": "下载",
+				"search": "搜索",
+				"print": "打印",
+				"share": "分享",
+				"refresh": "刷新",
+				"file": "文件上传"
+			}
+		},
+		"progress": {
+			"tagTitle": "进度条",
+			"attr": {
+				"current": "当前值",
+				"value": "进度",
+				"max": "最大值"
+			}
+		},
+		"input": {
+			"undefined": {
+				"tagTitle": "输入字段"
+			},
+			"radio": {
+				"tagTitle": "单选按钮"
+			},
+			"checkbox": {
+				"tagTitle": "复选框"
+			},
+			"text": {
+				"tagTitle": "文本输入"
+			},
+			"textarea": {
+				"tagTitle": "文本区域"
+			},
+			"select": {
+				"tagTitle": "选择框",
+				"attr": {
+					"option": "选项"
+				},
+				"msg": {
+					"select": "请选择"
+				}
+			},
+			"file": {
+				"tagTitle": "文件输入",
+				"attr": {
+					"select": "选择文件",
+					"change": "更改文件"
+				}
+			},
+			"button": {
+				"tagTitle": "按钮"
+			},
+			"submit": {
+				"tagTitle": "提交按钮"
+			},
+			"reset": {
+				"tagTitle": "重置按钮"
+			},
+			"image": {
+				"tagTitle": "图像按钮"
+			},
+			"password": {
+				"tagTitle": "密码输入"
+			},
+			"email": {
+				"tagTitle": "电子邮件输入"
+			},
+			"url": {
+				"tagTitle": "网址输入"
+			},
+			"number": {
+				"tagTitle": "数字输入"
+			},
+			"range": {
+				"tagTitle": "范围输入",
+				"attr": {
+					"current": "当前值",
+					"min": "最小值",
+					"max": "最大值",
+					"step": "步长"
+				}
+			},
+			"date": {
+				"tagTitle": "日期输入",
+				"attr": {
+					"current": "当前日期",
+					"min": "最小日期",
+					"max": "最大日期"
+				}
+			},
+			"time": {
+				"tagTitle": "时间输入",
+				"attr": {
+					"current": "当前时间",
+					"min": "最小时间",
+					"max": "最大时间",
+					"step": "步长"
+				}
+			},
+			"datetime": {
+				"tagTitle": "日期/时间输入",
+				"attr": {
+					"current": "当前日期/时间",
+					"min": "最小日期/时间",
+					"max": "最大日期/时间"
+				}
+			},
+			"color": {
+				"tagTitle": "颜色输入",
+				"attr": {
+					"current": "当前颜色",
+					"hex": "HEX代码",
+					"rgb": "RGB代码",
+					"hsl": "HSL代码"
+				}
+			},
+			"search": {
+				"tagTitle": "搜索输入"
+			},
+			"progress": {
+				"tagTitle": "进度条"
+			}
+		},
+		"select": {
+			"tagTitle": "选择框"
+		},
+		"textarea": {
+			"tagTitle": "文本区域"
+		},
+		"table": {
+			"tagTitle": "表格",
+			"caption": "标题",
+			"summary": "摘要",
+			"header": "表头",
+			"footer": "表尾",
+			"row": "行",
+			"col": "列",
+			"cell": "单元格",
+			"cellHeader": "表头单元格",
+			"cellData": "数据单元格",
+			"colspan": "列合并",
+			"rowspan": "行合并"
+		}
+	},
+	"msg": {
+		"success": {
+			"save": "保存成功。"
+		},
+		"error": {
+			"default": "发生错误。",
+			"save": "保存时发生错误。",
+			"load": "加载时发生错误。",
+			"selectorNotFound": "未找到 \"{selector}\" 元素。",
+			"fetchSearchResults": "没有搜索结果。",
+			"unsupportedTagTTS": "该标签不支持朗读。",
+			"undefinedTarget": "目标未定义。",
+			"undefinedAttribute": "属性未定义。",
+			"undefinedValue": "值未定义。",
+			"undefinedOption": "选项未定义。",
+			"invalidTarget": "无效的目标。",
+			"noSelectedText": "未选择文本。",
+			"noElementsFound": "未找到可读取的元素。",
+			"ttsNotSupported": "此浏览器不支持文本转语音。",
+			"ttsExecutionFailed": "文本转语音执行过程中发生错误。"
+		},
+		"warning": {
+			"noChange": "没有更改。",
+			"optionNotNode": "选项 \"{option}\" 不是节点，将被跳过。",
+			"noSettingsChecked": "未选中任何设置。",
+			"languageNotFound": "图像（语言未找到）"
+		}
+	},
+	"text": {
+		"fileSelected": "已选文件",
+		"fileName": "文件名",
+		"noFileSelected": "未选择文件",
+		"imgFile": "图像文件",
+		"value": "值",
+		"disabled": "禁用",
+		"enabled": "启用",
+		"hidden": "隐藏",
+		"visible": "显示",
+		"required": "必填",
+		"optional": "可选",
+		"checked": "已选",
+		"selected": "已选",
+		"unchecked": "未选",
+		"expanded": "已展开",
+		"collapsed": "已折叠",
+		"newWindow": "新窗口",
+		"empty": "空",
+		"strong": "强调",
+		"emphasize": "强调"
+	}
+}

@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>WAT API 함수 호출 예제</title>
+	<link rel="stylesheet" href="../dist/assets/css/webAccTools.css">
+	<link rel="stylesheet" href="./assets/css/example.css">
+	<script src="../dist/webAccTools.js"></script>
+	<style>
+		.api-section {
+			background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+			border-radius: 10px;
+			padding: 25px;
+			margin: 20px 0;
+			box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+		}
+
+		.api-section h3 {
+			color: #2c3e50;
+			margin-top: 0;
+			border-bottom: 3px solid #3498db;
+			padding-bottom: 10px;
+		}
+
+		.function-demo {
+			background: white;
+			border: 1px solid #e1e8ed;
+			border-radius: 8px;
+			padding: 20px;
+			margin: 15px 0;
+		}
+
+		.function-demo h4 {
+			color: #34495e;
+			margin-top: 0;
+			font-size: 1.1em;
+		}
+
+		.demo-controls {
+			display: flex;
+			gap: 10px;
+			flex-wrap: wrap;
+			margin: 15px 0;
+		}
+
+		.api-button {
+			background: linear-gradient(45deg, #3498db, #2980b9);
+			color: white;
+			border: none;
+			padding: 12px 24px;
+			border-radius: 6px;
+			cursor: pointer;
+			font-size: 14px;
+			font-weight: 500;
+			transition: all 0.3s ease;
+			box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+		}
+
+		.api-button:hover {
+			background: linear-gradient(45deg, #2980b9, #1f618d);
+			transform: translateY(-2px);
+			box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+		}
+
+		.api-button:active {
+			transform: translateY(0);
+		}
+
+		.api-button.danger {
+			background: linear-gradient(45deg, #e74c3c, #c0392b);
+		}
+
+		.api-button.danger:hover {
+			background: linear-gradient(45deg, #c0392b, #a93226);
+		}
+
+		.api-button.success {
+			background: linear-gradient(45deg, #27ae60, #229954);
+		}
+
+		.api-button.success:hover {
+			background: linear-gradient(45deg, #229954, #1e8449);
+		}
+
+		.result-display {
+			background: #2c3e50;
+			color: #ecf0f1;
+			padding: 15px;
+			border-radius: 6px;
+			margin: 15px 0;
+			font-family: 'Courier New', monospace;
+			font-size: 13px;
+			line-height: 1.5;
+			max-height: 200px;
+			overflow-y: auto;
+			border: 2px solid #34495e;
+		}
+
+		.code-snippet {
+			background: #f8f9fa;
+			border: 1px solid #e9ecef;
+			border-radius: 6px;
+			padding: 15px;
+			margin: 15px 0;
+			overflow-x: auto;
+		}
+
+		.code-snippet pre {
+			margin: 0;
+			font-family: 'Courier New', monospace;
+			font-size: 13px;
+			line-height: 1.4;
+			color: #495057;
+		}
+
+		.parameter-input {
+			padding: 8px 12px;
+			border: 1px solid #ced4da;
+			border-radius: 4px;
+			margin: 5px;
+			font-size: 14px;
+		}
+
+		.parameter-group {
+			background: #f8f9fa;
+			padding: 15px;
+			border-radius: 6px;
+			margin: 10px 0;
+		}
+
+		.parameter-group label {
+			display: block;
+			margin-bottom: 5px;
+			font-weight: 500;
+			color: #495057;
+		}
+
+		.live-status {
+			background: #d4edda;
+			border: 1px solid #c3e6cb;
+			color: #155724;
+			padding: 10px;
+			border-radius: 4px;
+			margin: 10px 0;
+			font-size: 14px;
+		}
+
+		.error-status {
+			background: #f8d7da;
+			border: 1px solid #f5c6cb;
+			color: #721c24;
+			padding: 10px;
+			border-radius: 4px;
+			margin: 10px 0;
+			font-size: 14px;
+		}
+	</style>
+	<script>
+		let watInstance;
+		let eventMonitoringActive = false;
+		let stateObserverActive = false;
+		let stateObserverCallback = null;
+
+		document.addEventListener('DOMContentLoaded', () => {
+			// WAT 인스턴스 초기화
+			watInstance = new WAT({
+				enableTTS: true,
+				enableSTT: true,
+				enableFocusTTS: true
+			});
+
+			window.watInstance = watInstance;
+			watInstance.init();
+
+			// 초기화 완료 이벤트
+			document.addEventListener('wat:initialized', (event) => {
+				console.log('WAT API 예제 초기화 완료:', event.detail);
+				updateTTSStatusDisplay();
+			});
+		});
+
+		// TTS API 함수들
+		function callSpeakText() {
+			const text = document.getElementById('ttsText').value;
+			const rate = parseFloat(document.getElementById('ttsRate').value);
+			const pitch = parseFloat(document.getElementById('ttsPitch').value);
+			const volume = parseFloat(document.getElementById('ttsVolume').value);
+
+			if (watInstance && watInstance.ttsManager) {
+				watInstance.ttsManager.speakText(text, {
+					rate: rate,
+					pitch: pitch,
+					volume: volume
+				});
+				updateTTSStatusDisplay(`텍스트 재생 중: "${text}"`);
+			}
+		}
+
+		function callPauseTTS() {
+			if (watInstance && watInstance.ttsManager) {
+				watInstance.ttsManager.pause();
+				updateTTSStatusDisplay('TTS 일시정지됨');
+			}
+		}
+
+		function callResumeTTS() {
+			if (watInstance && watInstance.ttsManager) {
+				watInstance.ttsManager.resume();
+				updateTTSStatusDisplay('TTS 재개됨');
+			}
+		}
+
+		function callStopTTS() {
+			if (watInstance && watInstance.ttsManager) {
+				watInstance.ttsManager.stop();
+				updateTTSStatusDisplay('TTS 중지됨');
+			}
+		}
+
+		function getTTSStatus() {
+			if (watInstance && watInstance.ttsManager) {
+				const status = watInstance.ttsManager.getStatus();
+				updateTTSStatusDisplay('TTS 상태: ' + JSON.stringify(status, null, 2));
+			}
+		}
+
+		function getTTSVoices() {
+			if ('speechSynthesis' in window) {
+				const voices = speechSynthesis.getVoices();
+				const voiceList = voices.map(voice => `${voice.name} (${voice.lang})`).join('\n');
+				updateTTSStatusDisplay('사용 가능한 음성:\n' + voiceList);
+			}
+		}
+
+		function setTTSVoice() {
+			if ('speechSynthesis' in window) {
+				const voices = speechSynthesis.getVoices();
+				const koreanVoice = voices.find(voice => voice.lang.includes('ko'));
+				if (koreanVoice && watInstance && watInstance.ttsManager) {
+					watInstance.ttsManager.setVoice(koreanVoice);
+					updateTTSStatusDisplay(`음성 변경됨: ${koreanVoice.name}`);
+				}
+			}
+		}
+
+		function updateTTSStatusDisplay(message) {
+			const timestamp = new Date().toLocaleTimeString();
+			document.getElementById('ttsStatusResult').innerHTML =
+				`[${timestamp}] ${message}\n` + document.getElementById('ttsStatusResult').innerHTML;
+		}
+
+		// STT API 함수들
+		function startSTT() {
+			const language = document.getElementById('sttLanguage').value;
+			const continuous = document.getElementById('sttContinuous').checked;
+			const interimResults = document.getElementById('sttInterim').checked;
+
+			if (watInstance && watInstance.sttManager) {
+				document.getElementById('sttStatus').textContent = '음성 인식 중... 말씀해 주세요.';
+				document.getElementById('sttStatus').className = 'live-status';
+
+				watInstance.sttManager.start((result, isFinal) => {
+					const timestamp = new Date().toLocaleTimeString();
+					const resultText = `[${timestamp}] ${isFinal ? '[최종]' : '[중간]'} ${result}`;
+					document.getElementById('sttResult').innerHTML =
+						resultText + '\n' + document.getElementById('sttResult').innerHTML;
+				}, {
+					language: language,
+					continuous: continuous,
+					interimResults: interimResults
+				});
+			}
+		}
+
+		function stopSTT() {
+			if (watInstance && watInstance.sttManager) {
+				watInstance.sttManager.stop();
+				document.getElementById('sttStatus').textContent = '음성 인식이 중지되었습니다.';
+				document.getElementById('sttStatus').className = 'error-status';
+			}
+		}
+
+		function getSTTStatus() {
+			if (watInstance && watInstance.sttManager) {
+				const status = watInstance.sttManager.getStatus();
+				const timestamp = new Date().toLocaleTimeString();
+				document.getElementById('sttResult').innerHTML =
+					`[${timestamp}] STT 상태: ${JSON.stringify(status, null, 2)}\n` +
+					document.getElementById('sttResult').innerHTML;
+			}
+		}
+
+		// FocusTTS API 함수들
+		function enableFocusTTS() {
+			if (watInstance && watInstance.focusTTS) {
+				watInstance.focusTTS.enable();
+				alert('포커스 TTS가 활성화되었습니다. 요소에 포커스를 맞춰보세요.');
+			}
+		}
+
+		function disableFocusTTS() {
+			if (watInstance && watInstance.focusTTS) {
+				watInstance.focusTTS.disable();
+				alert('포커스 TTS가 비활성화되었습니다.');
+			}
+		}
+
+		function getFocusTTSStatus() {
+			if (watInstance && watInstance.focusTTS) {
+				const status = watInstance.focusTTS.getStatus();
+				alert('포커스 TTS 상태: ' + JSON.stringify(status, null, 2));
+			}
+		}
+
+		function readElementBySelector() {
+			const selector = document.getElementById('targetSelector').value;
+			if (watInstance && watInstance.focusTTS && selector) {
+				const element = document.querySelector(selector);
+				if (element) {
+					watInstance.focusTTS.readElement(element);
+				} else {
+					alert('선택자에 해당하는 요소를 찾을 수 없습니다: ' + selector);
+				}
+			}
+		}
+
+		function readPageTitle() {
+			if (watInstance && watInstance.ttsManager) {
+				watInstance.ttsManager.speakText(document.title);
+			}
+		}
+
+		function readCurrentFocus() {
+			if (watInstance && watInstance.focusTTS) {
+				const focusedElement = document.activeElement;
+				if (focusedElement && focusedElement !== document.body) {
+					watInstance.focusTTS.readElement(focusedElement);
+				} else {
+					alert('현재 포커스된 요소가 없습니다.');
+				}
+			}
+		}
+
+		// 상태 관리 API 함수들
+		function getState() {
+			if (watInstance && watInstance.stateManager) {
+				const state = watInstance.stateManager.get();
+				document.getElementById('stateResult').innerHTML =
+					'전체 상태:\n' + JSON.stringify(state, null, 2);
+			}
+		}
+
+		function getStateByPath() {
+			const path = document.getElementById('statePath').value;
+			if (watInstance && watInstance.stateManager && path) {
+				const value = watInstance.stateManager.get(path);
+				document.getElementById('stateResult').innerHTML =
+					`${path}: ${JSON.stringify(value, null, 2)}`;
+			}
+		}
+
+		function updateState() {
+			const path = document.getElementById('statePath').value;
+			const value = document.getElementById('stateValue').value;
+			if (watInstance && watInstance.stateManager && path && value) {
+				// 숫자인지 확인하고 변환
+				const parsedValue = isNaN(value) ? value : parseFloat(value);
+				watInstance.stateManager.set(path, parsedValue);
+				document.getElementById('stateResult').innerHTML =
+					`상태 업데이트됨: ${path} = ${parsedValue}`;
+			}
+		}
+
+		function resetState() {
+			if (watInstance && watInstance.stateManager) {
+				// 기본 TTS 설정으로 리셋
+				watInstance.stateManager.merge('tts', {
+					rate: 1.0,
+					pitch: 1.0,
+					volume: 1.0
+				});
+				document.getElementById('stateResult').innerHTML = 'TTS 설정이 초기화되었습니다.';
+			}
+		}
+
+		function addStateObserver() {
+			if (watInstance && watInstance.stateManager && !stateObserverActive) {
+				stateObserverCallback = (newValue, oldValue, path) => {
+					const timestamp = new Date().toLocaleTimeString();
+					const logEntry = `[${timestamp}] ${path}: ${oldValue} → ${newValue}`;
+					document.getElementById('observerResult').innerHTML =
+						logEntry + '\n' + document.getElementById('observerResult').innerHTML;
+				};
+
+				watInstance.stateManager.observe('tts.rate', stateObserverCallback);
+				stateObserverActive = true;
+				document.getElementById('observerResult').innerHTML =
+					'상태 관찰자가 추가되었습니다 (tts.rate 경로 모니터링)\n' +
+					document.getElementById('observerResult').innerHTML;
+			}
+		}
+
+		function removeStateObserver() {
+			if (watInstance && watInstance.stateManager && stateObserverActive && stateObserverCallback) {
+				watInstance.stateManager.unobserve('tts.rate', stateObserverCallback);
+				stateObserverActive = false;
+				stateObserverCallback = null;
+				document.getElementById('observerResult').innerHTML =
+					'상태 관찰자가 제거되었습니다\n' +
+					document.getElementById('observerResult').innerHTML;
+			}
+		}
+
+		function triggerStateChange() {
+			if (watInstance && watInstance.stateManager) {
+				const randomRate = 0.5 + Math.random() * 2; // 0.5 ~ 2.5
+				watInstance.stateManager.set('tts.rate', randomRate);
+			}
+		}
+
+		// 이벤트 시스템 API 함수들
+		const eventHandlers = {};
+
+		function startEventMonitoring() {
+			if (!eventMonitoringActive) {
+				const events = [
+					'wat:initialized',
+					'wat:tts:stateChanged',
+					'wat:stt:stateChanged',
+					'wat:settings:changed',
+					'wat:custom'
+				];
+
+				events.forEach(eventName => {
+					eventHandlers[eventName] = (event) => {
+						const timestamp = new Date().toLocaleTimeString();
+						const logEntry = `[${timestamp}] ${eventName}: ${JSON.stringify(event.detail)}`;
+						document.getElementById('eventMonitorResult').innerHTML =
+							logEntry + '\n' + document.getElementById('eventMonitorResult').innerHTML;
+					};
+					document.addEventListener(eventName, eventHandlers[eventName]);
+				});
+
+				eventMonitoringActive = true;
+				document.getElementById('eventMonitorResult').innerHTML =
+					'이벤트 모니터링 시작됨\n' + document.getElementById('eventMonitorResult').innerHTML;
+			}
+		}
+
+		function stopEventMonitoring() {
+			if (eventMonitoringActive) {
+				Object.keys(eventHandlers).forEach(eventName => {
+					document.removeEventListener(eventName, eventHandlers[eventName]);
+					delete eventHandlers[eventName];
+				});
+
+				eventMonitoringActive = false;
+				document.getElementById('eventMonitorResult').innerHTML =
+					'이벤트 모니터링 중지됨\n' + document.getElementById('eventMonitorResult').innerHTML;
+			}
+		}
+
+		function dispatchCustomEvent() {
+			const customEvent = new CustomEvent('wat:custom', {
+				detail: {
+					message: '커스텀 이벤트 테스트',
+					timestamp: new Date().toISOString()
+				}
+			});
+			document.dispatchEvent(customEvent);
+		}
+
+		function clearEventLog() {
+			document.getElementById('eventMonitorResult').innerHTML = '';
+		}
+
+		// 유틸리티 및 디버깅 API 함수들
+		function getSystemInfo() {
+			const systemInfo = {
+				userAgent: navigator.userAgent,
+				language: navigator.language,
+				languages: navigator.languages,
+				platform: navigator.platform,
+				cookieEnabled: navigator.cookieEnabled,
+				onLine: navigator.onLine,
+				screen: {
+					width: screen.width,
+					height: screen.height,
+					colorDepth: screen.colorDepth
+				},
+				window: {
+					innerWidth: window.innerWidth,
+					innerHeight: window.innerHeight
+				}
+			};
+
+			document.getElementById('diagnosticResult').innerHTML =
+				'시스템 정보:\n' + JSON.stringify(systemInfo, null, 2);
+		}
+
+		function getBrowserCapabilities() {
+			const capabilities = {
+				speechSynthesis: 'speechSynthesis' in window,
+				speechRecognition: 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window,
+				mediaDevices: 'mediaDevices' in navigator,
+				getUserMedia: 'getUserMedia' in navigator.mediaDevices,
+				localStorage: 'localStorage' in window,
+				sessionStorage: 'sessionStorage' in window,
+				indexedDB: 'indexedDB' in window,
+				webWorkers: 'Worker' in window,
+				serviceWorkers: 'serviceWorker' in navigator,
+				notifications: 'Notification' in window,
+				geolocation: 'geolocation' in navigator
+			};
+
+			document.getElementById('diagnosticResult').innerHTML =
+				'브라우저 기능:\n' + JSON.stringify(capabilities, null, 2);
+		}
+
+		function runDiagnostics() {
+			const diagnostics = {
+				watInstance: !!watInstance,
+				watInitialized: watInstance ? watInstance.isInitialized : false,
+				ttsAvailable: watInstance && watInstance.ttsManager ? true : false,
+				sttAvailable: watInstance && watInstance.sttManager ? true : false,
+				focusTTSAvailable: watInstance && watInstance.focusTTS ? true : false,
+				stateManagerAvailable: watInstance && watInstance.stateManager ? true : false,
+				browserSpeechSynthesis: 'speechSynthesis' in window,
+				browserSpeechRecognition: 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window,
+				timestamp: new Date().toISOString()
+			};
+
+			document.getElementById('diagnosticResult').innerHTML =
+				'WAT 진단 결과:\n' + JSON.stringify(diagnostics, null, 2);
+		}
+
+		function enableDebugMode() {
+			if (watInstance && typeof watInstance.setDebugMode === 'function') {
+				watInstance.setDebugMode(true);
+				document.getElementById('diagnosticResult').innerHTML =
+					'디버그 모드가 활성화되었습니다. 콘솔에서 상세 로그를 확인하세요.';
+			} else {
+				document.getElementById('diagnosticResult').innerHTML =
+					'디버그 모드 함수를 찾을 수 없습니다.';
+			}
+		}
+	</script>
+</head>
+
+<body>
+	<div class="content">
+		<div class="logo"><img src="./assets/images/logo.png" alt="대구사이버대학교"></div>
+		<h1>WAT API 함수 호출 예제</h1>
+
+		<nav class="navWrap">
+			<ul>
+				<li><a href="index.html">예제 목록으로</a></li>
+				<li><a href="basic.html">기본 사용법</a></li>
+				<li><a href="custom-examples.html">커스텀 설정</a></li>
+				<li><a href="../architecture-diagram.html">아키텍처</a></li>
+			</ul>
+		</nav>
+
+		<main>
+			<section class="sectWrap">
+				<h2>🎙️ TTS (Text-to-Speech) API</h2>
+
+				<div class="api-section">
+					<h3>기본 TTS 함수</h3>
+
+					<div class="function-demo">
+						<h4>speakText(text, options)</h4>
+						<div class="parameter-group">
+							<label for="ttsText">읽을 텍스트:</label>
+							<input type="text" id="ttsText" class="parameter-input"
+								value="안녕하세요! WAT TTS 기능을 테스트하고 있습니다."
+								style="width: 100%; max-width: 500px;">
+						</div>
+						<div class="parameter-group">
+							<label for="ttsRate">속도 (0.1 - 10):</label>
+							<input type="number" id="ttsRate" class="parameter-input"
+								value="1.0" min="0.1" max="10" step="0.1">
+
+							<label for="ttsPitch">음높이 (0 - 2):</label>
+							<input type="number" id="ttsPitch" class="parameter-input"
+								value="1.0" min="0" max="2" step="0.1">
+
+							<label for="ttsVolume">볼륨 (0 - 1):</label>
+							<input type="number" id="ttsVolume" class="parameter-input"
+								value="1.0" min="0" max="1" step="0.1">
+						</div>
+						<div class="demo-controls">
+							<button class="api-button" onclick="callSpeakText()">텍스트
+								읽기</button>
+							<button class="api-button success"
+								onclick="callPauseTTS()">일시정지</button>
+							<button class="api-button success"
+								onclick="callResumeTTS()">재개</button>
+							<button class="api-button danger"
+								onclick="callStopTTS()">중지</button>
+						</div>
+						<div class="code-snippet">
+							<pre><code>// 기본 사용법
+watInstance.ttsManager.speakText('텍스트');
+
+// 옵션과 함께 사용
+watInstance.ttsManager.speakText('텍스트', {
+    rate: 1.5,    // 속도
+    pitch: 1.2,   // 음높이  
+    volume: 0.8   // 볼륨
+});</code></pre>
+						</div>
+					</div>
+
+					<div class="function-demo">
+						<h4>TTS 상태 및 제어</h4>
+						<div class="demo-controls">
+							<button class="api-button" onclick="getTTSStatus()">상태
+								확인</button>
+							<button class="api-button" onclick="getTTSVoices()">사용 가능한
+								음성</button>
+							<button class="api-button" onclick="setTTSVoice()">음성
+								변경</button>
+						</div>
+						<div class="result-display" id="ttsStatusResult">
+							TTS 상태 정보가 여기에 표시됩니다...
+						</div>
+						<div class="code-snippet">
+							<pre><code>// TTS 상태 확인
+const status = watInstance.ttsManager.getStatus();
+
+// 사용 가능한 음성 목록
+const voices = watInstance.ttsManager.getVoices();
+
+// 음성 변경
+watInstance.ttsManager.setVoice(voices[0]);</code></pre>
+						</div>
+					</div>
+				</div>
+			</section>
+
+			<section class="sectWrap">
+				<h2>🎤 STT (Speech-to-Text) API</h2>
+
+				<div class="api-section">
+					<h3>음성 인식 함수</h3>
+
+					<div class="function-demo">
+						<h4>start(callback, options)</h4>
+						<div class="parameter-group">
+							<label for="sttLanguage">인식 언어:</label>
+							<select id="sttLanguage" class="parameter-input">
+								<option value="ko-KR">한국어</option>
+								<option value="en-US">영어 (미국)</option>
+								<option value="ja-JP">일본어</option>
+								<option value="zh-CN">중국어 (간체)</option>
+							</select>
+
+							<label>
+								<input type="checkbox" id="sttContinuous" checked> 연속 인식
+							</label>
+							<label>
+								<input type="checkbox" id="sttInterim" checked> 중간 결과 표시
+							</label>
+						</div>
+						<div class="demo-controls">
+							<button class="api-button success" onclick="startSTT()">음성 인식
+								시작</button>
+							<button class="api-button danger" onclick="stopSTT()">음성 인식
+								중지</button>
+							<button class="api-button" onclick="getSTTStatus()">STT 상태
+								확인</button>
+						</div>
+						<div class="live-status" id="sttStatus">
+							음성 인식 대기 중...
+						</div>
+						<div class="result-display" id="sttResult">
+							인식된 텍스트가 여기에 표시됩니다...
+						</div>
+						<div class="code-snippet">
+							<pre><code>// 음성 인식 시작
+watInstance.sttManager.start((result) => {
+    console.log('인식 결과:', result);
+}, {
+    language: 'ko-KR',
+    continuous: true,
+    interimResults: true
+});
+
+// 음성 인식 중지
+watInstance.sttManager.stop();</code></pre>
+						</div>
+					</div>
+				</div>
+			</section>
+
+			<section class="sectWrap">
+				<h2>🎯 FocusTTS API</h2>
+
+				<div class="api-section">
+					<h3>포커스 기반 텍스트 읽기</h3>
+
+					<div class="function-demo">
+						<h4>포커스 TTS 제어</h4>
+						<div class="demo-controls">
+							<button class="api-button success"
+								onclick="enableFocusTTS()">포커스 TTS 활성화</button>
+							<button class="api-button danger"
+								onclick="disableFocusTTS()">포커스 TTS 비활성화</button>
+							<button class="api-button" onclick="getFocusTTSStatus()">상태
+								확인</button>
+						</div>
+
+						<h4>테스트 요소들 (포커스 시 자동 읽기)</h4>
+						<div class="demo-controls">
+							<button tabindex="1" data-speech-text="첫 번째 테스트 버튼입니다">테스트 버튼
+								1</button>
+							<input type="text" placeholder="이 입력 필드에 포커스해보세요" tabindex="2">
+							<button tabindex="3"
+								data-speech-text="세 번째 테스트 버튼으로 특별한 음성 텍스트가 있습니다">테스트 버튼
+								3</button>
+						</div>
+
+						<h4>특정 요소 읽기</h4>
+						<div class="parameter-group">
+							<label for="targetSelector">CSS 선택자:</label>
+							<input type="text" id="targetSelector" class="parameter-input"
+								value="h1" placeholder="예: h1, .className, #idName">
+						</div>
+						<div class="demo-controls">
+							<button class="api-button"
+								onclick="readElementBySelector()">선택자로 요소 읽기</button>
+							<button class="api-button" onclick="readPageTitle()">페이지 제목
+								읽기</button>
+							<button class="api-button" onclick="readCurrentFocus()">현재 포커스
+								요소 읽기</button>
+						</div>
+
+						<div class="code-snippet">
+							<pre><code>// 포커스 TTS 활성화/비활성화
+watInstance.focusTTS.enable();
+watInstance.focusTTS.disable();
+
+// 특정 요소 읽기
+const element = document.querySelector('h1');
+watInstance.focusTTS.readElement(element);
+
+// CSS 선택자로 요소 읽기
+watInstance.focusTTS.readElementBySelector('h1');</code></pre>
+						</div>
+					</div>
+				</div>
+			</section>
+
+			<section class="sectWrap">
+				<h2>⚙️ 상태 관리 API</h2>
+
+				<div class="api-section">
+					<h3>StateManager 함수들</h3>
+
+					<div class="function-demo">
+						<h4>상태 조회 및 설정</h4>
+						<div class="parameter-group">
+							<label for="statePath">상태 경로:</label>
+							<input type="text" id="statePath" class="parameter-input"
+								value="tts.rate"
+								placeholder="예: tts.rate, stt.language">
+							<label for="stateValue">새 값:</label>
+							<input type="text" id="stateValue" class="parameter-input"
+								value="1.5" placeholder="설정할 값">
+						</div>
+						<div class="demo-controls">
+							<button class="api-button" onclick="getState()">전체 상태
+								조회</button>
+							<button class="api-button" onclick="getStateByPath()">경로별 상태
+								조회</button>
+							<button class="api-button success" onclick="updateState()">상태
+								업데이트</button>
+							<button class="api-button danger" onclick="resetState()">상태
+								초기화</button>
+						</div>
+						<div class="result-display" id="stateResult">
+							상태 정보가 여기에 표시됩니다...
+						</div>
+						<div class="code-snippet">
+							<pre><code>// 전체 상태 조회
+const allState = watInstance.stateManager.get();
+
+// 특정 경로 상태 조회
+const ttsRate = watInstance.stateManager.get('tts.rate');
+
+// 상태 업데이트
+watInstance.stateManager.set('tts.rate', 1.5);
+
+// 여러 설정 한번에 업데이트
+watInstance.stateManager.merge('tts', {
+    rate: 1.3,
+    pitch: 1.1
+});</code></pre>
+						</div>
+					</div>
+
+					<div class="function-demo">
+						<h4>상태 관찰자 (Observer)</h4>
+						<div class="demo-controls">
+							<button class="api-button success"
+								onclick="addStateObserver()">관찰자 추가</button>
+							<button class="api-button danger"
+								onclick="removeStateObserver()">관찰자 제거</button>
+							<button class="api-button" onclick="triggerStateChange()">상태 변경
+								테스트</button>
+						</div>
+						<div class="result-display" id="observerResult">
+							상태 변경 로그가 여기에 표시됩니다...
+						</div>
+						<div class="code-snippet">
+							<pre><code>// 상태 관찰자 추가
+watInstance.stateManager.observe('tts.rate', (newValue, oldValue, path) => {
+    console.log(`${path} 변경: ${oldValue} → ${newValue}`);
+});
+
+// 상태 관찰자 제거
+watInstance.stateManager.unobserve('tts.rate', callback);</code></pre>
+						</div>
+					</div>
+				</div>
+			</section>
+
+			<section class="sectWrap">
+				<h2>📡 이벤트 시스템 API</h2>
+
+				<div class="api-section">
+					<h3>이벤트 리스너 관리</h3>
+
+					<div class="function-demo">
+						<h4>WAT 이벤트 모니터링</h4>
+						<div class="demo-controls">
+							<button class="api-button success"
+								onclick="startEventMonitoring()">이벤트 모니터링 시작</button>
+							<button class="api-button danger"
+								onclick="stopEventMonitoring()">이벤트 모니터링 중지</button>
+							<button class="api-button" onclick="dispatchCustomEvent()">커스텀
+								이벤트 발송</button>
+							<button class="api-button" onclick="clearEventLog()">로그
+								지우기</button>
+						</div>
+						<div class="result-display" id="eventMonitorResult">
+							이벤트 로그가 여기에 표시됩니다...
+						</div>
+						<div class="code-snippet">
+							<pre><code>// WAT 이벤트 리스너
+document.addEventListener('wat:initialized', (event) => {
+    console.log('WAT 초기화:', event.detail);
+});
+
+document.addEventListener('wat:tts:stateChanged', (event) => {
+    console.log('TTS 상태 변경:', event.detail);
+});
+
+document.addEventListener('wat:stt:stateChanged', (event) => {
+    console.log('STT 상태 변경:', event.detail);
+});
+
+// 커스텀 이벤트 발송
+document.dispatchEvent(new CustomEvent('wat:custom', {
+    detail: { message: '커스텀 이벤트' }
+}));</code></pre>
+						</div>
+					</div>
+				</div>
+			</section>
+
+			<section class="sectWrap">
+				<h2>🛠️ 유틸리티 및 디버깅 API</h2>
+
+				<div class="api-section">
+					<h3>디버깅 및 진단 도구</h3>
+
+					<div class="function-demo">
+						<h4>시스템 정보 및 진단</h4>
+						<div class="demo-controls">
+							<button class="api-button" onclick="getSystemInfo()">시스템
+								정보</button>
+							<button class="api-button"
+								onclick="getBrowserCapabilities()">브라우저 기능</button>
+							<button class="api-button" onclick="runDiagnostics()">진단
+								실행</button>
+							<button class="api-button success"
+								onclick="enableDebugMode()">디버그 모드</button>
+						</div>
+						<div class="result-display" id="diagnosticResult">
+							진단 결과가 여기에 표시됩니다...
+						</div>
+						<div class="code-snippet">
+							<pre><code>// 시스템 정보 확인
+const systemInfo = {
+    userAgent: navigator.userAgent,
+    language: navigator.language,
+    platform: navigator.platform,
+    speechSynthesis: 'speechSynthesis' in window,
+    speechRecognition: 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window
+};
+
+// WAT 인스턴스 정보
+const watInfo = {
+    version: watInstance.version,
+    initialized: watInstance.isInitialized,
+    modules: Object.keys(watInstance)
+};</code></pre>
+						</div>
+					</div>
+				</div>
+			</section>
+		</main>
+	</div>
+
+</body>
+
+</html>

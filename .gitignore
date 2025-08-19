@@ -1,0 +1,65 @@
+# 백업 폴더
+/_backup/
+
+# 설정 파일 (민감한 정보 포함)
+config.json
+web.config
+
+# 환경 변수 및 민감한 정보
+*.env
+*.env.local
+*.env.development.local
+*.env.test.local
+*.env.production.local
+
+# 로그 파일
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 임시 파일
+*.tmp
+*.temp
+*~
+*.swp
+*.swo
+
+# 운영체제 생성 파일
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE/에디터 설정 파일
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Node.js 관련
+node_modules/
+npm-debug.log
+.npm
+.eslintcache
+
+# 빌드 출력 (필요시 주석 해제)
+# /dist/
+# /build/
+
+# 테스트 커버리지
+coverage/
+*.lcov
+
+# 캐시 디렉토리
+.cache/
+.parcel-cache/
+
+# 기타
+*.pid
+*.seed
+*.pid.lock
+.nyc_output

@@ -1,0 +1,1383 @@
+/* ************************* Root Variable Part .Start ************************* */
+:root {
+	--wat-color-main: #333;
+	--wat-color-sub: #666;
+	--wat-color-link: #00f;
+	--wat-color-point-tp1: #f00;
+	--wat-color-point-tp2: #0f0;
+	--wat-color-point-tp3: #00f;
+
+	--wat-bgColor-main: #fff;
+	--wat-bgColor-sub: #f8f8f8;
+	--wat-bgColor-mask: rgba(0, 0, 0, 0.5);
+
+	--wat-font-size: 16px;
+	--wat-font-family: 'Noto Sans KR', sans-serif;
+	--wat-line-height: 1.5;
+	--wat-text-align: left;
+	--wat-letter-spacing: 0;
+
+	--wat-tool-width: 500px;
+	--wat-tool-font-size: 16px;
+
+	--wat-html-padding: calc(var(--wat-tool-width) + 10px);
+	--wat-html-padding-left: 0;
+	--wat-html-padding-right: var(--wat-html-padding);
+}
+:root[data-color-theme="light"] {
+	filter: brightness(1.3);
+}
+:root[data-color-theme="dark"] {
+	--wat-color-main: #fff;
+	--wat-color-sub: #ccc;
+	--wat-color-link: #ffff00;
+	--wat-color-point-tp1: #f00;
+
+	--wat-bgColor-main: #333;
+	--wat-bgColor-sub: #666;
+}
+:root[data-color-theme="dark"] *:not(.designWrap) {
+	background-color: var(--wat-bgColor-main) !important;
+}
+:root[data-color-theme="dark"] .designWrap * {
+	background-color: inherit !important;
+}
+:root[data-color-theme="reverse"] {
+	filter: invert(1);
+}
+:root[data-font-size="size-1p2x"] {
+	--wat-font-size: 19px;
+}
+:root[data-font-size="size-1p5x"] {
+	--wat-font-size: 24px;
+}
+:root[data-font-size="size-2x"] {
+	--wat-font-size: 32px;
+}
+:root[data-hide-img="true"] img {
+	visibility: hidden;
+	max-height: 300px;
+}
+:root[data-hide-img="true"] * {
+	background-image: none !important;
+}
+:root[data-stop-ani="true"] * {
+	animation: none !important;
+	transition: none !important;
+}
+:root[data-line-height="size-1p5x"] {
+	--wat-line-height: 1.5;
+}
+:root[data-line-height="size-1p75x"] {
+	--wat-line-height: 1.75;
+}
+:root[data-line-height="size-2x"] {
+	--wat-line-height: 2;
+}
+:root[data-txt-align="left"] {
+	--wat-text-align: left;
+}
+:root[data-txt-align="center"] {
+	--wat-text-align: center;
+}
+:root[data-txt-align="right"] {
+	--wat-text-align: right;
+}
+:root[data-letter-spacing="wide_little"] {
+	--wat-letter-spacing: .12em;
+}
+:root[data-letter-spacing="wide_normal"] {
+	--wat-letter-spacing: .24em;
+}
+:root[data-letter-spacing="wide_more"] {
+	--wat-letter-spacing: .36em;
+}
+:root[data-saturation="low"] {
+	filter: saturate(0.2);
+}
+:root[data-saturation="high"] {
+	filter: saturate(2);
+}
+:root[data-saturation="monochrome"] {
+	filter: grayscale(100%);
+}
+:root[data-media-mute="true"] audio, video {
+	muted: true;
+}
+:root[data-font-family="koddi-udon-gothic"] {
+	--wat-font-family: 'KoddiUDOnGothic', sans-serif;
+}
+:root[data-font-family="nanum-maruburi"] {
+	--wat-font-family: 'MaruBuri', sans-serif;
+}
+:root[data-font-family="nanum-square-neo"] {
+	--wat-font-family: 'NanumSquareNeo', sans-serif;
+}
+:root[data-font-family="nanum-myeongjo"] {
+	--wat-font-family: 'Nanum Myeongjo', serif;
+}
+:root[data-font-family="noto-serif-kr"] {
+	--wat-font-family: 'Noto Serif KR', serif;
+}
+:root[data-read-guide="underline"] {
+	/* 읽기 안내선 underline 스타일 설정 */
+	/* cursor:none; */
+}
+:root[data-read-guide="bigCursor"] {
+	cursor: url('../images/arrowSelector.svg'), auto;
+}
+:root[data-wat-position="left"] {
+	--wat-html-padding-left: var(--wat-html-padding);
+	--wat-html-padding-right: 0;
+}
+:root[data-wat-position="right"] {
+	--wat-html-padding-left: 0;
+	--wat-html-padding-right: var(--wat-html-padding);
+}
+:root[data-wat-panel="closed"] {
+	--wat-html-padding-left: 0;
+	--wat-html-padding-right: 0;
+}
+/*
+:root[data-screen-scale="scale-1p2x"] {
+	transform: scale(1.2);
+	transform-origin: top left;
+	width: 83.33%;
+}
+
+:root[data-screen-scale="scale-1p5x"] {
+	transform: scale(1.5);
+	transform-origin: top left;
+	width: 66.67%;
+}
+
+:root[data-screen-scale="scale-2x"] {
+	transform: scale(2);
+	transform-origin: top left;
+	width: 50%;
+}
+*/
+/* ************************* Root Variable Part .End   ************************* */
+
+
+/* ************************* DOM Default Reset .Start ************************* */
+*					{box-sizing: border-box;}
+
+html					{color: var(--wat-color-main); background-color: var(--wat-bgColor-main); font-size: var(--wat-font-size); font-family: var(--wat-font-family); line-height: var(--wat-line-height); text-align: var(--wat-text-align); letter-spacing: var(--wat-letter-spacing);}
+/*
+html					{color: var(--wat-color-main); background-color: var(--wat-bgColor-main); font-size: var(--wat-font-size); font-family: var(--wat-font-family); line-height: var(--wat-line-height); text-align: var(--wat-text-align); letter-spacing: var(--wat-letter-spacing); padding-left: var(--wat-html-padding-left); padding-right: var(--wat-html-padding-right)}
+*/
+/*
+html					{color: var(--wat-color-main); background-color: var(--wat-bgColor-main); font-family: var(--wat-font-family); padding-left: var(--wat-html-padding-left); padding-right: var(--wat-html-padding-right)}
+.wat-apply, .wat-apply *			{font-size: var(--wat-font-size) !important; line-height: var(--wat-line-height); text-align: var(--wat-text-align); letter-spacing: var(--wat-letter-spacing)}
+*/
+
+/*
+body					{color: var(--wat-color-main); background-color: var(--wat-bgColor-main); font-size: var(--wat-font-size); font-family: var(--wat-font-family); line-height: var(--wat-line-height); text-align: var(--wat-text-align); letter-spacing: var(--wat-letter-spacing); padding-right: 510px}
+*/
+a					{color: var(--wat-color-link); text-decoration: none}
+a:hover					{text-decoration: underline}
+a:focus					{outline: 2px solid var(--wat-color-point-tp1)}
+
+h1, h2, h3, h4, h5, h6			{font-weight: bold; margin: 0 0 10px}
+h1					{font-size: 2.5rem}
+h2					{font-size: 2rem}
+h3					{font-size: 1.5rem}
+h4					{font-size: 1.25rem}
+h5					{font-size: 1rem}
+h6					{font-size: 0.875rem}
+
+ul, ol					{list-style: none; margin: 0; padding: 0}
+/* ************************* DOM Default Reset .End   ************************* */
+
+
+/* ************************* Custom Common Class .Start ************************* */
+.clearBoth				{clear:both; content: ""; display:block; height:0}
+caption.displayNone			{position:static !important; left:auto !important; top:auto !important}
+.ellipsis				{width:inherit; overflow: hidden; white-space:nowrap; text-overflow:ellipsis; -o-text-overflow:ellipsis}
+.textUCase				{text-transform:uppercase}
+.blind					{position:absolute !important; clip:rect(1px 1px 1px 1px) !important; clip:rect(1px, 1px, 1px, 1px) !important; clip-path:inset(50%) !important; padding:0 !important; border:0 !important; height:0 !important; width:1px !important; font-size:0 !important; color:transparent !important; text-indent:-10000px !important; left:-10000px !important; background:transparent !important; overflow: hidden !important}
+.force-focus				{outline: 2px solid var(--wat-color-point-tp3) !important}
+/* ************************* Custom Common Class .End   ************************* */
+
+
+/* ************************* Inside Page Class .Start ************************* */
+.wat-reading-guide				{position: fixed; top: 0; left: 0; width: 100%; height: calc(50vh - 50px); background-color: var(--wat-bgColor-mask); z-index: 9999;}
+.wat-reading-guide.reading-mask-top		{top: 0; bottom: unset}
+.wat-reading-guide.reading-mask-bottom		{top: unset; bottom: 0}
+
+/*
+.wat-reading-guide.reading-line::before		{position: absolute; top: -20px; left: 50%; transform: translateX(-50%); content: ''; border-bottom: blue 10px solid; border-left: transparent 10px solid; border-right: transparent 10px solid; border-top: transparent 10px solid;}
+*/
+.wat-reading-guide.reading-line::before		{position: absolute; width: 12px; height: 12px; top: -5px; left: 50%; transform: translateX(-50%); content: ''; background-color: blue; border-radius: 50%;}
+.wat-reading-guide.reading-line			{width: 500px; height: 10px; background-color: blue; transform: translateX(-50%); border: yellow 3px solid; top: -999999px; left: -999999px}
+/*
+.wat-reading-guide.reading-line			{width: 500px; height: 10px; background-color: blue; transform: translateX(-50%); border: yellow 3px solid; top: 0}
+.wat-reading-guide.reading-line::after		{position: absolute; top: -20px; left: 50%; transform: translateX(-50%); content: ''; border-bottom: blue 10px solid; border-left: transparent 10px solid; border-right: transparent 10px solid; border-top: transparent 10px solid;}
+*/
+
+.wat-tts_highlight				{color: black !important; background-color: yellow !important; border: 2px solid orange; border-radius: 5px;}
+.wat-focus-tts-highlight		{
+	background-color: #E6F3FF !important; 
+	border: 2px solid #007BFF !important; 
+	border-radius: 5px !important; 
+	box-shadow: 0 0 8px rgba(0, 123, 255, 0.4) !important;
+	padding: 2px 4px !important;
+	display: inline !important;
+	position: relative !important;
+	z-index: 9998 !important;
+}
+.wat-keyboard-tts				{
+	border-color: #4CAF50 !important;
+	background-color: #E8F5E8 !important;
+	box-shadow: 0 0 8px rgba(76, 175, 80, 0.4) !important;
+}
+.wat-tts_highlight-fallback		{background-color: rgba(255, 255, 0, 0.3) !important; outline: 2px dashed orange !important; outline-offset: 2px !important; transition: all 0.3s ease !important;}
+
+/* ************************* Voice Command Status Display .Start ************************* */
+.wat-voice-status {
+	position: fixed !important;
+	top: 20px !important;
+	left: 50% !important;
+	transform: translateX(-50%) !important;
+	background: rgba(0, 0, 0, 0.9) !important;
+	color: white !important;
+	padding: 15px 25px !important;
+	border-radius: 25px !important;
+	z-index: 10000 !important;
+	font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+	font-size: 14px !important;
+	text-align: center !important;
+	box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
+	backdrop-filter: blur(10px) !important;
+	transition: all 0.3s ease !important;
+	min-width: 200px !important;
+	max-width: 400px !important;
+	user-select: none !important;
+	pointer-events: none !important;
+}
+
+.wat-voice-status .status-icon {
+	font-size: 18px !important;
+	margin-bottom: 5px !important;
+	display: block !important;
+	animation: pulse 2s infinite !important;
+}
+
+.wat-voice-status .status-text {
+	font-weight: bold !important;
+	font-size: 14px !important;
+	margin-bottom: 3px !important;
+	line-height: 1.2 !important;
+}
+
+.wat-voice-status .status-detail {
+	font-size: 12px !important;
+	opacity: 0.8 !important;
+	margin-bottom: 8px !important;
+	line-height: 1.2 !important;
+}
+
+.wat-voice-status .status-progress {
+	margin-top: 8px !important;
+}
+
+.wat-voice-status .progress-bar {
+	animation: progressPulse 1.5s ease-in-out infinite !important;
+}
+
+/* Voice Status Animations */
+@keyframes pulse {
+	0%, 100% { opacity: 1; transform: scale(1); }
+	50% { opacity: 0.7; transform: scale(1.1); }
+}
+
+@keyframes progressPulse {
+	0% { width: 0%; }
+	50% { width: 70%; }
+	100% { width: 100%; }
+}
+
+/* Voice Status State Colors */
+.wat-voice-status.waiting {
+	background: rgba(33, 150, 243, 0.9) !important;
+}
+
+.wat-voice-status.listening {
+	background: rgba(76, 175, 80, 0.9) !important;
+}
+
+.wat-voice-status.processing {
+	background: rgba(255, 193, 7, 0.9) !important;
+}
+
+.wat-voice-status.executing {
+	background: rgba(139, 195, 74, 0.9) !important;
+}
+
+.wat-voice-status.cooldown {
+	background: rgba(158, 158, 158, 0.9) !important;
+}
+
+.wat-voice-status.inactive {
+	background: rgba(128, 128, 128, 0.9) !important;
+	opacity: 0.6 !important;
+}
+
+/* Responsive adjustments for voice status */
+@media (max-width: 768px) {
+	.wat-voice-status {
+		top: 10px !important;
+		left: 10px !important;
+		right: 10px !important;
+		transform: none !important;
+		min-width: auto !important;
+		max-width: none !important;
+		width: calc(100vw - 20px) !important;
+		box-sizing: border-box !important;
+	}
+}
+
+/* Voice status accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+	.wat-voice-status .status-icon,
+	.wat-voice-status .progress-bar {
+		animation: none !important;
+	}
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+	.wat-voice-status {
+		border: 2px solid white !important;
+		background: black !important;
+	}
+}
+/* ************************* Voice Command Status Display .End ************************* */
+.wat-notification				{position: fixed; bottom: 20px; right: 20px; background-color: rgba(0, 0, 0, 0.8); color: white; padding: 8px 12px; border-radius: 4px; z-index: 9999; font-size: 14px; max-width: 300px; word-wrap: break-word;}
+.wat-diction-result-layer			{position: absolute; width: 600px; max-width: 100vw; background-color: white; border: 1px solid #ccc; padding: 20px; z-index: 9999; box-shadow: 0 0 10px rgba(0, 0, 0, 0.5); box-sizing: border-box;}
+.wat-diction-result-layer h3			{margin: 0 0 10px 0; font-size: 1.2em;}
+.wat-diction-result-layer p			{margin: 0 0 10px 0;}
+.wat-diction-result-layer button		{margin-top: 10px;}
+.wat-image-placeholder				{font-size: 1rem; text-align: left; background-size: 16px 16px; background-repeat: no-repeat; background-position: left center; padding: 0 20px; display: inline-block; color: blue; border: 1px solid #ccc; vertical-align: top;}
+.wat-image-placeholder *			{font-size: inherit !important; padding: 0; margin: 0}
+.wat-image-placeholder .wat-image-placeholder-dsp {display: inline !important; visibility: visible !important; width: 20px; height: 20px; vertical-align: middle;}
+.wasBlind					{border: #aaa 1px dotted; padding: 10px;}
+body.overlay-active				{overflow: hidden; position: fixed; width: 100vw; height: 100vh}
+body.overlay-active .overlay			{display: block}
+.overlay					{position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); display: flex; justify-content: center; align-items: center; z-index: 1000; display: none;}
+/* ************************* Inside Page Class .End   ************************* */
+
+
+/* ************************* Web Accessibility Tool Style .Start ************************* */
+#watContainer				{
+	--wat-font-size: 16px;
+	--wat-line-height: 24px;
+	--wat-text-align: left;
+}
+
+body.overlay-active #pgStructure_layer		{display: flex}
+#pgStructure_layer.hidden			{display: none}
+#pgStructure_layer				{position: fixed; display: flex; flex-direction: column; width: 1200px; height: 700px; max-width: 100vw; max-height: 100vh; background-color: #fff; z-index: 9999; transform: translate(-50%, -50%); padding: 10px; top: 50%; left: 50%; overflow-x: hidden; overflow-y: auto;}
+#pgStructure_layer .btnClose			{position: absolute; top: 10px; right: 10px; font-size: 1rem; cursor: pointer; color: #333;}
+#pgStructure_layer .pgStruct_item		{line-height: 1.6rem; margin-bottom: 0.2rem}
+#pgStructure_layer .pgStruct_item.link		{width: 100%; color: #0D6EFD; cursor: pointer; overflow: hidden;}
+#pgStructure_layer .pgStruct_item.link:hover	{text-decoration: underline;}
+#pgStructure_layer .pgStruct_item.link::before	{content: "LINK"; color: #0D6EFD; font-size: 0.8rem; margin-right: 5px; border: #0D6EFD 1px solid; padding: 2px 5px; border-radius: 5px;}
+#pgStructure_layer .pgStruct_item.link a	{display: inline; word-break: break-all;}
+
+#pgStructure_layer .btn_marker			{display: inline-block; width: auto; text-decoration: none; text-align: center; padding: 0; margin-left: 5px; background: transparent; border: none; cursor: pointer}
+#pgStructure_layer .btn_marker .img_icon	{width: 20px; height: 20px; background-size: 20px 20px; background-repeat: no-repeat; background-position: center; display: inline-block; vertical-align: middle; margin-left: 5px;}
+#pgStructure_layer .pgStruct_item.link .img_icon.link {width: 20px; height: 20px; display: inline-block; vertical-align: middle; margin-left: 5px}
+
+#pgStructure_layer .h1				{font-size: 1.25rem; font-weight: bold; margin-left: 0px;}
+#pgStructure_layer .h2				{font-size: 1.1rem; font-weight: bold; margin-left: 10px;}
+#pgStructure_layer .h3				{font-size: 1rem; font-weight: bold; margin-left: 20px;}
+#pgStructure_layer .h4				{font-size: 1rem; font-weight: normal; margin-left: 30px;}
+#pgStructure_layer .h5				{font-size: 0.9rem; font-weight: normal; margin-left: 40px;}
+#pgStructure_layer .h6				{font-size: 0.8rem; font-weight: normal; margin-left: 50px;}
+
+#pgStructure_layer .h1::before			{content: "H1"; color: #0D6EFD; font-size: 0.8rem; margin-right: 5px; border: #0D6EFD 1px solid; padding: 2px 5px; border-radius: 5px;}
+#pgStructure_layer .h2::before			{content: "H2"; color: #0D6EFD; font-size: 0.8rem; margin-right: 5px; border: #0D6EFD 1px solid; padding: 2px 5px; border-radius: 5px;}
+#pgStructure_layer .h3::before			{content: "H3"; color: #0D6EFD; font-size: 0.8rem; margin-right: 5px; border: #0D6EFD 1px solid; padding: 2px 5px; border-radius: 5px;}
+#pgStructure_layer .h4::before			{content: "H4"; color: #0D6EFD; font-size: 0.8rem; margin-right: 5px; border: #0D6EFD 1px solid; padding: 2px 5px; border-radius: 5px;}
+#pgStructure_layer .h5::before			{content: "H5"; color: #0D6EFD; font-size: 0.8rem; margin-right: 5px; border: #0D6EFD 1px solid; padding: 2px 5px; border-radius: 5px;}
+#pgStructure_layer .h6::before			{content: "H6"; color: #0D6EFD; font-size: 0.8rem; margin-right: 5px; border: #0D6EFD 1px solid; padding: 2px 5px; border-radius: 5px;}
+#pgStructure_layer [role="tablist"]		{list-style: none; display: flex; flex: 1 1 auto; padding: 0; margin: 0;}
+#pgStructure_layer [role="tablist"].tabSize_2	{justify-content: center;}
+#pgStructure_layer [role="tablist"] li		{width: 100%}
+#pgStructure_layer [role="tab"]			{display: inline-block; width: 100%; padding: 10px 20px; margin-right: 5px; background: #f0f0f0; border: 1px solid #ccc; cursor: pointer; text-decoration: none;}
+#pgStructure_layer [role="tab"][aria-selected="true"]{background: #0D6EFD; color: white; border-color: #0D6EFD;}
+#pgStructure_layer [role="tabpanel"]		{height: 100%; overflow-y: auto; padding: 10px;}
+#pgStructure_layer [role="tabpanel"][hidden]	{display: none;}
+
+
+
+#watWrap					{position: fixed; width: var(--wat-tool-width); height: calc(100vh - 20px); line-height: 2em; font-size: 16px; letter-spacing: 0; z-index: 9999; top: 10px; right: 10px; background-color: rgba(255,255,255,0.8); border: 1px solid #ccc; padding: 0; overflow: hidden; transition: all 0.3s ease}
+html[data-wat-position="left"] #watWrap		{right: auto; left: 10px;}
+.overlay-active #watWrap			{z-index: 999}
+#wat_header					{position: relative; width: 100%; height: 50px; color: #fff; padding: 10px; background: #012AD2 linear-gradient(180deg, #012AD2 -57.14%, #019EEE 283.52%); display: flex; flex-wrap: wrap; justify-content: space-between}
+#wat_header #wat_btnClose			{position: relative; display: flex; width: 30px; height: 30px; border: none; cursor: pointer; padding: 5px; margin: 0; transition: all 0.2s ease; align-items: center; justify-content: center; background-color: transparent;}
+#wat_header #wat_btnClose::after		{content: ""; display: inline-block; width: 20px; height: 20px; background-image: url('../images/icon_tool.png'); background-size: cover; background-repeat: no-repeat; background-position: -40px 0;}
+#wat_header #wat_btnClose:hover			{background-color: rgba(255, 255, 255, 0.1); box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); transform: scale(1.1);}
+
+
+/* 축소 버튼 스타일 */
+#wat_btnMinimize				{position: relative; display: flex; width: 30px; height: 30px; border: none; cursor: pointer; padding: 5px; margin: 0; transition: all 0.2s ease; align-items: center; justify-content: center; background-color: transparent;}
+#wat_btnMinimize:hover				{background-color: rgba(255, 255, 255, 0.1); box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); transform: scale(1.1);}
+#wat_btnMinimize:active				{transform: scale(0.95);}
+#wat_btnMinimize::before			{position: absolute; content: ''; width: 10px; height: 2px; background-color: #f5f5f5; transition: all 0.2s ease;}
+#wat_btnMinimize.minimized::before		{width: 8px; height: 8px; background: transparent; border: 2px solid #f5f5f5; border-radius: 1px;}
+#wat_btnMinimize.minimized::after		{position: absolute; content: ''; width: 2px; height: 2px; background-color: #f5f5f5}
+.wat-minimized					{/* height: 65px !important; overflow: hidden; */ transition: all 0.3s ease; --wat-tool-width: 200px}
+.wat-minimized #wat_header			{flex-direction: row-reverse;}
+.wat-minimized #wat_title			{display: none;}
+.wat-minimized #wat_panel_Opt			{height: calc(100% - 50px); transition: all 0.3s ease;}
+.wat-minimized #wat_panel_Opt_tab		{display: none}
+.wat-minimized #wat_panel_Opt_cont		{height: calc(100% - 40px)}
+html[data-wat-viewmode="icon"] .wat-minimized  #wat .personalList {grid-template-columns: 1fr; grid-auto-rows: auto; grid-template-rows: auto;}
+html[data-wat-viewmode="icon"] .wat-minimized #wat .setWrap .setTitle {height: 5px; font-size: 0;}
+.wat-minimized #wat_footer			{height: 40px;}
+.wat-minimized #wat_footer .copy-since		{display: none}
+.wat-minimized #wat_footer .copy-remaining	{display: none}
+
+
+.wat_panel					{position: relative; height: 100%}
+#wat_panel_Opt_tab				{position: relative; width: 100%; height: 45px}
+#wat_title					{font-size: 1.2em; font-weight: bold}
+
+#wat_footer					{position: absolute; bottom: 0; left: 0; right: 0; height: 30px; line-height: 30px; background-color: #f8f8f8; border-top: 1px solid #ddd; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #666; padding: 0 10px; box-sizing: border-box;}
+
+#wat_footer .dcu-link				{color: #0D6EFD; text-decoration: none; font-weight: bold; padding: 0 0 0 5px}
+#wat_footer .dcu-link:hover			{text-decoration: underline;}
+#wat_footer .dcu-link:focus			{outline: 2px solid #0D6EFD; outline-offset: 1px; border-radius: 2px;}
+
+/* 메인 컨테이너 하단 여백 조정 */
+#wat_panel_Opt_cont				{height: calc(100% - 95px); padding-bottom: 0;}
+.list-mode #wat_panel_Opt_cont			{height: calc(100% - 140px);}
+
+#wat						{height: 100%; display: flex; flex-direction: column;}
+#wat .hidden					{display: none;}
+#wat_settingWrap				{display: flex; align-items: center;}
+#wat_settingWrap .btn_settings			{background: none; border: none; cursor: pointer; padding: 0; margin: 0;}
+#wat_settingWrap .btn_settings[aria-expanded="true"] .innerPath {fill: #d400ff;}
+#viewModeContainer				{display: flex; align-items: center;}
+#viewModeContainer .btn_viewMode 		{width: 30px; height: 30px; padding: 0; margin: 0; border: none; background: none; cursor: pointer; background-color: #6a7e9c}
+/*
+#viewModeContainer .btn_viewMode svg	{opacity: 0.5; transition: opacity 0.3s;}
+*/
+
+#viewModeContainer .btn_viewMode.icon-mode-button {-webkit-mask: url('../images/btn_iconMode.svg') no-repeat center; mask: url('../images/btn_iconMode.svg') no-repeat center;}
+#viewModeContainer .btn_viewMode.list-mode-button {-webkit-mask: url('../images/btn_listMode.svg') no-repeat center; mask: url('../images/btn_listMode.svg') no-repeat center;}
+#viewModeContainer.icon-mode .icon-mode-button	{background-color: #0D6EFD;}
+#viewModeContainer.list-mode .list-mode-button	{background-color: #0D6EFD;}
+
+#wat_viewModeToggle				{position: relative; width: 3rem; height: 1.5rem; background-color: #ddd; border: none; border-radius: 1rem; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background-color 0.3s; margin: 0 2px;}
+#wat_viewModeToggle .toggle-circle		{position: absolute; width: 1rem; height: 1rem; background-color: white; border-radius: 50%; transition: left 0.3s;}
+#wat_viewModeToggle.icon-mode-active		{background-color: #0D6EFD;}
+#wat_viewModeToggle.list-mode-active		{background-color: #ff7b00;}
+.icon-mode-active .toggle-circle		{left: 5px;}
+.list-mode-active .toggle-circle		{left: calc(2rem - 5px);}
+.icon-mode-icon, .list-mode-icon		{font-size: 1rem; cursor: pointer;}
+#wat_settingWrap .btn_close			{background: none; border: none; cursor: pointer; padding: 0; margin: 0;}
+#wat_settingWrap .btn_close:hover .innerPath	{fill: #ff7b00;}
+
+#wat_panel_Opt_tab ul li			{list-style: none; display: inline-block; margin: 0;}
+#wat_panel_Opt_tab ul li.selected a		{font-weight: bold; border-bottom: 2px solid #0D6EFD; color: #0D6EFD;}
+#wat_panel_Opt_tab ul li a			{color: #333; text-decoration: none; padding: 5px;}
+#watWrap [role="tablist"]			{list-style: none; display: flex; flex: 1 1 auto; padding: 0; margin: 0;}
+#watWrap [role="tablist"].tabSize_2		{justify-content: center;}
+#watWrap [role="tablist"] li			{width: 100%}
+#watWrap [role="tab"]				{display: inline-block; width: 100%; font-size: 0.8em; padding: 10px 20px; margin-right: 5px; background: #f0f0f0; border: 1px solid #ccc; cursor: pointer; text-decoration: none;}
+#watWrap [role="tab"][aria-selected="true"]	{background: #0D6EFD; color: white; border-color: #0D6EFD;}
+#watWrap [role="tabpanel"]			{height: 100%; line-height: calc(var(--wat-font-size) * 1.5); font-size: var(--wat-font-size); text-align: var(--wat-text-align); overflow-y: auto; padding: 0 5px 10px 5px;}
+#watWrap [role="tabpanel"][hidden]		{display: none;}
+#watWrap [role="tabpanel"] .panelTitle		{font-size: 1.5em; text-align: var(--wat-text-align);}
+#watWrap .watSet-group-title			{font-size: 1.2em; text-align: var(--wat-text-align); font-weight: bold; margin-top: 20px}
+#watWrap .watSet-group-title:first-child	{margin-top: 0}
+
+/*
+
+#watWrap .watSet-button.btn-toggleSwitch	{display: inline-flex; align-items: center; justify-content: space-between; width: 100px; height: 40px; padding: 0 8px; border: none; border-radius: 20px; background-color: #ccc; cursor: pointer; outline: none; transition: background-color 0.3s;}
+#watWrap .watSet-button.btn-toggleSwitch:focus	{box-shadow: 0 0 3px 2px rgba(0, 123, 255, 0.6);}
+
+#watWrap .watSet-button.btn-toggleSwitch[aria-pressed="true"]	{background-color: #4cd964}
+*/
+/*
+#watWrap .watSet-button.btn-toggleSwitch::before	{display: block; content:""; width: 34px; height: 34px; background-color: #fff; border-radius: 50%; transition: transform 0.3s;}
+#watWrap .watSet-button.btn-toggleSwitch[aria-pressed="true"]::before	{transform: translateX(60px);}
+#watWrap .watSet-button.btn-toggleSwitch .watSet-button-label	{font-size: var(--wat-font-size); text-align: var(--wat-text-align); margin-left: 8px;}
+*/
+/*
+#watWrap .watSet-button.btn-toggleSwitch .watSet-button-label	{display: block; content:""; width: 34px; height: 34px; font-size: var(--wat-font-size); text-align: var(--wat-text-align); background-color: #fff; border-radius: 50%; transition: transform 0.3s;}
+#watWrap .watSet-button.btn-toggleSwitch[aria-pressed="true"] .watSet-button-label	{transform: translateX(60px);}
+*/
+#watWrap .watSet-item-container.profile-container	{background-color: none; border: none; padding: 0}
+#watWrap .watSet-profile-item-container			{position: relative; display: grid; grid-template-columns: 1fr; grid-template-rows: 1fr auto; border: #aaa 1px solid; border-radius: 10px; margin: 5px 0; background-color: #ebf3ff; overflow: hidden}
+#watWrap .watSet-profile-title				{width: 100%; line-height: 2em; font-size:var(--wat-font-size); font-weight: bold; padding: 2px 10px; margin: 0; box-sizing: border-box; background-color: #f4f4f4;}
+#watWrap .watSet-profile-title-label::before		{display: inline-block; content: 'volume_up'; font-family: 'Material Icons'; font-weight: normal; font-style: normal; font-size: 24px; line-height: 1; letter-spacing: normal; text-transform: none; white-space: nowrap; direction: ltr; vertical-align: middle; margin-right: 6px; margin-top: -4px}
+#watWrap .watSet-profile-title-label.lowVision::before		{content: 'zoom_in'}
+#watWrap .watSet-profile-title-label.colorBlindness::before	{content: 'invert_colors'}
+#watWrap .watSet-profile-title-label.dyslexia::before		{content: 'menu_book'}
+#watWrap .watSet-button.btn-toggleSwitch			{position: absolute; display:flex; align-items:center; justify-content:flex-start; width:100px; height: 2em; padding:0 10px; border:none; border-radius:20px; background:#ccc; cursor:pointer; transition:background 0.3s; top: 5px; right: 10px;}
+#watWrap .watSet-button.btn-toggleSwitch:hover			{box-shadow: 0 0 3px 2px rgba(0, 123, 255, 0.6);}
+#watWrap .watSet-button.btn-toggleSwitch:focus			{box-shadow: 0 0 3px 2px rgba(0, 123, 255, 0.6);}
+#watWrap .watSet-button.btn-toggleSwitch[aria-pressed="true"]	{justify-content:flex-end; background:#4cd964;}
+#watWrap .watSet-button.btn-toggleSwitch .watSet-button-label	{display:inline-flex; align-items:center; justify-content:center; padding:0 10px; background:#fff; border-radius:9999px; white-space:nowrap; font-size:var(--wat-font-size); text-align:center; transition:all 0.3s;}
+#watWrap .watSet-profile-button-accordion			{position: relative; display: inline-block; width: auto; cursor: pointer; box-sizing: border-box; margin-left: 10px; padding: 0 10px}
+#watWrap .watSet-profile-button-accordion::before		{content: "▼"; position: absolute; display: block; width: 20px; height: 20px; line-height: 20px; font-size: 1em; left: 50%; top: 50%; transform: translate(-50%, -50%); transition: transform 0.3s;}
+#watWrap .watSet-profile-button-accordion.active::before	{transform: translate(-50%, -50%) rotate(180deg);}
+#watWrap .watSet-profile-button-accordion .watSet-button-label	{font-size: 0}
+#watWrap .watSet-profile-items-wrap				{display: none; width: 100%; padding: 5px 10px; box-sizing: border-box; overflow-y: auto; background-color: #fff; box-shadow:rgba(0, 0, 0, 0.5) 0px 0px 10px}
+#watWrap .watSet-profile-items-wrap.active			{display: flex}
+
+
+#wat_btnOpenWrap				{display: none; position: fixed; width: 50px; height: 50px; right: 20px; bottom: 20px; border: #0000ff 1px solid; border-radius: 50%; z-index: 99999}
+#wat_btnOpen					{position: relative; width: 100%; height: 100%; background-color: #0000ff; -webkit-mask: url('../images/btn_openTool.svg') no-repeat center; mask: url('../images/btn_openTool.svg') no-repeat center; cursor: pointer; box-sizing: border-box; transition: background-color 0.3s, color 0.3s;}
+html[data-wat-position="left"] #wat_btnOpenWrap	{right: auto; left: 20px;}
+#wat_btnOpen:hover				{background-color: #6a21e0; color: #fff}
+#wat_btnOpen:hover .btn_open			{background-color: #ffffff}
+#wat_btnOpen:focus				{background-color: #6a21e0; color: #fff;}
+#wat_btnOpen:focus .btn_open			{background-color: #ffffff}
+.wat-container.hide #watWrap			{display: none}
+.wat-container.hide #wat_btnOpenWrap		{display: block}
+
+
+
+
+#wat_panel_Opt_cont				{height: calc(100% - 65px); overflow-y: hidden; padding: 0;}
+.list-mode #wat_panel_Opt_cont			{height: calc(100% - 110px)}
+
+#watWrap .setWrap				{display: grid; grid-template-columns: 120px auto; font-size: rem; font-weight: normal; padding: 5px 10px; border: 1px solid #ccc; background-color: #F2F3F7; border-radius: 10px;}
+#watWrap .setTitle				{position: relative; display: inline-block; font-size: 1em; font-weight: bold; padding-left: 30px}
+html[data-wat-viewmode="list"] #wat .setTitle	{font-size: 0.8em}
+#watWrap .setCont				{width: 100%; display: inline-block; font-size: 1em; font-weight: normal}
+
+#watWrap .watSet-item-container			{padding: 5px; border: #aaa 1px solid; border-radius: 5px; margin: 5px 0; background-color: #ebf3ff}
+#watWrap .watSet-title				{font-weight: bold; font-size: 1.1em; background-color: #fff; border: #333 1px solid; padding: 0 5px; margin: -5px -5px 5px 5px; border-radius: 5px;}
+#watWrap .watSet-item-container .watSet-item	{display: flex; flex-flow: row wrap; align-items: center; border-bottom: #aaa 1px dotted; padding: 0 5px; margin: 0; cursor: pointer; transition: background-color 0.3s}
+#watWrap .watSet-item-container .watSet-item:last-child {border-bottom: none}
+#watWrap .watSet-item-container .watSet-item:hover	{background-color: #bdd7ff;}
+#watWrap .watSet-item-container .watSet-item .wat-set-item-type-radio {width: 20px; flex-shrink: 0;}
+#watWrap .watSet-item-container .watSet-item .wat-set-label {flex: 1 1 auto; padding: 5px 0; font-size: 1em; cursor: pointer;}
+
+#watWrap .watSet-item-container .watSet-list-type-button {display: flex; flex-wrap: wrap; justify-content: center;}
+#watWrap .watSet-item-container .watSet-list-type-button .watSet-item {border-bottom: none}
+#watWrap .watSet-item-container .watSet-list-type-button .wat-set-item-type-button {padding: 5px 10px; margin: 5px; border: #aaa 1px solid; border-radius: 5px; cursor: pointer; transition: background-color 0.3s}
+#watWrap .watSet-item-container .watSet-list-type-button .wat-set-item-type-button:hover {background-color: #bdd7ff;}
+#watWrap .watSet-item-container .watSet-list-type-button .wat-set-item-type-button.active {background-color: #0D6EFD; color: white; border-color: #0D6EFD;}
+
+
+#watWrap .setTitle::before				{position: absolute; display: block; content: ""; width: 30px; height: 30px; background-image: url('../images/icon_personal_fontSize.png'); background-repeat: no-repeat; background-position: left top; left: 0; top: 0;}
+#watWrap .personalOpt_item.fontSize .setTitle::before	{background-image: url('../images/icon_personal_fontSize.png')}
+#watWrap .personalOpt_item.fontFamily .setTitle::before	{background-image: url('../images/icon_personal_fontFamily.png')}
+#watWrap .personalOpt_item.txtAlign .setTitle::before	{background-image: url('../images/icon_personal_txtAlign.png')}
+#watWrap .personalOpt_item.letterSpacing .setTitle::before	{background-image: url('../images/icon_personal_letterSpacing.png')}
+#watWrap .personalOpt_item.lineHeight .setTitle::before	{background-image: url('../images/icon_personal_lineHeight.png')}
+#watWrap .personalOpt_item.colorTheme .setTitle::before	{background-image: url('../images/icon_personal_colorTheme.png')}
+#watWrap .personalOpt_item.saturation .setTitle::before	{background-image: url('../images/icon_personal_saturation.png')}
+#watWrap .personalOpt_item.readGuide .setTitle::before	{background-image: url('../images/icon_personal_readGuide.png')}
+#watWrap .personalOpt_item.hideImg .setTitle::before	{background-image: url('../images/icon_personal_hideImg.png')}
+#watWrap .personalOpt_item.imgTextConvert .setTitle::before{background-image: url('../images/icon_personal_imgTextConvert.png')}
+#watWrap .personalOpt_item.mediaStop .setTitle::before	{background-image: url('../images/icon_personal_mediaStop.png')}
+#watWrap .personalOpt_item.mediaMute .setTitle::before	{background-image: url('../images/icon_personal_mediaMute.png')}
+#watWrap .personalOpt_item.stopAni .setTitle::before	{background-image: url('../images/icon_personal_stopAni.png')}
+#watWrap .personalOpt_item.pageScroll .setTitle::before	{background-image: url('../images/icon_personal_pageScroll.png')}
+#watWrap .personalOpt_item.tts .setTitle::before		{background-image: url('../images/icon_personal_tts.png')}
+#watWrap .personalOpt_item.stt .setTitle::before		{background-image: url('../images/icon_personal_stt.png')}
+#watWrap .personalOpt_item.diction .setTitle::before	{background-image: url('../images/icon_personal_diction.png')}
+#watWrap .personalOpt_item.pageStructure .setTitle::before	{background-image: url('../images/icon_personal_pageStructure.png')}
+
+#watWrap .setWrap.radio .setCont .opt_lists		{font-size: 0; display: flex; flex-wrap: wrap; flex: 1 1 auto; border: none}
+#watWrap .setWrap.radio .setCont .opt_lists .opt_item	{display: inline-block; line-height: calc(var(--wat-font-size) * 1.5); font-size: var(--wat-font-size); cursor: pointer; background-color: transparent; /* transition: background-color 0.3s, border-color 0.3s; */ flex: 1 1 auto; text-align: center; border: none}
+
+#watWrap .setWrap.radio .setCont input[type="radio"]	{position: absolute; opacity: 0; width: 0; height: 0;}
+#watWrap .setWrap.radio .setCont label			{display: block; font-size: var(--wat-font-size); cursor: pointer}
+#watWrap .setWrap.radio .setCont label:last-of-type	{border-right: none;}
+#watWrap .setWrap.radio .setCont input[type="radio"]:checked + label {background-color: transparent; color: #222222; border-color: #0D6EFD;}
+#watWrap .setWrap.radio .setCont label:hover		{background-color: #e0e0e0;}
+#watWrap .setWrap.radio .setCont input[type="radio"]:focus + label {outline: 2px solid #0D6EFD; outline-offset: 2px}
+#watWrap .setWrap.checkbox .setCont .opt_item		{display: flex; flex-direction: row-reverse ;align-items: center; justify-content: flex-start; flex-wrap: wrap}
+#watWrap .setWrap.checkbox .setCont .switch-state		{display: inline-block; padding-right: 5px}
+
+#watWrap .setWrap.button .buttonWrap			{height: 100%; font-size: 0; display: flex; flex-wrap: wrap; flex: 1 1 auto; border: #aaa 1px solid; border-bottom: none}
+#watWrap .setWrap.button .buttonWrap .btn_basic		{display: inline-block; font-size: var(--wat-font-size); cursor: pointer; background-color: #f0f0f0; /* transition: background-color 0.3s, border-color 0.3s; */ flex: 1 1 auto; text-align: center; border: none; border-right: #aaa 1px solid; border-bottom: #aaa 1px solid; margin: 0}
+#watWrap .setWrap.button .buttonWrap .btn_basic:last-of-type{border-right: none;}
+#watWrap .setWrap.button .buttonWrap .btn_basic.border_rNone{border-right: none;}
+#watWrap .setWrap.button .buttonWrap .btn_basic:hover	{background-color: #e0e0e0;}
+#watWrap .setWrap.button .buttonWrap .btn_basic:focus	{background-color: #5589c0; outline: 2px solid #0D6EFD; outline-offset: 2px}
+#watWrap .setWrap.button .buttonWrap .btn_basic:active	{background-color: #2f7ed3;}
+#watWrap .setWrap.button .buttonWrap .btn_basic.selected	{background-color: #0D6EFD; color: white; border-color: #0D6EFD;}
+
+#watWrap .setWrap.button .opt_lists			{height: 100%; font-size: 0; display: flex; flex-wrap: wrap; flex: 1 1 auto; align-items: center; align-content: center; border: #aaa 1px solid; border-bottom: none; border-right: none}
+#watWrap .setWrap.button .opt_lists .opt_item		{display: block; height: 100%; flex: 1 1 auto}
+#watWrap .setWrap.button .opt_lists .btn_basic		{display: block; width: 100%; height: 100%; font-size: var(--wat-font-size); cursor: pointer; background-color: #f0f0f0; /* transition: background-color 0.3s, border-color 0.3s; */ flex: 1 1 auto; text-align: center; border: none; border-right: #aaa 1px solid; border-bottom: #aaa 1px solid; margin: 0}
+/*
+html[data-wat-viewmode="list"] #wat .setWrap.button .opt_lists .btn_basic {height: 1.5rem; line-height: 1.5rem; padding: 0; margin: 0}
+*/
+#watWrap .setWrap.button .opt_lists .btn_basic.border_rNone{border-right: none;}
+#watWrap .setWrap.button .opt_lists .btn_basic:hover	{background-color: #e0e0e0;}
+#watWrap .setWrap.button .opt_lists .btn_basic:focus	{background-color: #5589c0; outline: 2px solid #0D6EFD; outline-offset: 2px}
+#watWrap .setWrap.button .opt_lists .btn_basic:active	{background-color: #2f7ed3;}
+#watWrap .setWrap.button .opt_lists .btn_basic.selected	{background-color: #0D6EFD; color: white; border-color: #0D6EFD;}
+
+
+
+#watWrap .setWrap.button.mixCont .setCont			{display: flex; flex-direction: column;}
+
+#watWrap .switch						{position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; border: 0; clip: rect(0, 0, 0, 0); white-space: nowrap; clip-path: inset(50%);}
+#watWrap .switch-label					{position: relative; display: inline-block; width: 40px; height: 20px; font-size: 0; color: transparent; background-color: #ccc; border-radius: 20px; cursor: pointer; transition: background-color 0.3s;}
+#watWrap .switch:focus + .switch-label			{outline: 2px solid #0D6EFD; outline-offset: 4px;}
+#watWrap .switch-label::after				{content: ''; position: absolute; width: 16px; height: 16px; background-color: white; border-radius: 50%; top: 2px; left: 2px; transition: left 0.3s;}
+#watWrap .switch:checked + .switch-label			{background-color: #0D6EFD;}
+#watWrap .switch:checked + .switch-label::after		{left: 22px;}
+
+html[data-wat-viewmode="icon"] #wat .personalList				{display: grid; grid-template-columns: repeat(3, 1fr); grid-auto-rows: minmax(110px, auto); grid-gap: 5px; overflow-x: hidden; flex-wrap: wrap;}
+html[data-wat-viewmode="icon"] #wat .personalOpt_item				{width: 100%}
+html[data-wat-viewmode="icon"] #wat .setWrap					{display: flex; flex-direction: row; height: 100%; flex-wrap: wrap; align-content: space-between;}
+html[data-wat-viewmode="icon"] #wat .setWrap.button .opt_lists			{height: auto}
+
+html[data-wat-viewmode="icon"] #wat .setWrap .setTitle				{width: 100%; text-align: center; padding: 35px 0 0 0}
+html[data-wat-viewmode="icon"] #wat .setWrap .setTitle::before			{width: 30px; height: 30px; left: 50%; top: 5px; transform: translate(-50%, 0)}
+
+html[data-wat-viewmode="icon"] #wat .setWrap.radio .setCont			{display: grid; grid-template-columns: 16px auto 16px; width: 100%; background-color: #fff; border-radius: 5px; align-items: center}
+html[data-wat-viewmode="icon"] #wat .setWrap.radio .setCont input[type="radio"]	{display: none}
+html[data-wat-viewmode="icon"] #wat .setWrap.radio .setCont .opt_lists		{grid-column: 2 / 3; display: flex; flex-wrap: wrap; overflow: hidden; text-align: center; text-overflow: ellipsis; white-space: nowrap;}
+html[data-wat-viewmode="icon"] #wat .setWrap.radio .setCont .opt_lists .opt_item {display: none;}
+html[data-wat-viewmode="icon"] #wat .setWrap.radio .setCont .opt_lists .opt_item.selectOn {display: block; width: 100%; overflow: hidden}
+html[data-wat-viewmode="icon"] #wat .setWrap.radio .setCont .opt_lists .opt_item.selectOn label {width: 100%; font-size: calc(var(--wat-font-size) * 0.8); cursor: pointer; flex: 1 1 auto; text-align: center; border: none; margin: 0; padding: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;}
+html[data-wat-viewmode="icon"] #wat .setWrap.radio .setCont .btn_chgOpt		{background-color: #B9C2F6; border: none; cursor: pointer; font-size: 0; color: transparent; margin: 0; padding: 0}
+html[data-wat-viewmode="icon"] #wat .setWrap.radio .setCont .btn_chgOpt.prev	{display: inline-block; width: 20px; height: 20px; line-height: 20px; border-radius: 5px;}
+html[data-wat-viewmode="icon"] #wat .setWrap.radio .setCont .btn_chgOpt.prev::before	{content: "◀"; font-size: calc(var(--wat-font-size) * 0.8); color: #222222}
+html[data-wat-viewmode="icon"] #wat .setWrap.radio .setCont .btn_chgOpt.next	{display: inline-block; width: 20px; height: 20px; line-height: 20px; border-radius: 5px;}
+html[data-wat-viewmode="icon"] #wat .setWrap.radio .setCont .btn_chgOpt.next::before	{content: "▶"; font-size: calc(var(--wat-font-size) * 0.8); color: #222222}
+/* ************************* Web Accessibility Tool Style .End   ************************* */
+
+#watWrap .setWrap.button .opt_lists .btn_iconSet		{font-size: 0}
+#watWrap .setWrap.button .opt_lists .btn_iconSet::after	{display: inline-block; content: ""; font-size: var(--wat-font-size); color: inherit}
+#watWrap .setWrap.button .opt_lists .btn_iconSet.btn_toggle::after	{content: "▶"}
+/* #watWrap .setWrap.button .opt_lists .btn_iconSet.btn_toggle.playing::after	{content: "∥"} */
+#watWrap .setWrap.button .opt_lists .btn_iconSet.btn_up::after	{content: "△"}
+#watWrap .setWrap.button .opt_lists .btn_iconSet.btn_down::after	{content: "▽"}
+#watWrap .setWrap.button .opt_lists .btn_iconSet.btn_stop::after	{content: "■"}
+#watWrap .setWrap.button .opt_lists .btn_iconSet.btn_pause::after	{content: "❚❚"}
+#watWrap .setWrap.button .opt_lists .btn_iconSet.btn_rewind::after	{content: "◁◁"}
+#watWrap .setWrap.button .opt_lists .btn_iconSet.btn_forward::after{content: "▷▷"}
+#watWrap .setWrap.button .opt_lists .btn_iconSet.btn_repeat::after	{content: "↻"}
+#watWrap .setWrap.button .opt_lists .btn_iconSet.btn_next::after	{content: "▷"}
+#watWrap .setWrap.button .opt_lists .btn_iconSet.btn_prev::after	{content: "◁"}
+/* #watWrap .setWrap.button .opt_lists .btn_iconSet.btn_focus::after	{content: "🔍"} */
+/* #watWrap .setWrap.button .opt_lists .btn_iconSet.btn_focus::after	{content: "⛶"} */
+#watWrap .setWrap.button .opt_lists .btn_iconSet.btn_focus::after	{content: ""; display: inline-block; width: 24px; height: 24px; background-image: url('../images/icon_focus.svg'); background-size: cover; background-repeat: no-repeat;} /* ⛶ 대체 사용? */
+#watWrap .setWrap.button .opt_lists .btn_iconSet.btn_close::after	{content: "✖"}
+#watWrap .setWrap.button .opt_lists .btn_iconSet.btn_toggle[aria-pressed="true"] {background-color: #dceeff; border-color: #3399ff; box-shadow: inset 0 0 0 2px #3399ff; }
+
+/* ************************* Web Accessibility Tool Style .End   ************************* */
+
+/* 플러그인 UI를 전역 폰트 크기 변경으로부터 보호 */
+:root[data-font-size] #watContainer,
+:root[data-font-size] #watWrap,
+:root[data-font-size] #wat {
+	--wat-font-size: 16px !important;
+	--wat-line-height: 1.5 !important;
+}
+
+/* TTS 관련 스타일 */
+.wat-tts_highlight {
+	background-color: #ffeb3b !important;
+	outline: 3px solid #f57c00 !important;
+	outline-offset: 2px !important;
+	border-radius: 4px !important;
+	box-shadow: 0 0 0 6px rgba(245, 124, 0, 0.3) !important;
+	position: relative !important;
+	z-index: 9999 !important;
+	transition: all 0.3s ease !important;
+}
+
+/* TTS 하이라이트된 요소의 부모들도 IR 기법 취소 */
+.displayNone:has(.wat-tts_highlight),
+.blind:has(.wat-tts_highlight),
+.sr-only:has(.wat-tts_highlight),
+.visually-hidden:has(.wat-tts_highlight) {
+	width: auto !important;
+	height: auto !important;
+	display: block !important;
+	visibility: visible !important;
+	opacity: 1 !important;
+	position: relative !important;
+	clip: auto !important;
+	clip-path: none !important;
+	overflow: visible !important;
+	text-indent: 0 !important;
+	font-size: inherit !important;
+	line-height: inherit !important;
+}
+
+/* 더 강력한 부모 요소 IR 기법 취소 (CSS :has() 미지원 브라우저 대응) */
+.wat-tts_highlight-parent {
+	width: auto !important;
+	height: auto !important;
+	display: block !important;
+	visibility: visible !important;
+	opacity: 1 !important;
+	position: relative !important;
+	clip: auto !important;
+	clip-path: none !important;
+	overflow: visible !important;
+	text-indent: 0 !important;
+	font-size: inherit !important;
+	line-height: inherit !important;
+}
+
+/* 포커스된 TTS 요소 */
+.wat-tts_highlight:focus {
+	outline-color: #ff5722 !important;
+	box-shadow: 0 0 0 6px rgba(255, 87, 34, 0.4) !important;
+}
+
+/* TTS 래퍼 스타일 */
+.wat-tts_wrapper {
+	background-color: rgba(255, 235, 59, 0.9) !important;
+	padding: 2px 6px !important;
+	border-radius: 3px !important;
+	display: inline !important;
+	position: relative !important;
+	z-index: 9998 !important;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* TTS 버튼 기본 스타일 */
+.wat-tts-toggle,
+.wat-tts-focus-toggle,
+.wat-tts-nav {
+	padding: 8px 16px !important;
+	border: 2px solid #ddd !important;
+	border-radius: 6px !important;
+	background-color: #fff !important;
+	color: #333 !important;
+	font-size: 14px !important;
+	cursor: pointer !important;
+	transition: all 0.2s ease !important;
+	position: relative !important;
+}
+
+/* TTS 버튼 호버 상태 */
+.wat-tts-toggle:hover,
+.wat-tts-focus-toggle:hover,
+.wat-tts-nav:not(:disabled):hover {
+	background-color: #f0f0f0 !important;
+	border-color: #2196f3 !important;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* TTS 활성화 버튼 상태 */
+.wat-tts-toggle[aria-pressed="true"],
+.wat-tts-focus-toggle[aria-pressed="true"] {
+	background-color: #4caf50 !important;
+	color: white !important;
+	border-color: #45a049 !important;
+	box-shadow: 0 2px 6px rgba(76, 175, 80, 0.3) !important;
+}
+
+/* TTS 활성화 버튼 애니메이션 */
+.wat-tts-toggle[aria-pressed="true"]::before,
+.wat-tts-focus-toggle[aria-pressed="true"]::before {
+	content: "● " !important;
+	animation: pulse 1.5s infinite !important;
+}
+
+@keyframes pulse {
+	0%, 100% { opacity: 1; }
+	50% { opacity: 0.5; }
+}
+
+/* TTS 비활성화 버튼 상태 */
+.wat-tts-toggle[aria-pressed="false"],
+.wat-tts-focus-toggle[aria-pressed="false"] {
+	background-color: #f5f5f5 !important;
+	color: #333 !important;
+	border-color: #ddd !important;
+}
+
+/* TTS 네비게이션 버튼 */
+.wat-tts-nav:disabled {
+	opacity: 0.4 !important;
+	cursor: not-allowed !important;
+	background-color: #e0e0e0 !important;
+	color: #9e9e9e !important;
+	border-color: #ccc !important;
+}
+
+.wat-tts-nav:not(:disabled) {
+	background-color: #2196f3 !important;
+	color: white !important;
+	border-color: #1976d2 !important;
+}
+
+.wat-tts-nav:not(:disabled):hover {
+	background-color: #1976d2 !important;
+	border-color: #1565c0 !important;
+	transform: translateY(-1px) !important;
+}
+
+.wat-tts-nav:not(:disabled):active {
+	transform: translateY(0) !important;
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* TTS 속도 제어 */
+.wat-tts-speed-control {
+	width: 100% !important;
+	margin: 8px 0 !important;
+	height: 8px !important;
+	border-radius: 4px !important;
+	background: linear-gradient(to right, #e0e0e0 0%, #2196f3 50%, #e0e0e0 100%) !important;
+	outline: none !important;
+	-webkit-appearance: none !important;
+	appearance: none !important;
+}
+
+.wat-tts-speed-control::-webkit-slider-thumb {
+	-webkit-appearance: none !important;
+	appearance: none !important;
+	width: 20px !important;
+	height: 20px !important;
+	border-radius: 50% !important;
+	background: #2196f3 !important;
+	cursor: pointer !important;
+	border: 3px solid #fff !important;
+	box-shadow: 0 2px 6px rgba(0,0,0,0.3) !important;
+	transition: all 0.2s ease !important;
+}
+
+.wat-tts-speed-control::-webkit-slider-thumb:hover {
+	background: #1976d2 !important;
+	transform: scale(1.1) !important;
+}
+
+.wat-tts-speed-control::-moz-range-thumb {
+	width: 20px !important;
+	height: 20px !important;
+	border-radius: 50% !important;
+	background: #2196f3 !important;
+	cursor: pointer !important;
+	border: 3px solid #fff !important;
+	box-shadow: 0 2px 6px rgba(0,0,0,0.3) !important;
+}
+
+/* TTS 속도 표시 */
+.wat-tts-speed-display {
+	font-size: 12px !important;
+	color: #666 !important;
+	text-align: center !important;
+	margin-top: 4px !important;
+	font-weight: 600 !important;
+}
+
+/* TTS 알림 */
+.wat-notification {
+	position: fixed !important;
+	bottom: 20px !important;
+	right: 20px !important;
+	background: rgba(0, 0, 0, 0.85) !important;
+	color: white !important;
+	padding: 8px 12px !important;
+	border-radius: 4px !important;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+	z-index: 10000 !important;
+	font-size: 13px !important;
+	max-width: 250px !important;
+	animation: slideInFadeIn 0.3s ease-out !important;
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+	line-height: 1.3 !important;
+	word-wrap: break-word !important;
+}
+
+@keyframes slideInFadeIn {
+	from {
+		transform: translateX(100%) !important;
+		opacity: 0 !important;
+	}
+	to {
+		transform: translateX(0) !important;
+		opacity: 1 !important;
+	}
+}
+
+/* 알림 타입별 스타일 */
+.wat-notification.success {
+	background: #4caf50 !important;
+	border-left: 4px solid #2e7d32 !important;
+}
+
+.wat-notification.warning {
+	background: #ff9800 !important;
+	border-left: 4px solid #f57c00 !important;
+}
+
+.wat-notification.error {
+	background: #f44336 !important;
+	border-left: 4px solid #d32f2f !important;
+}
+
+.wat-notification.info {
+	background: #2196f3 !important;
+	border-left: 4px solid #1976d2 !important;
+}
+
+/* TTS 컨트롤 그룹 */
+.wat-tts-controls {
+	display: flex !important;
+	gap: 8px !important;
+	align-items: center !important;
+	margin-top: 12px !important;
+	flex-wrap: wrap !important;
+}
+
+.wat-tts-controls button {
+	flex: 1 !important;
+	min-width: 80px !important;
+	padding: 8px 12px !important;
+	border: 1px solid #ddd !important;
+	border-radius: 4px !important;
+	background: #fff !important;
+	cursor: pointer !important;
+	font-size: 12px !important;
+	transition: all 0.2s ease !important;
+}
+
+/* TTS 상태 표시 */
+.wat-tts-status {
+	font-size: 11px !important;
+	color: #666 !important;
+	text-align: center !important;
+	margin-top: 6px !important;
+	padding: 4px 8px !important;
+	background-color: #f9f9f9 !important;
+	border-radius: 4px !important;
+	border: 1px solid #e0e0e0 !important;
+}
+
+.wat-tts-status.active {
+	color: #4caf50 !important;
+	background-color: #f1f8e9 !important;
+	border-color: #c8e6c9 !important;
+}
+
+/* 읽기 가이드와 TTS 하이라이트가 겹칠 때 */
+[data-wat-read-guide="mask"] .wat-tts_highlight {
+	z-index: 10001 !important;
+}
+
+/* 고대비 모드에서의 TTS 하이라이트 */
+[data-wat-color-theme="reverse"] .wat-tts_highlight {
+	background-color: #000 !important;
+	color: #fff !important;
+	outline-color: #fff !important;
+	box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.4) !important;
+}
+
+[data-wat-color-theme="reverse"] .wat-tts_wrapper {
+	background-color: rgba(0, 0, 0, 0.9) !important;
+	color: #fff !important;
+}
+
+/* 화면 배율이 적용된 경우 TTS 하이라이트 보정 */
+[data-wat-screen-scale] .wat-tts_highlight {
+	outline-width: calc(3px / var(--wat-scale-ratio, 1)) !important;
+	outline-offset: calc(2px / var(--wat-scale-ratio, 1)) !important;
+}
+
+/* 모바일 반응형 */
+@media (max-width: 768px) {
+	.wat-notification {
+		top: 10px !important;
+		right: 10px !important;
+		left: 10px !important;
+		max-width: none !important;
+		font-size: 13px !important;
+	}
+	
+	.wat-tts-controls {
+		flex-direction: column !important;
+	}
+	
+	.wat-tts-controls button {
+		width: 100% !important;
+		min-width: auto !important;
+	}
+
+	.wat-tts_highlight {
+		outline-width: 2px !important;
+		outline-offset: 1px !important;
+		box-shadow: 0 0 0 4px rgba(245, 124, 0, 0.3) !important;
+	}
+}
+
+/* 애니메이션 감소 설정을 고려한 스타일 */
+@media (prefers-reduced-motion: reduce) {
+	.wat-tts_highlight {
+		transition: none !important;
+	}
+	
+	.wat-notification {
+		animation: none !important;
+	}
+	
+	.wat-tts-toggle[aria-pressed="true"]::before,
+	.wat-tts-focus-toggle[aria-pressed="true"]::before {
+		animation: none !important;
+	}
+
+	.wat-tts-nav:not(:disabled):hover {
+		transform: none !important;
+	}
+}
+
+/* 접근성을 위한 포커스 표시 강화 */
+.wat-tts-toggle:focus,
+.wat-tts-focus-toggle:focus,
+.wat-tts-nav:focus {
+	outline: 3px solid #ff5722 !important;
+	outline-offset: 2px !important;
+	box-shadow: 0 0 0 6px rgba(255, 87, 34, 0.2) !important;
+}
+
+/* 고대비 모드에서의 버튼 스타일 */
+[data-wat-color-theme="reverse"] .wat-tts-toggle,
+[data-wat-color-theme="reverse"] .wat-tts-focus-toggle,
+[data-wat-color-theme="reverse"] .wat-tts-nav {
+	background-color: #000 !important;
+	color: #fff !important;
+	border-color: #fff !important;
+}
+
+[data-wat-color-theme="reverse"] .wat-tts-toggle[aria-pressed="true"],
+[data-wat-color-theme="reverse"] .wat-tts-focus-toggle[aria-pressed="true"] {
+	background-color: #fff !important;
+	color: #000 !important;
+}
+
+/* ========================= Dictionary Notification Styles ========================= */
+.wat-dictionary-notification {
+	position: fixed;
+	top: 20px;
+	right: 20px;
+	min-width: 300px;
+	max-width: 500px;
+	padding: 16px 48px 16px 16px;
+	border-radius: 8px;
+	font-family: var(--wat-font-family);
+	font-size: 14px;
+	line-height: 1.4;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+	z-index: 10000;
+	animation: slideInRight 0.3s ease-out;
+	transition: all 0.3s ease;
+}
+
+.wat-dictionary-notification--info {
+	background-color: #e3f2fd;
+	border-left: 4px solid #2196f3;
+	color: #0d47a1;
+}
+
+.wat-dictionary-notification--success {
+	background-color: #e8f5e8;
+	border-left: 4px solid #4caf50;
+	color: #1b5e20;
+}
+
+.wat-dictionary-notification--error {
+	background-color: #ffebee;
+	border-left: 4px solid #f44336;
+	color: #c62828;
+}
+
+.wat-dictionary-notification__close {
+	position: absolute;
+	top: 8px;
+	right: 8px;
+	background: none;
+	border: none;
+	font-size: 20px;
+	line-height: 1;
+	cursor: pointer;
+	padding: 4px;
+	border-radius: 4px;
+	color: inherit;
+	opacity: 0.7;
+	transition: opacity 0.2s ease;
+}
+
+.wat-dictionary-notification__close:hover,
+.wat-dictionary-notification__close:focus {
+	opacity: 1;
+	background-color: rgba(0, 0, 0, 0.1);
+}
+
+/* Dictionary pronunciation styles */
+.wat-diction-pronunciation {
+	margin: 10px 0;
+	padding: 8px 12px;
+	background-color: #f5f5f5;
+	border-radius: 4px;
+	font-style: italic;
+	border-left: 3px solid #2196f3;
+}
+
+/* Dictionary modal responsive styles */
+.wat-diction-result-layer {
+	position: fixed;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	background: white;
+	border-radius: 8px;
+	box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+	padding: 24px;
+	z-index: 9999;
+	max-height: 80vh;
+	overflow-y: auto;
+	min-width: 300px;
+	max-width: 90vw; /* 화면 너비의 90%를 넘지 않도록 */
+	width: auto;
+	/* 화면 경계를 넘지 않도록 제한 */
+	margin: 20px;
+	box-sizing: border-box;
+	/* 추가 안전장치 */
+	word-wrap: break-word;
+	word-break: break-word;
+}
+
+/* 모달이 화면 경계를 절대 벗어나지 않도록 하는 추가 규칙 */
+.wat-diction-result-layer {
+	/* 최소/최대 크기 제한 */
+	min-height: 100px;
+	max-height: calc(100vh - 40px);
+	max-width: calc(100vw - 40px);
+}
+
+/* 모달 내부 요소들이 넘치지 않도록 */
+.wat-diction-result-layer * {
+	max-width: 100%;
+	box-sizing: border-box;
+}
+
+/* Animation keyframes */
+@keyframes slideInRight {
+	from {
+		transform: translateX(100%);
+		opacity: 0;
+	}
+	to {
+		transform: translateX(0);
+		opacity: 1;
+	}
+}
+
+/* High contrast mode support */
+[data-wat-color-theme="reverse"] .wat-dictionary-notification {
+	filter: invert(1);
+}
+
+/* Dark mode support */
+[data-wat-color-theme="dark"] .wat-dictionary-notification--info {
+	background-color: #0d47a1;
+	color: #e3f2fd;
+}
+
+[data-wat-color-theme="dark"] .wat-dictionary-notification--success {
+	background-color: #1b5e20;
+	color: #e8f5e8;
+}
+
+[data-wat-color-theme="dark"] .wat-dictionary-notification--error {
+	background-color: #c62828;
+	color: #ffebee;
+}
+
+[data-wat-color-theme="dark"] .wat-diction-result-layer {
+	background-color: var(--wat-bgColor-main);
+	color: var(--wat-color-main);
+}
+
+[data-wat-color-theme="dark"] .wat-diction-pronunciation {
+	background-color: #666;
+	color: #fff;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+	.wat-dictionary-notification {
+		top: 10px;
+		right: 10px;
+		left: 10px;
+		min-width: auto;
+		max-width: none;
+	}
+	
+	.wat-diction-result-layer {
+		position: fixed !important;
+		top: 20px !important;
+		left: 20px !important;
+		right: 20px !important;
+		bottom: 20px !important;
+		transform: none !important;
+		width: auto !important;
+		max-width: none !important;
+		max-height: none !important;
+		height: auto !important;
+		margin: 0 !important;
+		overflow-y: auto;
+	}
+}
+
+/* Small mobile devices */
+@media (max-width: 480px) {
+	.wat-diction-result-layer {
+		top: 10px !important;
+		left: 10px !important;
+		right: 10px !important;
+		bottom: 10px !important;
+		padding: 16px !important;
+	}
+}
+
+/* ======================================================================================== */
+/* Dictionary Notification Styles                                                          */
+/* ======================================================================================== */
+
+/* Dictionary notification container */
+.wat-dictionary-notification {
+	position: fixed;
+	top: 20px;
+	right: 20px;
+	max-width: 400px;
+	padding: 16px 40px 16px 16px;
+	border-radius: 6px;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+	font-family: var(--wat-font-family);
+	font-size: 14px;
+	line-height: 1.4;
+	z-index: 10001;
+	animation: wat-notification-slide-in 0.3s ease-out;
+	transition: all 0.3s ease;
+}
+
+/* Notification types */
+.wat-dictionary-notification--info {
+	background-color: #e3f2fd;
+	color: #0d47a1;
+	border-left: 4px solid #2196f3;
+}
+
+.wat-dictionary-notification--error {
+	background-color: #ffebee;
+	color: #c62828;
+	border-left: 4px solid #f44336;
+}
+
+.wat-dictionary-notification--success {
+	background-color: #e8f5e8;
+	color: #2e7d32;
+	border-left: 4px solid #4caf50;
+}
+
+/* Close button */
+.wat-dictionary-notification__close {
+	position: absolute;
+	top: 8px;
+	right: 8px;
+	width: 24px;
+	height: 24px;
+	border: none;
+	background: transparent;
+	color: inherit;
+	font-size: 18px;
+	font-weight: bold;
+	cursor: pointer;
+	border-radius: 3px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	opacity: 0.7;
+	transition: opacity 0.2s ease;
+}
+
+.wat-dictionary-notification__close:hover,
+.wat-dictionary-notification__close:focus {
+	opacity: 1;
+	background-color: rgba(0, 0, 0, 0.1);
+}
+
+/* Animation */
+@keyframes wat-notification-slide-in {
+	from {
+		transform: translateX(100%);
+		opacity: 0;
+	}
+	to {
+		transform: translateX(0);
+		opacity: 1;
+	}
+}
+
+/* Dark theme support */
+[data-wat-color-theme="dark"] .wat-dictionary-notification--info {
+	background-color: #0d47a1;
+	color: #e3f2fd;
+}
+
+[data-wat-color-theme="dark"] .wat-dictionary-notification--error {
+	background-color: #c62828;
+	color: #ffebee;
+}
+
+[data-wat-color-theme="dark"] .wat-dictionary-notification--success {
+	background-color: #2e7d32;
+	color: #e8f5e8;
+}
+
+/* High contrast theme support */
+[data-wat-color-theme="reverse"] .wat-dictionary-notification {
+	background-color: #000 !important;
+	color: #fff !important;
+	border-color: #fff !important;
+}
+
+/* Dictionary result layer styles enhancement */
+.wat-diction-result-layer {
+	background-color: var(--wat-bgColor-main);
+	color: var(--wat-color-main);
+	border: 2px solid var(--wat-color-sub);
+}
+
+.wat-diction-pronunciation {
+	margin: 10px 0;
+	padding: 8px 12px;
+	background-color: var(--wat-bgColor-sub);
+	border-radius: 4px;
+	font-style: italic;
+	color: var(--wat-color-sub);
+}
+
+/* Responsive design for mobile devices */
+@media (max-width: 480px) {
+	.wat-dictionary-notification {
+		top: 10px;
+		right: 10px;
+		left: 10px;
+		max-width: none;
+		font-size: 13px;
+	}
+	
+	.wat-diction-result-layer {
+		max-width: 95% !important;
+		margin: 10px auto;
+	}
+}
+
+/* ======================================================================================== */
+/* End of Dictionary Notification Styles                                                   */
+/* ======================================================================================== */

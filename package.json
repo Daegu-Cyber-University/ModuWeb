@@ -1,0 +1,72 @@
+{
+	"name": "moduweb",
+	"version": "2.0.0",
+	"description": "ModuWeb (Web Accessibility Tools) - 웹 접근성 향상을 위한 통합 도구",
+	"main": "dist/webAccTools.js",
+	"keywords": [
+		"accessibility",
+		"a11y",
+		"web-accessibility",
+		"assistive-technology",
+		"wcag",
+		"tts",
+		"stt",
+		"screen-reader",
+		"korean",
+		"internationalization"
+	],
+	"author": {
+		"name": "대구사이버대학교",
+		"email": "idaegu@dcu.ac.kr",
+		"url": "https://www.dcu.ac.kr"
+	},
+	"license": "Apache-2.0",
+	"homepage": "https://github.com/Daegu-Cyber-University/ModuWeb#readme",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/Daegu-Cyber-University/ModuWeb.git"
+	},
+	"bugs": {
+		"url": "https://github.com/Daegu-Cyber-University/ModuWeb/issues"
+	},
+	"files": [
+		"dist/",
+		"docs/",
+		"examples/",
+		"README.md",
+		"LICENSE",
+		"config.example.json"
+	],
+	"scripts": {
+		"build": "echo 'Build script not configured'",
+		"test": "echo 'Tests not configured'",
+		"start": "echo 'Start script not configured'",
+		"docs": "echo 'Documentation generation not configured'"
+	},
+	"browserslist": [
+		"> 1%",
+		"last 2 versions",
+		"not dead",
+		"ie >= 11"
+	],
+	"engines": {
+		"node": ">=14.0.0"
+	},
+	"devDependencies": {},
+	"dependencies": {},
+	"peerDependencies": {},
+	"optionalDependencies": {},
+	"config": {
+		"example": "config.example.json"
+	},
+	"funding": {
+		"type": "university",
+		"url": "https://www.dcu.ac.kr"
+	},
+	"contributors": [
+		{
+			"name": "대구사이버대학교 개발팀",
+			"email": "idaegu@dcu.ac.kr"
+		}
+	]
+}

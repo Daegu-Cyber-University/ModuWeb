@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>WAT 프로젝트 아키텍처</title>
+	<script src="https://unpkg.com/mermaid@10/dist/mermaid.min.js"></script>
+	<style type="text/css">
+	body {
+		font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+		margin: 0;
+		padding: 20px;
+		background-color: #f5f5f5;
+		line-height: 1.6;
+	}
+
+	.container {
+		max-width: 1400px;
+		margin: 0 auto;
+		background: white;
+		border-radius: 10px;
+		box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+		overflow: hidden;
+	}
+
+	.header {
+		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+		color: white;
+		padding: 30px;
+		text-align: center;
+	}
+
+	.header h1 {
+		margin: 0;
+		font-size: 2.5em;
+		font-weight: 300;
+	}
+
+	.header p {
+		margin: 10px 0 0 0;
+		opacity: 0.9;
+		font-size: 1.1em;
+	}
+
+	.content {
+		padding: 30px;
+	}
+
+	.section {
+		margin-bottom: 40px;
+	}
+
+	.section h2 {
+		color: #333;
+		border-bottom: 3px solid #667eea;
+		padding-bottom: 10px;
+		margin-bottom: 20px;
+	}
+
+	.diagram-container {
+		background: #fafafa;
+		border: 2px solid #eee;
+		border-radius: 8px;
+		padding: 20px;
+		margin: 20px 0;
+		overflow-x: auto;
+	}
+
+	.class-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+		gap: 20px;
+		margin-top: 20px;
+	}
+
+	.class-card {
+		background: white;
+		border: 2px solid #ddd;
+		border-radius: 8px;
+		padding: 20px;
+		transition: transform 0.2s, box-shadow 0.2s;
+	}
+
+	.class-card:hover {
+		transform: translateY(-2px);
+		box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+	}
+
+	.class-card h3 {
+		color: #667eea;
+		margin: 0 0 15px 0;
+		font-size: 1.3em;
+	}
+
+	.class-card .description {
+		color: #666;
+		margin-bottom: 15px;
+		font-style: italic;
+	}
+
+	.features {
+		list-style: none;
+		padding: 0;
+	}
+
+	.features li {
+		background: #f8f9fa;
+		margin: 5px 0;
+		padding: 8px 12px;
+		border-radius: 4px;
+		border-left: 4px solid #667eea;
+	}
+
+	.flow-description {
+		background: #e8f4fd;
+		border: 1px solid #bee5eb;
+		border-radius: 6px;
+		padding: 20px;
+		margin: 20px 0;
+	}
+
+	.flow-description h3 {
+		color: #0c5460;
+		margin-top: 0;
+	}
+
+	.event-list {
+		background: #fff3cd;
+		border: 1px solid #ffeaa7;
+		border-radius: 6px;
+		padding: 20px;
+		margin: 20px 0;
+	}
+
+	.event-list h3 {
+		color: #856404;
+		margin-top: 0;
+	}
+
+	.event-list ul {
+		margin: 0;
+		padding-left: 20px;
+	}
+
+	.event-list li {
+		margin: 5px 0;
+		color: #856404;
+	}
+
+	.initialization-flow {
+		background: #d1ecf1;
+		border: 1px solid #bee5eb;
+		border-radius: 6px;
+		padding: 20px;
+		margin: 20px 0;
+	}
+
+	.initialization-flow h3 {
+		color: #0c5460;
+		margin-top: 0;
+	}
+
+	.code-example {
+		background: #f8f9fa;
+		border: 1px solid #e9ecef;
+		border-radius: 6px;
+		padding: 15px;
+		font-family: 'Courier New', monospace;
+		overflow-x: auto;
+		margin: 10px 0;
+	}
+	</style>
+</head>
+
+<body>
+	<div class="container">
+		<div class="header">
+			<h1>WAT 프로젝트 아키텍처</h1>
+			<p>Web Accessibility Tools - 웹 접근성 도구 프레임워크</p>
+		</div>
+
+		<div class="content">
+			<!-- 전체 아키텍처 다이어그램 -->
+			<div class="section">
+				<h2>🏗️ 전체 시스템 아키텍처</h2>
+				<div class="diagram-container">
+					<div class="mermaid">
+						graph TB
+							subgraph "WAT Framework"
+								WAT[WAT Main Class<br/>메인 컨트롤러]
+								SM[StateManager<br/>상태 관리]
+								EH[ErrorHandler<br/>에러 처리]
+							end
+							
+							subgraph "Core Modules"
+								TTSMgr[TTSManager<br/>음성 합성]
+								STTMgr[STTManager<br/>음성 인식]
+								FocusTTS[FocusTTS<br/>포커스 읽기]
+							end
+							
+							subgraph "Feature Modules"
+								MediaCtrl[MediaControls<br/>미디어 제어]
+								DictMgr[DictionaryManager<br/>사전 관리]
+								ConfigMgr[ConfigManager<br/>설정 관리]
+							end
+							
+							subgraph "Events System"
+								InitEvent[wat:initialized]
+								TTSEvent[wat:tts:stateChanged]
+								STTEvent[wat:stt:stateChanged]
+								MediaEvent[wat:media:*]
+								DictEvent[wat:dictionary:*]
+								SettingsEvent[wat:settings:*]
+							end
+							
+							WAT --> SM
+							WAT --> EH
+							WAT --> TTSMgr
+							WAT --> STTMgr
+							WAT --> FocusTTS
+							WAT --> MediaCtrl
+							WAT --> DictMgr
+							WAT --> ConfigMgr
+							
+							WAT --> InitEvent
+							TTSMgr --> TTSEvent
+							STTMgr --> STTEvent
+							MediaCtrl --> MediaEvent
+							DictMgr --> DictEvent
+							ConfigMgr --> SettingsEvent
+							
+							SM --> TTSMgr
+							SM --> STTMgr
+							SM --> FocusTTS
+							
+							classDef mainClass fill:#667eea,stroke:#333,stroke-width:2px,color:#fff
+							classDef coreModule fill:#52c41a,stroke:#333,stroke-width:2px,color:#fff
+							classDef featureModule fill:#faad14,stroke:#333,stroke-width:2px,color:#333
+							classDef eventSystem fill:#722ed1,stroke:#333,stroke-width:2px,color:#fff
+							
+							class WAT,SM,EH mainClass
+							class TTSMgr,STTMgr,FocusTTS coreModule
+							class MediaCtrl,DictMgr,ConfigMgr featureModule
+							class InitEvent,TTSEvent,STTEvent,MediaEvent,DictEvent,SettingsEvent eventSystem
+					</div>
+				</div>
+			</div>
+
+			<!-- 클래스 구조 상세 -->
+			<div class="section">
+				<h2>📦 클래스 구조 상세</h2>
+				<div class="class-grid">
+					<div class="class-card">
+						<h3>WAT (메인 클래스)</h3>
+						<div class="description">전체 프레임워크의 핵심 컨트롤러</div>
+						<ul class="features">
+							<li>플러그인 초기화 및 설정 관리</li>
+							<li>모든 모듈의 라이프사이클 관리</li>
+							<li>이벤트 디스패치 중앙 관리</li>
+							<li>선택적 기능 로딩</li>
+							<li>에러 핸들링 통합</li>
+						</ul>
+					</div>
+
+					<div class="class-card">
+						<h3>StateManager</h3>
+						<div class="description">전역 상태 관리 시스템</div>
+						<ul class="features">
+							<li>깊은 객체 병합 (Deep Merge)</li>
+							<li>옵저버 패턴 구현</li>
+							<li>상태 변경 감지 및 알림</li>
+							<li>경로 기반 상태 접근</li>
+							<li>이벤트 기반 상태 동기화</li>
+						</ul>
+					</div>
+
+					<div class="class-card">
+						<h3>TTSManager</h3>
+						<div class="description">음성 합성 (Text-to-Speech) 관리</div>
+						<ul class="features">
+							<li>다양한 TTS 엔진 지원</li>
+							<li>텍스트 전처리 및 정리</li>
+							<li>음성 설정 관리 (속도, 음성)</li>
+							<li>상태 기반 TTS 제어</li>
+							<li>레이블 제거 처리</li>
+						</ul>
+					</div>
+
+					<div class="class-card">
+						<h3>STTManager</h3>
+						<div class="description">음성 인식 (Speech-to-Text) 관리</div>
+						<ul class="features">
+							<li>웹 음성 인식 API 활용</li>
+							<li>음성 명령어 처리</li>
+							<li>실시간 음성 변환</li>
+							<li>언어 설정 지원</li>
+							<li>음성 인식 상태 관리</li>
+						</ul>
+					</div>
+
+					<div class="class-card">
+						<h3>FocusTTS</h3>
+						<div class="description">포커스 기반 텍스트 읽기</div>
+						<ul class="features">
+							<li>포커스 이벤트 감지</li>
+							<li>더블클릭 텍스트 읽기</li>
+							<li>요소별 텍스트 추출</li>
+							<li>접근성 향상 기능</li>
+							<li>키보드 네비게이션 지원</li>
+						</ul>
+					</div>
+				</div>
+			</div>
+
+			<!-- 초기화 플로우 -->
+			<div class="section">
+				<h2>🚀 초기화 플로우</h2>
+				<div class="diagram-container">
+					<div class="mermaid">
+						sequenceDiagram
+						participant HTML as HTML 페이지
+						participant WAT as WAT Class
+						participant Modules as 모듈들
+						participant Events as Event System
+
+						HTML->>WAT: new WAT(options)
+						WAT->>WAT: 설정 병합
+						WAT->>Modules: 선택적 모듈 초기화
+						Modules->>WAT: 초기화 완료 알림
+						WAT->>Events: wat:initialized 이벤트 발송
+						Events->>HTML: 초기화 완료 통지
+
+						Note over HTML,Events: 이후 각 모듈은 독립적으로 이벤트 발송
+					</div>
+				</div>
+
+				<div class="initialization-flow">
+					<h3>초기화 단계별 설명</h3>
+					<ol>
+						<li><strong>스크립트 로드:</strong> HTML에서 webAccTools.js 로드</li>
+						<li><strong>옵션 파싱:</strong> data-wat-options 속성에서 설정 추출</li>
+						<li><strong>WAT 인스턴스 생성:</strong> 파싱된 옵션으로 WAT 클래스 인스턴스화</li>
+						<li><strong>모듈 초기화:</strong> 설정에 따라 필요한 모듈만 선택적으로 로드</li>
+						<li><strong>이벤트 발송:</strong> wat:initialized 이벤트로 초기화 완료 알림</li>
+						<li><strong>사용 준비:</strong> 모든 기능이 활성화되어 사용 가능한 상태</li>
+					</ol>
+				</div>
+			</div>
+
+			<!-- 이벤트 시스템 -->
+			<div class="section">
+				<h2>📡 이벤트 시스템</h2>
+				<div class="event-list">
+					<h3>주요 이벤트 목록</h3>
+					<ul>
+						<li><strong>wat:initialized</strong> - 프레임워크 초기화 완료</li>
+						<li><strong>wat:tts:stateChanged</strong> - TTS 상태 변경 (활성화/비활성화)</li>
+						<li><strong>wat:stt:stateChanged</strong> - STT 상태 변경</li>
+						<li><strong>wat:media:play/pause/stop</strong> - 미디어 컨트롤 상태</li>
+						<li><strong>wat:dictionary:search</strong> - 사전 검색 실행</li>
+						<li><strong>wat:settings:changed</strong> - 설정 변경</li>
+					</ul>
+				</div>
+
+				<div class="flow-description">
+					<h3>이벤트 기반 통신</h3>
+					<p>모든 모듈은 상태 변경 시 CustomEvent를 통해 다른 컴포넌트와 통신합니다. 이를 통해:</p>
+					<ul>
+						<li>모듈 간 느슨한 결합 (Loose Coupling) 유지</li>
+						<li>확장성과 유지보수성 향상</li>
+						<li>외부 애플리케이션에서 WAT 상태 모니터링 가능</li>
+						<li>플러그인 방식의 기능 확장 지원</li>
+					</ul>
+				</div>
+			</div>
+
+
+			<!-- 기술적 특징 -->
+			<div class="section">
+				<h2>⚡ 주요 기술적 특징</h2>
+				<div class="class-grid">
+					<div class="class-card">
+						<h3>모듈화 설계</h3>
+						<div class="description">각 기능이 독립적인 클래스로 구현</div>
+						<ul class="features">
+							<li>단일 책임 원칙 준수</li>
+							<li>기능별 독립적 테스트 가능</li>
+							<li>선택적 로딩으로 성능 최적화</li>
+						</ul>
+					</div>
+
+					<div class="class-card">
+						<h3>이벤트 기반 아키텍처</h3>
+						<div class="description">느슨한 결합의 컴포넌트 간 통신</div>
+						<ul class="features">
+							<li>CustomEvent 기반 통신</li>
+							<li>상태 변경 실시간 알림</li>
+							<li>확장 가능한 플러그인 구조</li>
+						</ul>
+					</div>
+
+					<div class="class-card">
+						<h3>상태 관리 시스템</h3>
+						<div class="description">중앙화된 상태 관리 및 동기화</div>
+						<ul class="features">
+							<li>옵저버 패턴 구현</li>
+							<li>깊은 객체 병합</li>
+							<li>경로 기반 상태 접근</li>
+						</ul>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<script>
+		mermaid.initialize({
+			startOnLoad: true,
+			theme: 'default',
+			flowchart: {
+				htmlLabels: true,
+				curve: 'basis'
+			},
+			sequence: {
+				diagramMarginX: 50,
+				diagramMarginY: 10,
+				actorMargin: 50,
+				width: 150,
+				height: 65,
+				boxMargin: 10,
+				boxTextMargin: 5,
+				noteMargin: 10,
+				messageMargin: 35
+			}
+		});
+	</script>
+</body>
+
+</html>
