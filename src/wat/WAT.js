@@ -537,7 +537,7 @@ export class WAT {
 					detail: {
 						plugin: this,
 						timestamp: Date.now(),
-						version: '2.0.0',
+						version: __MODUWEB_VERSION_JSON__,
 						language: this.language,
 						features: {
 							tts: !!this.ttsManager,
