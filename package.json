@@ -51,9 +51,9 @@
 		"start": "echo 'Open examples/index.html in a browser to test'",
 		"preversion": "npm test",
 		"version": "npm run build && git add dist",
-		"release:patch": "npm version patch && git push --follow-tags",
-		"release:minor": "npm version minor && git push --follow-tags",
-		"release:major": "npm version major && git push --follow-tags"
+		"release:patch": "npm version patch -m \"Version Update: %s\" && git push --follow-tags",
+		"release:minor": "npm version minor -m \"Version Update: %s\" && git push --follow-tags",
+		"release:major": "npm version major -m \"Version Update: %s\" && git push --follow-tags"
 	},
 	"browserslist": [
 		"> 0.5%",
