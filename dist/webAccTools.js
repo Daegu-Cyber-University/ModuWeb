@@ -1,6 +1,6 @@
 /**
  * @fileoverview WAT (Web Accessibility Tool) - ModuWeb
- * @version 2.0.2
+ * @version 2.0.3
  * @license Apache-2.0
  * @see https://github.com/Daegu-Cyber-University/ModuWeb
  */
@@ -3144,7 +3144,7 @@ var WATPlugin = (function (exports) {
 						detail: {
 							plugin: this,
 							timestamp: Date.now(),
-							version: "2.0.2",
+							version: "2.0.3",
 							language: this.language,
 							features: {
 								tts: !!this.ttsManager,
@@ -12931,7 +12931,7 @@ var WATPlugin = (function (exports) {
 
 	/**
 	 * @fileoverview WAT (Web Accessibility Tool) 진입점
-	 * @version 2.0.2
+	 * @version 2.0.3
 	 */
 
 	// 전역에 등록 (기존 동작 유지)
