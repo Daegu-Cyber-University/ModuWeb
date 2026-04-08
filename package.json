@@ -1,6 +1,6 @@
 {
 	"name": "moduweb",
-	"version": "2.0.0",
+	"version": "2.0.1",
 	"description": "ModuWeb (Web Accessibility Tools) - 웹 접근성 향상을 위한 통합 도구",
 	"main": "dist/webAccTools.js",
 	"keywords": [
@@ -33,15 +33,25 @@
 		"dist/",
 		"docs/",
 		"examples/",
+		"scripts/",
 		"README.md",
 		"LICENSE",
-		"config.example.json"
+		"config.example.json",
+		".env.example"
 	],
+	"type": "module",
 	"scripts": {
-		"build": "echo 'Build script not configured'",
-		"test": "echo 'Tests not configured'",
-		"start": "echo 'Start script not configured'",
-		"docs": "echo 'Documentation generation not configured'"
+		"config:from-env": "node scripts/write-config-from-env.mjs",
+		"build": "rollup -c rollup.config.js",
+		"build:watch": "rollup -c rollup.config.js --watch",
+		"test": "node --experimental-vm-modules node_modules/.bin/jest",
+		"test:watch": "node --experimental-vm-modules node_modules/.bin/jest --watch",
+		"test:coverage": "node --experimental-vm-modules node_modules/.bin/jest --coverage",
+		"validate": "node --check src/index.js",
+		"start": "echo 'Open examples/index.html in a browser to test'",
+		"release:patch": "npm version patch && git push --follow-tags",
+		"release:minor": "npm version minor && git push --follow-tags",
+		"release:major": "npm version major && git push --follow-tags"
 	},
 	"browserslist": [
 		"> 1%",
@@ -52,10 +62,13 @@
 	"engines": {
 		"node": ">=14.0.0"
 	},
-	"devDependencies": {},
-	"dependencies": {},
-	"peerDependencies": {},
-	"optionalDependencies": {},
+	"devDependencies": {
+		"@jest/globals": "^30.3.0",
+		"@rollup/plugin-node-resolve": "^16.0.3",
+		"jest": "^30.3.0",
+		"jest-environment-jsdom": "^30.3.0",
+		"rollup": "^4.59.0"
+	},
 	"config": {
 		"example": "config.example.json"
 	},

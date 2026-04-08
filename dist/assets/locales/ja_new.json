@@ -326,7 +326,12 @@
 		"on": "켜기, 활성화, 시작",
 		"off": "끄기, 비활성화, 중지, 종료",
 		"minimize": "창 축소",
-		"restore": "창 복원"
+		"restore": "창 복원",
+		"voiceCommands": {
+			"navigation": "이동, 링크, 클릭",
+			"action": "실행, 켜기, 끄기, 종료",
+			"settings": "설정, 옵션, 메뉴"
+		}
 	},
 	"patterns": {
 		"__comment__": "검색 패턴 관리. 검색 패턴의 제목과 검색할 단어를 설정합니다.",

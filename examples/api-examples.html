@@ -160,17 +160,14 @@
 	</style>
 	<script>
 		let watInstance;
+		let selectedVoice = null;
 		let eventMonitoringActive = false;
 		let stateObserverActive = false;
 		let stateObserverCallback = null;
 
 		document.addEventListener('DOMContentLoaded', () => {
 			// WAT 인스턴스 초기화
-			watInstance = new WAT({
-				enableTTS: true,
-				enableSTT: true,
-				enableFocusTTS: true
-			});
+			watInstance = new WAT();
 
 			window.watInstance = watInstance;
 			watInstance.init();
@@ -189,42 +186,65 @@
 			const pitch = parseFloat(document.getElementById('ttsPitch').value);
 			const volume = parseFloat(document.getElementById('ttsVolume').value);
 
-			if (watInstance && watInstance.ttsManager) {
-				watInstance.ttsManager.speakText(text, {
-					rate: rate,
-					pitch: pitch,
-					volume: volume
-				});
-				updateTTSStatusDisplay(`텍스트 재생 중: "${text}"`);
+			if (!('speechSynthesis' in window)) {
+				updateTTSStatusDisplay('이 브라우저는 speechSynthesis를 지원하지 않습니다.');
+				return;
 			}
+
+			window.speechSynthesis.cancel();
+
+			const utterance = new SpeechSynthesisUtterance(text);
+			utterance.rate = rate;
+			utterance.pitch = pitch;
+			utterance.volume = volume;
+			if (selectedVoice) {
+				utterance.voice = selectedVoice;
+			}
+
+			utterance.onend = () => updateTTSStatusDisplay(`재생 완료: "${text}"`);
+			utterance.onerror = () => updateTTSStatusDisplay('음성 합성 중 오류가 발생했습니다.');
+
+			window.speechSynthesis.speak(utterance);
+			updateTTSStatusDisplay(`브라우저 TTS 재생 중: "${text}"`);
 		}
 
 		function callPauseTTS() {
-			if (watInstance && watInstance.ttsManager) {
-				watInstance.ttsManager.pause();
+			if ('speechSynthesis' in window && 'pause' in window.speechSynthesis) {
+				window.speechSynthesis.pause();
 				updateTTSStatusDisplay('TTS 일시정지됨');
+			} else {
+				updateTTSStatusDisplay('이 브라우저는 TTS 일시정지를 지원하지 않습니다.');
 			}
 		}
 
 		function callResumeTTS() {
-			if (watInstance && watInstance.ttsManager) {
-				watInstance.ttsManager.resume();
+			if ('speechSynthesis' in window && 'resume' in window.speechSynthesis) {
+				window.speechSynthesis.resume();
 				updateTTSStatusDisplay('TTS 재개됨');
+			} else {
+				updateTTSStatusDisplay('이 브라우저는 TTS 재개를 지원하지 않습니다.');
 			}
 		}
 
 		function callStopTTS() {
-			if (watInstance && watInstance.ttsManager) {
-				watInstance.ttsManager.stop();
+			if ('speechSynthesis' in window) {
+				window.speechSynthesis.cancel();
 				updateTTSStatusDisplay('TTS 중지됨');
 			}
 		}
 
 		function getTTSStatus() {
-			if (watInstance && watInstance.ttsManager) {
-				const status = watInstance.ttsManager.getStatus();
-				updateTTSStatusDisplay('TTS 상태: ' + JSON.stringify(status, null, 2));
+			if (!('speechSynthesis' in window)) {
+				updateTTSStatusDisplay('이 브라우저는 speechSynthesis를 지원하지 않습니다.');
+				return;
 			}
+
+			const status = {
+				speaking: window.speechSynthesis.speaking,
+				paused: window.speechSynthesis.paused
+			};
+
+			updateTTSStatusDisplay('TTS 상태: ' + JSON.stringify(status, null, 2));
 		}
 
 		function getTTSVoices() {
@@ -239,9 +259,11 @@
 			if ('speechSynthesis' in window) {
 				const voices = speechSynthesis.getVoices();
 				const koreanVoice = voices.find(voice => voice.lang.includes('ko'));
-				if (koreanVoice && watInstance && watInstance.ttsManager) {
-					watInstance.ttsManager.setVoice(koreanVoice);
+				if (koreanVoice) {
+					selectedVoice = koreanVoice;
 					updateTTSStatusDisplay(`음성 변경됨: ${koreanVoice.name}`);
+				} else {
+					updateTTSStatusDisplay('한국어 음성을 찾지 못했습니다.');
 				}
 			}
 		}
@@ -258,89 +280,138 @@
 			const continuous = document.getElementById('sttContinuous').checked;
 			const interimResults = document.getElementById('sttInterim').checked;
 
-			if (watInstance && watInstance.sttManager) {
-				document.getElementById('sttStatus').textContent = '음성 인식 중... 말씀해 주세요.';
-				document.getElementById('sttStatus').className = 'live-status';
+			if (!watInstance || !watInstance.sttManager) return;
 
-				watInstance.sttManager.start((result, isFinal) => {
-					const timestamp = new Date().toLocaleTimeString();
-					const resultText = `[${timestamp}] ${isFinal ? '[최종]' : '[중간]'} ${result}`;
-					document.getElementById('sttResult').innerHTML =
-						resultText + '\n' + document.getElementById('sttResult').innerHTML;
-				}, {
-					language: language,
-					continuous: continuous,
-					interimResults: interimResults
-				});
+			// 현재 v2 STT는 VoiceCommand 기반으로 동작하며, UI의 continuous/interim 설정은 적용되지 않습니다.
+			if (continuous || interimResults) {
+				document.getElementById('sttResult').innerHTML =
+					'알림: 현재 예제 빌드에서는 연속/중간 결과 옵션이 적용되지 않습니다.\n' +
+					document.getElementById('sttResult').innerHTML;
 			}
+
+			watInstance.sttManager.setLanguage(language);
+
+			if (!watInstance.sttManager.getStatus().isActive) {
+				watInstance.sttManager.toggleVoiceCommand();
+			}
+
+			document.getElementById('sttStatus').textContent = '음성 명령 모드: 활성화';
+			document.getElementById('sttStatus').className = 'live-status';
+			updateSTTResultDisplay();
 		}
 
 		function stopSTT() {
-			if (watInstance && watInstance.sttManager) {
-				watInstance.sttManager.stop();
-				document.getElementById('sttStatus').textContent = '음성 인식이 중지되었습니다.';
-				document.getElementById('sttStatus').className = 'error-status';
+			if (!watInstance || !watInstance.sttManager) return;
+
+			if (watInstance.sttManager.getStatus().isActive) {
+				watInstance.sttManager.toggleVoiceCommand();
 			}
+
+			document.getElementById('sttStatus').textContent = '음성 명령 모드: 비활성화';
+			document.getElementById('sttStatus').className = 'error-status';
+			updateSTTResultDisplay();
 		}
 
 		function getSTTStatus() {
-			if (watInstance && watInstance.sttManager) {
-				const status = watInstance.sttManager.getStatus();
-				const timestamp = new Date().toLocaleTimeString();
-				document.getElementById('sttResult').innerHTML =
-					`[${timestamp}] STT 상태: ${JSON.stringify(status, null, 2)}\n` +
-					document.getElementById('sttResult').innerHTML;
+			if (!watInstance || !watInstance.sttManager) return;
+			updateSTTResultDisplay(true);
+		}
+
+		function updateSTTResultDisplay(showStateOnly = false) {
+			if (!watInstance || !watInstance.sttManager) return;
+
+			const status = watInstance.sttManager.getStatus();
+			const commandHistory = watInstance.sttManager.voiceCommand?.commandHistory || [];
+			const last = commandHistory[0];
+
+			const timestamp = new Date().toLocaleTimeString();
+			const parts = [];
+			parts.push(`[${timestamp}] STT 상태: ${status.currentState}`);
+
+			if (!showStateOnly && last) {
+				parts.push(`최근 명령: ${last.command} ${last.target}`);
 			}
+
+			document.getElementById('sttResult').innerHTML =
+				parts.join('\n') + '\n' + document.getElementById('sttResult').innerHTML;
 		}
 
 		// FocusTTS API 함수들
 		function enableFocusTTS() {
-			if (watInstance && watInstance.focusTTS) {
-				watInstance.focusTTS.enable();
-				alert('포커스 TTS가 활성화되었습니다. 요소에 포커스를 맞춰보세요.');
+			if (!watInstance || !watInstance.ttsManager) return;
+			if (watInstance.ttsManager.currentState !== watInstance.ttsManager.states.FOCUS_TTS) {
+				watInstance.ttsManager.toggleFocusTTS();
 			}
+			updateTTSStatusDisplay('포커스 TTS가 활성화되었습니다. 더블클릭/마우스 선택으로 읽어보세요.');
 		}
 
 		function disableFocusTTS() {
-			if (watInstance && watInstance.focusTTS) {
-				watInstance.focusTTS.disable();
-				alert('포커스 TTS가 비활성화되었습니다.');
+			if (!watInstance || !watInstance.ttsManager) return;
+			if (watInstance.ttsManager.currentState === watInstance.ttsManager.states.FOCUS_TTS) {
+				watInstance.ttsManager.toggleFocusTTS();
 			}
+			updateTTSStatusDisplay('포커스 TTS가 비활성화되었습니다.');
 		}
 
 		function getFocusTTSStatus() {
-			if (watInstance && watInstance.focusTTS) {
-				const status = watInstance.focusTTS.getStatus();
-				alert('포커스 TTS 상태: ' + JSON.stringify(status, null, 2));
-			}
+			if (!watInstance || !watInstance.ttsManager) return;
+			updateTTSStatusDisplay('FocusTTS 상태: ' + watInstance.ttsManager.currentState);
 		}
 
 		function readElementBySelector() {
 			const selector = document.getElementById('targetSelector').value;
-			if (watInstance && watInstance.focusTTS && selector) {
+			if (selector) {
 				const element = document.querySelector(selector);
-				if (element) {
-					watInstance.focusTTS.readElement(element);
-				} else {
+				if (!element) {
 					alert('선택자에 해당하는 요소를 찾을 수 없습니다: ' + selector);
+					return;
 				}
+
+				const text = (element.innerText || element.textContent || '').trim();
+				if (!text) {
+					alert('요소에서 읽을 텍스트를 찾지 못했습니다.');
+					return;
+				}
+
+				// 브라우저 TTS로 읽기 데모
+				const rate = parseFloat(document.getElementById('ttsRate').value);
+				const pitch = parseFloat(document.getElementById('ttsPitch').value);
+				const volume = parseFloat(document.getElementById('ttsVolume').value);
+				window.speechSynthesis.cancel();
+				const utterance = new SpeechSynthesisUtterance(text);
+				utterance.rate = rate;
+				utterance.pitch = pitch;
+				utterance.volume = volume;
+				if (selectedVoice) utterance.voice = selectedVoice;
+				window.speechSynthesis.speak(utterance);
+				updateTTSStatusDisplay(`요소 읽기: ${selector}`);
 			}
 		}
 
 		function readPageTitle() {
-			if (watInstance && watInstance.ttsManager) {
-				watInstance.ttsManager.speakText(document.title);
-			}
+			if (!('speechSynthesis' in window)) return;
+			window.speechSynthesis.cancel();
+			const utterance = new SpeechSynthesisUtterance(document.title || '');
+			window.speechSynthesis.speak(utterance);
+			updateTTSStatusDisplay('페이지 제목 읽기');
 		}
 
 		function readCurrentFocus() {
-			if (watInstance && watInstance.focusTTS) {
-				const focusedElement = document.activeElement;
-				if (focusedElement && focusedElement !== document.body) {
-					watInstance.focusTTS.readElement(focusedElement);
-				} else {
-					alert('현재 포커스된 요소가 없습니다.');
+			if (!('speechSynthesis' in window)) return;
+			const focusedElement = document.activeElement;
+			if (focusedElement && focusedElement !== document.body) {
+				const text = (focusedElement.innerText || focusedElement.textContent || '').trim();
+				if (!text) {
+					alert('포커스된 요소에서 읽을 텍스트를 찾지 못했습니다.');
+					return;
 				}
+
+				window.speechSynthesis.cancel();
+				const utterance = new SpeechSynthesisUtterance(text);
+				window.speechSynthesis.speak(utterance);
+				updateTTSStatusDisplay('현재 포커스 요소 읽기');
+			} else {
+				alert('현재 포커스된 요소가 없습니다.');
 			}
 		}
 
@@ -569,13 +640,13 @@
 
 		<main>
 			<section class="sectWrap">
-				<h2>🎙️ TTS (Text-to-Speech) API</h2>
+				<h2>TTS (Text-to-Speech)</h2>
 
 				<div class="api-section">
 					<h3>기본 TTS 함수</h3>
 
 					<div class="function-demo">
-						<h4>speakText(text, options)</h4>
+						<h4>브라우저 음성 합성 데모</h4>
 						<div class="parameter-group">
 							<label for="ttsText">읽을 텍스트:</label>
 							<input type="text" id="ttsText" class="parameter-input"
@@ -606,15 +677,12 @@
 								onclick="callStopTTS()">중지</button>
 						</div>
 						<div class="code-snippet">
-							<pre><code>// 기본 사용법
-watInstance.ttsManager.speakText('텍스트');
-
-// 옵션과 함께 사용
-watInstance.ttsManager.speakText('텍스트', {
-    rate: 1.5,    // 속도
-    pitch: 1.2,   // 음높이  
-    volume: 0.8   // 볼륨
-});</code></pre>
+							<pre><code>// 기본 사용법 (브라우저 Web Speech API)
+const utterance = new SpeechSynthesisUtterance('텍스트');
+utterance.rate = 1.5;    // 속도
+utterance.pitch = 1.2;   // 음높이
+utterance.volume = 0.8;  // 볼륨
+speechSynthesis.speak(utterance);</code></pre>
 						</div>
 					</div>
 
@@ -632,21 +700,21 @@ watInstance.ttsManager.speakText('텍스트', {
 							TTS 상태 정보가 여기에 표시됩니다...
 						</div>
 						<div class="code-snippet">
-							<pre><code>// TTS 상태 확인
-const status = watInstance.ttsManager.getStatus();
+							<pre><code>// TTS 상태(브라우저)
+const status = {
+    speaking: speechSynthesis.speaking,
+    paused: speechSynthesis.paused
+};
 
 // 사용 가능한 음성 목록
-const voices = watInstance.ttsManager.getVoices();
-
-// 음성 변경
-watInstance.ttsManager.setVoice(voices[0]);</code></pre>
+const voices = speechSynthesis.getVoices();</code></pre>
 						</div>
 					</div>
 				</div>
 			</section>
 
 			<section class="sectWrap">
-				<h2>🎤 STT (Speech-to-Text) API</h2>
+				<h2>STT (음성 명령)</h2>
 
 				<div class="api-section">
 					<h3>음성 인식 함수</h3>
@@ -684,24 +752,20 @@ watInstance.ttsManager.setVoice(voices[0]);</code></pre>
 							인식된 텍스트가 여기에 표시됩니다...
 						</div>
 						<div class="code-snippet">
-							<pre><code>// 음성 인식 시작
-watInstance.sttManager.start((result) => {
-    console.log('인식 결과:', result);
-}, {
-    language: 'ko-KR',
-    continuous: true,
-    interimResults: true
-});
+							<pre><code>// 음성 명령 시작/중지
+watInstance.sttManager.toggleVoiceCommand();
 
-// 음성 인식 중지
-watInstance.sttManager.stop();</code></pre>
+// 상태 확인
+document.addEventListener('wat:stt:stateChanged', (event) => {
+    console.log(event.detail);
+});</code></pre>
 						</div>
 					</div>
 				</div>
 			</section>
 
 			<section class="sectWrap">
-				<h2>🎯 FocusTTS API</h2>
+				<h2>포커스 TTS</h2>
 
 				<div class="api-section">
 					<h3>포커스 기반 텍스트 읽기</h3>
@@ -743,16 +807,10 @@ watInstance.sttManager.stop();</code></pre>
 						</div>
 
 						<div class="code-snippet">
-							<pre><code>// 포커스 TTS 활성화/비활성화
-watInstance.focusTTS.enable();
-watInstance.focusTTS.disable();
+							<pre><code>// 포커스 TTS 토글
+watInstance.ttsManager.toggleFocusTTS();
 
-// 특정 요소 읽기
-const element = document.querySelector('h1');
-watInstance.focusTTS.readElement(element);
-
-// CSS 선택자로 요소 읽기
-watInstance.focusTTS.readElementBySelector('h1');</code></pre>
+// 포커스 TTS는 더블클릭/마우스 선택 시 해당 텍스트를 읽습니다.</code></pre>
 						</div>
 					</div>
 				</div>
