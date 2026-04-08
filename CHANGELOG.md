@@ -10,6 +10,8 @@
 ## [2.0.1] - 2026-03-16
 
 ### 개선
+- 빌드 배너·`wat:initialized` 이벤트의 버전 문자열을 `package.json`과 단일화 (Rollup 빌드 시 주입)
+- `npm version` 직후 dist가 올바른 버전으로 재생성되도록 스크립트 훅 정리
 - `watInit.js`, `dist/watInit.js`, `dist/watInit_ver-manual.js`에서 암묵적 전역 변수(`watOptions`) 선언을 `const`로 수정
 - `dist/webAccTools.js`의 `hasOwnProperty` 직접 호출 패턴을 `Object.hasOwn()` / `Object.keys()` 기반으로 교체
 

@@ -1,6 +1,6 @@
 /**
  * @fileoverview WAT (Web Accessibility Tool) 진입점
- * @version 2.0.0
+ * @version __MODUWEB_VERSION__
  */
 import { WAT } from './wat/WAT.js';
 
