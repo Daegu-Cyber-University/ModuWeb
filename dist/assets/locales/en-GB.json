@@ -325,8 +325,13 @@
 		"close": "Close",
 		"on": "On, Activate, Start",
 		"off": "Off, Deactivate, Stop, End",
-		"minimize": "Minimize Window",
-		"restore": "Restore Window"
+		"minimize": "Minimise Window",
+		"restore": "Restore Window",
+		"voiceCommands": {
+			"navigation": "go, navigate, link, click",
+			"action": "activate, start, stop, close",
+			"settings": "settings, options, menu"
+		}
 	},
 	"patterns": {
 		"__comment__": "Search pattern management. Set the titles and search terms.",

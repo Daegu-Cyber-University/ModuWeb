@@ -2,7 +2,7 @@
 	"api": {
 		"dictionary": {
 			"enabled": true,
-			"serverEndpoint": "/examples/dict_sample.json",
+			"serverEndpoint": "https://your-server.example/api/dictionary-jsonp",
 			"timeout": 5000,
 			"retryCount": 2,
 			"providers": {
@@ -13,6 +13,17 @@
 				}
 			}
 		}
+	},
+	"resources": {
+		"fonts": {
+			"nanumMyeongjo": "https://fonts.googleapis.com/css2?family=Nanum+Myeongjo&display=swap",
+			"notoSerifKR": "https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700&display=swap",
+			"materialIcons": "https://fonts.googleapis.com/icon?family=Material+Icons",
+			"koddiUdonGothic": null
+		}
+	},
+	"branding": {
+		"copyrightUrl": "https://www.example.com"
 	},
 	"settings": {
 		"ui": {

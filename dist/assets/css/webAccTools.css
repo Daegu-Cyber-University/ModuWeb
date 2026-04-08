@@ -161,9 +161,10 @@
 
 
 /* ************************* DOM Default Reset .Start ************************* */
-*					{box-sizing: border-box;}
+.wat-container *					{box-sizing: border-box;}
+.wat-container 					{color: var(--wat-color-main); background-color: var(--wat-bgColor-main); font-size: var(--wat-font-size); font-family: var(--wat-font-family); line-height: var(--wat-line-height); text-align: var(--wat-text-align); letter-spacing: var(--wat-letter-spacing);}
 
-html					{color: var(--wat-color-main); background-color: var(--wat-bgColor-main); font-size: var(--wat-font-size); font-family: var(--wat-font-family); line-height: var(--wat-line-height); text-align: var(--wat-text-align); letter-spacing: var(--wat-letter-spacing);}
+/**/
 /*
 html					{color: var(--wat-color-main); background-color: var(--wat-bgColor-main); font-size: var(--wat-font-size); font-family: var(--wat-font-family); line-height: var(--wat-line-height); text-align: var(--wat-text-align); letter-spacing: var(--wat-letter-spacing); padding-left: var(--wat-html-padding-left); padding-right: var(--wat-html-padding-right)}
 */
@@ -175,26 +176,30 @@ html					{color: var(--wat-color-main); background-color: var(--wat-bgColor-main
 /*
 body					{color: var(--wat-color-main); background-color: var(--wat-bgColor-main); font-size: var(--wat-font-size); font-family: var(--wat-font-family); line-height: var(--wat-line-height); text-align: var(--wat-text-align); letter-spacing: var(--wat-letter-spacing); padding-right: 510px}
 */
-a					{color: var(--wat-color-link); text-decoration: none}
-a:hover					{text-decoration: underline}
-a:focus					{outline: 2px solid var(--wat-color-point-tp1)}
+.wat-container a					{color: var(--wat-color-link); text-decoration: none}
+.wat-container a:hover					{text-decoration: underline}
+.wat-container a:focus					{outline: 2px solid var(--wat-color-point-tp1)}
 
-h1, h2, h3, h4, h5, h6			{font-weight: bold; margin: 0 0 10px}
-h1					{font-size: 2.5rem}
-h2					{font-size: 2rem}
-h3					{font-size: 1.5rem}
-h4					{font-size: 1.25rem}
-h5					{font-size: 1rem}
-h6					{font-size: 0.875rem}
+/*
+.wat-container h1, h2, h3, h4, h5, h6			{font-weight: bold; margin: 0 0 10px}
+*/
+.wat-container h1					{font-size: 2.5rem; font-weight: bold; margin: 0 0 10px}
+.wat-container h2					{font-size: 2rem; font-weight: bold; margin: 0 0 10px}
+.wat-container h3					{font-size: 1.5rem; font-weight: bold; margin: 0 0 10px}
+.wat-container h4					{font-size: 1.25rem; font-weight: bold; margin: 0 0 10px}
+.wat-container h5					{font-size: 1rem; font-weight: bold; margin: 0 0 10px}
+.wat-container h6					{font-size: 0.875rem; font-weight: bold; margin: 0 0 10px}
 
-ul, ol					{list-style: none; margin: 0; padding: 0}
+.wat-container ul, .wat-container ol					{list-style: none; margin: 0; padding: 0}
 /* ************************* DOM Default Reset .End   ************************* */
 
 
 /* ************************* Custom Common Class .Start ************************* */
-.clearBoth				{clear:both; content: ""; display:block}
+.clearBoth				{clear:both; content: ""; display:block; height:0}
 caption.displayNone			{position:static !important; left:auto !important; top:auto !important}
+/*
 .ellipsis				{width:inherit; overflow: hidden; white-space:nowrap; text-overflow:ellipsis; -o-text-overflow:ellipsis}
+*/
 .textUCase				{text-transform:uppercase}
 .blind					{position:absolute !important; clip:rect(1px 1px 1px 1px) !important; clip:rect(1px, 1px, 1px, 1px) !important; clip-path:inset(50%) !important; padding:0 !important; border:0 !important; height:0 !important; width:1px !important; font-size:0 !important; color:transparent !important; text-indent:-10000px !important; left:-10000px !important; background:transparent !important; overflow: hidden !important}
 .force-focus				{outline: 2px solid var(--wat-color-point-tp3) !important}
@@ -210,7 +215,7 @@ caption.displayNone			{position:static !important; left:auto !important; top:aut
 .wat-reading-guide.reading-line::before		{position: absolute; top: -20px; left: 50%; transform: translateX(-50%); content: ''; border-bottom: blue 10px solid; border-left: transparent 10px solid; border-right: transparent 10px solid; border-top: transparent 10px solid;}
 */
 .wat-reading-guide.reading-line::before		{position: absolute; width: 12px; height: 12px; top: -5px; left: 50%; transform: translateX(-50%); content: ''; background-color: blue; border-radius: 50%;}
-.wat-reading-guide.reading-line			{width: 500px; height: 10px; background-color: blue; transform: translateX(-50%); border: yellow 3px solid; top: -999999px; left: -999999px}
+.wat-reading-guide.reading-line			{width: 500px; height: 10px; background-color: blue; transform: translateX(-50%); border: yellow 3px solid; top: -999999px; left: -999999px; pointer-events: none}
 /*
 .wat-reading-guide.reading-line			{width: 500px; height: 10px; background-color: blue; transform: translateX(-50%); border: yellow 3px solid; top: 0}
 .wat-reading-guide.reading-line::after		{position: absolute; top: -20px; left: 50%; transform: translateX(-50%); content: ''; border-bottom: blue 10px solid; border-left: transparent 10px solid; border-right: transparent 10px solid; border-top: transparent 10px solid;}
@@ -647,6 +652,10 @@ html[data-wat-viewmode="icon"] #wat .setWrap.radio .setCont .opt_lists		{grid-co
 html[data-wat-viewmode="icon"] #wat .setWrap.radio .setCont .opt_lists .opt_item {display: none;}
 html[data-wat-viewmode="icon"] #wat .setWrap.radio .setCont .opt_lists .opt_item.selectOn {display: block; width: 100%; overflow: hidden}
 html[data-wat-viewmode="icon"] #wat .setWrap.radio .setCont .opt_lists .opt_item.selectOn label {width: 100%; font-size: calc(var(--wat-font-size) * 0.8); cursor: pointer; flex: 1 1 auto; text-align: center; border: none; margin: 0; padding: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;}
+/* 아이콘 모드: 폰트 변경 — 긴 폰트명을 2줄까지 표시(한 줄 말줄임 완화), 중앙 열 폭 수축 허용 */
+html[data-wat-viewmode="icon"] #wat .personalOpt_item.fontFamily .setWrap.radio .setCont .opt_lists		{min-width: 0; white-space: normal; overflow: hidden; text-overflow: unset; align-self: center}
+html[data-wat-viewmode="icon"] #wat .personalOpt_item.fontFamily .setWrap.radio .setCont .opt_lists .opt_item.selectOn	{min-width: 0; overflow: hidden}
+html[data-wat-viewmode="icon"] #wat .personalOpt_item.fontFamily .setWrap.radio .setCont .opt_lists .opt_item.selectOn label	{display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; white-space: normal; overflow: hidden; text-overflow: ellipsis; line-height: 1.3; max-height: calc(1.3em * 2); word-break: keep-all; overflow-wrap: break-word; padding: 0 4px; box-sizing: border-box; font-size: calc(var(--wat-font-size) * 0.72)}
 html[data-wat-viewmode="icon"] #wat .setWrap.radio .setCont .btn_chgOpt		{background-color: #B9C2F6; border: none; cursor: pointer; font-size: 0; color: transparent; margin: 0; padding: 0}
 html[data-wat-viewmode="icon"] #wat .setWrap.radio .setCont .btn_chgOpt.prev	{display: inline-block; width: 20px; height: 20px; line-height: 20px; border-radius: 5px;}
 html[data-wat-viewmode="icon"] #wat .setWrap.radio .setCont .btn_chgOpt.prev::before	{content: "◀"; font-size: calc(var(--wat-font-size) * 0.8); color: #222222}
