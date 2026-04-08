@@ -56,10 +56,10 @@
 		"release:major": "npm version major && git push --follow-tags"
 	},
 	"browserslist": [
-		"> 1%",
+		"> 0.5%",
 		"last 2 versions",
-		"not dead",
-		"ie >= 11"
+		"Firefox ESR",
+		"not dead"
 	],
 	"engines": {
 		"node": ">=14.0.0"
@@ -67,6 +67,7 @@
 	"devDependencies": {
 		"@jest/globals": "^30.3.0",
 		"@rollup/plugin-node-resolve": "^16.0.3",
+		"@rollup/plugin-terser": "^1.0.0",
 		"jest": "^30.3.0",
 		"jest-environment-jsdom": "^30.3.0",
 		"rollup": "^4.59.0"

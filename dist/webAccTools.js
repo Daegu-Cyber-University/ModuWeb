@@ -968,6 +968,112 @@ var WATPlugin = (function (exports) {
 	}
 
 	/**
+	 * 사전·외부 문자열 표시용 HTML 이스케이프 및 URL 검증
+	 * @module src/core/htmlEscape
+	 */
+
+
+	/**
+	 * 사전 링크 등 사용자에게 노출할 http(s) URL만 허용
+	 * @param {string} href - 후보 URL
+	 * @param {string} [base=typeof location !== 'undefined' ? location.href : 'https://example.org/'] - URL 해석 기준
+	 * @returns {string|null} - 안전하면 정규화된 href, 아니면 null
+	 */
+	function sanitizeDictionaryUrl(href, base) {
+		if (!href || typeof href !== 'string') return null;
+		const b = (typeof window !== 'undefined' && window.location
+			? window.location.href
+			: 'https://example.org/');
+		try {
+			const u = new URL(href.trim(), b);
+			if (u.protocol === 'http:' || u.protocol === 'https:') return u.href;
+		} catch {
+			/* invalid URL */
+		}
+		return null;
+	}
+
+	/**
+	 * 브라우저 JSONP 요청 (사전 API 등 신뢰 엔드포인트용)
+	 * @module src/core/jsonpFetch
+	 */
+
+	/**
+	 * @param {string} url - 엔드포인트 (쿼리 없이)
+	 * @param {Object} [params={}] - 추가 쿼리 파라미터
+	 * @param {number} [timeout=10000] - 타임아웃(ms)
+	 * @param {{ window?: Window; document?: Document }} [env] - 테스트용 주입
+	 * @returns {Promise<Object>}
+	 */
+	function fetchJSONP(url, params = {}, timeout = 10000, env = {}) {
+		const win = Object.hasOwn(env, 'window')
+			? env.window
+			: (typeof window !== 'undefined' ? window : null);
+		const doc = Object.hasOwn(env, 'document')
+			? env.document
+			: (typeof document !== 'undefined' ? document : null);
+		if (
+			!win ||
+			!doc ||
+			typeof doc.createElement !== 'function' ||
+			typeof doc.head?.appendChild !== 'function'
+		) {
+			return Promise.reject(new Error('JSONP requires window and document'));
+		}
+
+		return new Promise((resolve, reject) => {
+			const callbackName = `jsonpCallback_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+			const timeoutId = setTimeout(() => {
+				cleanup();
+				reject(new Error('Dictionary request timeout'));
+			}, timeout);
+
+			/** @type {HTMLScriptElement | null} */
+			let script = null;
+
+			const cleanup = () => {
+				clearTimeout(timeoutId);
+				if (win[callbackName]) {
+					try {
+						delete win[callbackName];
+					} catch (e) {
+						win[callbackName] = undefined;
+					}
+				}
+				if (script && script.parentNode) {
+					script.parentNode.removeChild(script);
+				}
+			};
+
+			win[callbackName] = (data) => {
+				cleanup();
+				if (data) {
+					resolve(data);
+				} else {
+					reject(new Error('No data returned from dictionary API'));
+				}
+			};
+
+			const queryParams = new URLSearchParams(params);
+			queryParams.append('callback', callbackName);
+			const fullUrl = `${url}?${queryParams.toString()}`;
+
+			script = doc.createElement('script');
+			script.type = 'text/javascript';
+			script.src = fullUrl;
+			script.async = true;
+
+			script.onerror = () => {
+				cleanup();
+				reject(new Error('Failed to load dictionary data. Network error or invalid response.'));
+			};
+
+			doc.head.appendChild(script);
+		});
+	}
+
+	/**
 	 * @fileoverview StateManager - WAT 플러그인 중앙집중식 상태 관리
 	 * @module src/wat/StateManager
 	 */
@@ -9714,62 +9820,7 @@ var WATPlugin = (function (exports) {
 			 * const data = await this._fetchJSONP('https://api.example.com/search', { word: '안녕' }, 5000);
 			 */
 			_fetchJSONP(url, params = {}, timeout = 10000) {
-				return new Promise((resolve, reject) => {
-					// 고유한 콜백 함수명 생성
-					const callbackName = 'jsonpCallback_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-					
-					// 타임아웃 타이머
-					const timeoutId = setTimeout(() => {
-						cleanup();
-						reject(new Error('Dictionary request timeout'));
-					}, timeout);
-
-					// 정리 함수
-					const cleanup = () => {
-						clearTimeout(timeoutId);
-						if (window[callbackName]) {
-							try {
-								delete window[callbackName];
-							} catch (e) {
-								window[callbackName] = undefined;
-							}
-						}
-						if (script && script.parentNode) {
-							script.parentNode.removeChild(script);
-						}
-					};
-
-					// 전역 콜백 함수 등록
-					window[callbackName] = (data) => {
-						cleanup();
-						
-						// 데이터 검증
-						if (data) {
-							resolve(data);
-						} else {
-							reject(new Error('No data returned from dictionary API'));
-						}
-					};
-
-					// URL 파라미터 구성 (콜백 함수명 포함)
-					const queryParams = new URLSearchParams(params);
-					queryParams.append('callback', callbackName);  // 서버가 이 콜백 함수명으로 응답해야 함
-					const fullUrl = `${url}?${queryParams.toString()}`;
-
-					// Script 태그 생성 및 추가
-					const script = document.createElement('script');
-					script.type = 'text/javascript';
-					script.src = fullUrl;
-					script.async = true;
-					
-					script.onerror = () => {
-						cleanup();
-						reject(new Error('Failed to load dictionary data. Network error or invalid response.'));
-					};
-					
-					// 스크립트를 DOM에 추가하여 요청 시작
-					document.head.appendChild(script);
-				});
+				return fetchJSONP(url, params, timeout);
 			}
 
 			/**
@@ -9813,28 +9864,36 @@ var WATPlugin = (function (exports) {
 				// 레이어 내용 구성
 				const titleElement = document.createElement('h3');
 				titleElement.id = 'diction-result-title';
-				titleElement.innerHTML = item.title;
+				titleElement.textContent = item.title != null ? String(item.title) : '';
 				layer.appendChild(titleElement);
 
 				const descriptionElement = document.createElement('p');
-				descriptionElement.innerHTML = item.description;
+				descriptionElement.textContent = item.description != null ? String(item.description) : '';
 				layer.appendChild(descriptionElement);
 
 				// Show pronunciation if enabled and available
 				if (showPronunciation && item.pronunciation) {
 					const pronunciationElement = document.createElement('div');
 					pronunciationElement.className = 'wat-diction-pronunciation';
-					pronunciationElement.innerHTML = `<strong>${this.getLocalizedText('dictionary.pronunciation')}:</strong> ${item.pronunciation}`;
+					const pronLabel = document.createElement('strong');
+					pronLabel.textContent = `${this.getLocalizedText('dictionary.pronunciation')}:`;
+					pronunciationElement.appendChild(pronLabel);
+					pronunciationElement.appendChild(
+						document.createTextNode(` ${String(item.pronunciation)}`)
+					);
 					layer.appendChild(pronunciationElement);
 				}
 
-				if (item.link) {
+				const safeLink = item.link ? sanitizeDictionaryUrl(item.link) : null;
+				if (safeLink) {
 					const linkIcon = document.createElement('span');
-					linkIcon.innerHTML = '🔗';
+					linkIcon.textContent = '🔗';
 					const linkElement = document.createElement('a');
-					linkElement.href = item.link;
+					linkElement.href = safeLink;
 					linkElement.target = '_blank';
+					linkElement.rel = 'noopener noreferrer';
 					linkElement.appendChild(linkIcon);
+					titleElement.appendChild(document.createTextNode(' '));
 					titleElement.appendChild(linkElement);
 				}
 

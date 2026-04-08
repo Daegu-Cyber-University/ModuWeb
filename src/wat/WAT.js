@@ -11,6 +11,8 @@ import { ContainerManager } from '../core/ContainerManager.js';
 import { StyleBatchProcessor } from '../core/StyleBatchProcessor.js';
 import { OptionsProcessor } from '../core/OptionsProcessor.js';
 import { ConfigurationManager } from '../core/ConfigurationManager.js';
+import { sanitizeDictionaryUrl } from '../core/htmlEscape.js';
+import { fetchJSONP as fetchJSONPCore } from '../core/jsonpFetch.js';
 import { StateManager } from './StateManager.js';
 import { TTSManager } from '../tts/TTSManager.js';
 import { STTManager } from '../stt/STTManager.js';
@@ -7399,62 +7401,7 @@ export class WAT {
 		 * const data = await this._fetchJSONP('https://api.example.com/search', { word: '안녕' }, 5000);
 		 */
 		_fetchJSONP(url, params = {}, timeout = 10000) {
-			return new Promise((resolve, reject) => {
-				// 고유한 콜백 함수명 생성
-				const callbackName = 'jsonpCallback_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-				
-				// 타임아웃 타이머
-				const timeoutId = setTimeout(() => {
-					cleanup();
-					reject(new Error('Dictionary request timeout'));
-				}, timeout);
-
-				// 정리 함수
-				const cleanup = () => {
-					clearTimeout(timeoutId);
-					if (window[callbackName]) {
-						try {
-							delete window[callbackName];
-						} catch (e) {
-							window[callbackName] = undefined;
-						}
-					}
-					if (script && script.parentNode) {
-						script.parentNode.removeChild(script);
-					}
-				};
-
-				// 전역 콜백 함수 등록
-				window[callbackName] = (data) => {
-					cleanup();
-					
-					// 데이터 검증
-					if (data) {
-						resolve(data);
-					} else {
-						reject(new Error('No data returned from dictionary API'));
-					}
-				};
-
-				// URL 파라미터 구성 (콜백 함수명 포함)
-				const queryParams = new URLSearchParams(params);
-				queryParams.append('callback', callbackName);  // 서버가 이 콜백 함수명으로 응답해야 함
-				const fullUrl = `${url}?${queryParams.toString()}`;
-
-				// Script 태그 생성 및 추가
-				const script = document.createElement('script');
-				script.type = 'text/javascript';
-				script.src = fullUrl;
-				script.async = true;
-				
-				script.onerror = () => {
-					cleanup();
-					reject(new Error('Failed to load dictionary data. Network error or invalid response.'));
-				};
-				
-				// 스크립트를 DOM에 추가하여 요청 시작
-				document.head.appendChild(script);
-			});
+			return fetchJSONPCore(url, params, timeout);
 		}
 
 		/**
@@ -7498,28 +7445,36 @@ export class WAT {
 			// 레이어 내용 구성
 			const titleElement = document.createElement('h3');
 			titleElement.id = 'diction-result-title';
-			titleElement.innerHTML = item.title;
+			titleElement.textContent = item.title != null ? String(item.title) : '';
 			layer.appendChild(titleElement);
 
 			const descriptionElement = document.createElement('p');
-			descriptionElement.innerHTML = item.description;
+			descriptionElement.textContent = item.description != null ? String(item.description) : '';
 			layer.appendChild(descriptionElement);
 
 			// Show pronunciation if enabled and available
 			if (showPronunciation && item.pronunciation) {
 				const pronunciationElement = document.createElement('div');
 				pronunciationElement.className = 'wat-diction-pronunciation';
-				pronunciationElement.innerHTML = `<strong>${this.getLocalizedText('dictionary.pronunciation')}:</strong> ${item.pronunciation}`;
+				const pronLabel = document.createElement('strong');
+				pronLabel.textContent = `${this.getLocalizedText('dictionary.pronunciation')}:`;
+				pronunciationElement.appendChild(pronLabel);
+				pronunciationElement.appendChild(
+					document.createTextNode(` ${String(item.pronunciation)}`)
+				);
 				layer.appendChild(pronunciationElement);
 			}
 
-			if (item.link) {
+			const safeLink = item.link ? sanitizeDictionaryUrl(item.link) : null;
+			if (safeLink) {
 				const linkIcon = document.createElement('span');
-				linkIcon.innerHTML = '🔗';
+				linkIcon.textContent = '🔗';
 				const linkElement = document.createElement('a');
-				linkElement.href = item.link;
+				linkElement.href = safeLink;
 				linkElement.target = '_blank';
+				linkElement.rel = 'noopener noreferrer';
 				linkElement.appendChild(linkIcon);
+				titleElement.appendChild(document.createTextNode(' '));
 				titleElement.appendChild(linkElement);
 			}
 

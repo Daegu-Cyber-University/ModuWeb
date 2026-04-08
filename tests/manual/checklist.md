@@ -96,8 +96,8 @@
 
 ## 11. 빌드 결과 비교
 
-- [x] `dist/webAccTools.js` 파일 크기: 510KB (legacy 544.6KB 대비 -6.3%, ±10% 이내)
-- [x] `dist/webAccTools.min.js` 파일 생성 확인 (522KB)
+- [x] `dist/webAccTools.js` 파일 생성 확인 (비압축·소스맵)
+- [x] `dist/webAccTools.min.js` 압축 번들 생성 확인 (Terser 적용, 크기는 버전마다 변동)
 - [x] 소스맵(`dist/webAccTools.js.map`) 파일 생성 확인
 - [x] 모든 핵심 클래스 포함 확인 (WAT, StateManager, TTSManager, STTManager, ErrorHandler 등 14개)
 - [x] `window.WAT = WAT` 전역 등록 코드 포함
@@ -109,7 +109,7 @@
 - [x] Phase 2 테스트: ErrorHandler - 17개 테스트 통과
 - [x] Phase 3 테스트: ContainerManager, StyleBatchProcessor, OptionsProcessor, ConfigurationManager - 32개 테스트 통과
 - [x] Phase 4 테스트: StateManager - 19개 테스트 통과
-- [x] 전체 테스트: 94개 테스트 통과 (4개 테스트 스위트)
+- [x] 전체 테스트: `npm test` 결과 케이스·스위트 수는 릴리즈 시 확인 (현재 96+ 케이스, 7 스위트)
 
 ---
 

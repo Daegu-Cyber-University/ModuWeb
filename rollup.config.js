@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import resolve from '@rollup/plugin-node-resolve';
+import terser from '@rollup/plugin-terser';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
@@ -26,13 +27,13 @@ function injectModuwebVersion(ver) {
 	};
 }
 
-const plugins = [resolve(), injectModuwebVersion(version)];
+const pluginsDev = [resolve(), injectModuwebVersion(version)];
 
 export default [
-	// 개발용 빌드 (소스맵 포함)
+	// 개발·디버깅용 (소스맵 포함, 비압축)
 	{
 		input: 'src/index.js',
-		plugins,
+		plugins: pluginsDev,
 		output: {
 			file: 'dist/webAccTools.js',
 			format: 'iife',
@@ -41,10 +42,19 @@ export default [
 			banner,
 		},
 	},
-	// 프로덕션 빌드 (minify 없이, 가독성 유지)
+	// 배포용 (Terser 압축·맹글) — 파일명 .min.js와 실제 minify 일치
 	{
 		input: 'src/index.js',
-		plugins,
+		plugins: [
+			...pluginsDev,
+			terser({
+				compress: true,
+				mangle: true,
+				format: {
+					comments: false,
+				},
+			}),
+		],
 		output: {
 			file: 'dist/webAccTools.min.js',
 			format: 'iife',
