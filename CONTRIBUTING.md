@@ -42,10 +42,17 @@ cp config.example.json config.json
 
 `config.json`을 열어 로컬 환경에 맞게 수정하세요. 로컬에서 사전 기능을 테스트하려면 `api.dictionary.serverEndpoint`가 **JSONP 형식**으로 응답하는 주소여야 합니다. `examples/dict_sample.json`은 응답 형식 예시이므로 그대로 `serverEndpoint`로 연결할 수 없을 수 있습니다.
 
-### 3. 개발 서버 실행
+### 3. 의존성 설치 및 빌드
 
-별도 빌드 도구 없이 `dist/` 폴더의 파일을 직접 편집합니다.  
-`examples/` 폴더의 HTML 파일을 브라우저에서 열어 테스트하세요.
+소스 수정은 **`src/`**에서 합니다. `dist/`는 Rollup 출력물이며, 릴리즈 흐름에서는 `npm version` 직전에 빌드된 `dist/`가 커밋됩니다. `dist/`를 수동으로 고치면 다음 빌드에서 덮어씌워지므로 PR에는 포함하지 마세요.
+
+```bash
+npm install
+npm run build
+npm test
+```
+
+`examples/`의 HTML은 `../dist/` 등 저장소에 포함된 번들을 로드합니다. 로컬에서 변경을 반영하려면 위처럼 빌드한 뒤 `examples/` 페이지를 새로고침하세요(정적 파일 서버 또는 `file://` 정책에 맞게 열기).
 
 ---
 
@@ -68,7 +75,7 @@ cp config.example.json config.json
 - **변수 선언**: `const` 우선, 재할당 필요 시 `let`. `var` 사용 금지
 - **JSDoc**: 모든 public 메서드에 JSDoc 주석 작성 (한국어/영어 병기)
 - **에러 처리**: `WAT.ErrorHandler` 클래스를 통한 중앙집중식 처리
-- **DOM 조작**: `innerHTML` 직접 할당 지양, `createElement` + `setAttribute` 사용
+- **DOM 조작**: `innerHTML` 직접 할당 지양 가능한 한 `createElement` + `textContent` / `setAttribute` 사용 (사전 모달 등 외부 API 문자열은 `textContent`, 링크는 `sanitizeDictionaryUrl` 검증)
 
 ### 금지 사항
 

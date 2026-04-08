@@ -113,6 +113,8 @@ cp config.example.json config.json
 
 `config.json`을 열어 필요한 항목을 수정합니다. 특히 `api.dictionary.serverEndpoint`에는 **본인이 운영하는 JSONP 중계 URL**을 넣습니다. 외부 사전 API 키는 브라우저에 두지 말고, 서버에서만 사용하세요.
 
+**신뢰 경계**: JSONP 응답은 브라우저에서 스크립트로 실행됩니다. 반드시 **통제 가능하고 신뢰하는 출처의 `serverEndpoint`만** 설정하세요. 손상되거나 악의적인 응답은 페이지 컨텍스트에서 코드 실행과 동일한 위험을 가집니다.
+
 #### 사전 API(JSONP) 계약
 
 클라이언트는 `serverEndpoint`에 **JSONP**로 요청합니다.
@@ -124,9 +126,9 @@ cp config.example.json config.json
 - **응답 본문 형식**: JavaScript 호출 한 줄.  
   예: `jsonpCallback_123_abc({"items":[...]})`
 - **JSON 페이로드**: 객체 루트에 `items` 배열이 있어야 하며, 검색 결과로는 보통 첫 번째 요소를 사용합니다.
-  - `items[0].title` (string, HTML 허용)
-  - `items[0].description` (string)
-  - `items[0].link` (string, 선택)
+  - `items[0].title` (string, 일반 텍스트 — XSS 방지를 위해 클라이언트는 HTML을 해석하지 않고 그대로 표시합니다)
+  - `items[0].description` (string, 동일)
+  - `items[0].link` (string, 선택 — `http:` / `https:` 만 허용, 그 외 스킴은 표시되지 않습니다)
   - `items[0].pronunciation` (string, 선택)
 
 정적 JSON 파일만 두는 방식(`*.json` 직링크)은 스크립트로 실행할 수 없어 동작하지 않습니다. 반드시 `callback` 이름에 맞춰 응답하는 **중계 엔드포인트**가 필요합니다.
@@ -455,6 +457,8 @@ document.addEventListener('wat:stt:stateChanged', (event) => {
 | Safari | 12+ |
 | Edge | 79+ |
 | Opera | 47+ |
+
+Internet Explorer는 지원하지 않습니다. `package.json`의 browserslist 설정은 위와 같은 모던 브라우저 기준과 맞춰 두었습니다.
 
 ## 모바일 지원
 

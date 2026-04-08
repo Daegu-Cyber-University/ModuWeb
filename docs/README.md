@@ -10,3 +10,4 @@
 - 예제 페이지: [`examples/index.html`](../examples/index.html)
 - 설정/운영 주의사항: [`CONTRIBUTING.md`](../CONTRIBUTING.md)
 - 변경 이력: [`CHANGELOG.md`](../CHANGELOG.md)
+- 리팩터링 우선순위(WAT 분할 로드맵): [`REFACTORING-PRIORITIES.md`](REFACTORING-PRIORITIES.md)
