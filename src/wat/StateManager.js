@@ -5,6 +5,12 @@
 import { ErrorHandler } from '../core/ErrorHandler.js';
 
 /**
+ * 프로토타입 오염 방지를 위해 경로에서 금지되는 키 목록
+ * @type {string[]}
+ */
+const FORBIDDEN_PATH_KEYS = ['__proto__', 'constructor', 'prototype'];
+
+/**
  * Centralized state management system for WAT plugin
  * @class StateManager
  */
@@ -38,10 +44,12 @@ export class StateManager {
 	/**
 	 * Gets a value from state using dot notation path
 	 * @param {string} path - Dot notation path (e.g., 'plugin.isTTSActive')
-	 * @returns {*} The value at the path
+	 * @param {*} [defaultValue] - Value to return when the path resolves to undefined
+	 * @returns {*} The value at the path, or defaultValue if undefined
 	 */
-	get(path) {
-		return path.split('.').reduce((obj, key) => obj && obj[key], this._state);
+	get(path, defaultValue) {
+		const value = path.split('.').reduce((obj, key) => obj && obj[key], this._state);
+		return value === undefined ? defaultValue : value;
 	}
 
 	/**
@@ -51,11 +59,20 @@ export class StateManager {
 	 * @param {boolean} skipNotify - Whether to skip observer notifications
 	 */
 	set(path, value, skipNotify = false) {
-		const oldValue = this.get(path);
 		const keys = path.split('.');
+		if (keys.some(key => FORBIDDEN_PATH_KEYS.includes(key))) {
+			console.warn(`[StateManager] Forbidden key in path "${path}" - ignored to prevent prototype pollution`);
+			return;
+		}
+		const oldValue = this.get(path);
 		const lastKey = keys.pop();
 		const target = keys.reduce((obj, key) => {
-			if (!(key in obj)) obj[key] = {};
+			if (!Object.prototype.hasOwnProperty.call(obj, key)) {
+				obj[key] = {};
+			} else if (obj[key] === null || typeof obj[key] !== 'object') {
+				console.warn(`[StateManager] Overwriting non-object value at "${key}" while setting "${path}"`);
+				obj[key] = {};
+			}
 			return obj[key];
 		}, this._state);
 
@@ -108,21 +125,41 @@ export class StateManager {
 	_notifyObservers(path, newValue, oldValue) {
 		const observers = this._observers.get(path);
 		if (observers) {
-			observers.forEach(callback => {
-				try {
-					callback(newValue, oldValue, path);
-				} catch (error) {
-					ErrorHandler.handle(error, {
-						category: ErrorHandler.CATEGORIES.STATE_MANAGEMENT,
-						severity: ErrorHandler.SEVERITY.WARNING,
-						method: '_notifyObservers',
-						component: 'StateManager',
-						data: { path, newValue, oldValue },
-						strategy: ErrorHandler.RECOVERY_STRATEGIES.IGNORE
-					});
-				}
-			});
+			this._dispatchToObservers(observers, newValue, oldValue, path);
 		}
+
+		// 부모 경로 변경 시 하위 경로 구독자에게도 각자의 값으로 알림
+		const prefix = path + '.';
+		this._observers.forEach((childObservers, childPath) => {
+			if (!childPath.startsWith(prefix)) {
+				return;
+			}
+			const childKeys = childPath.slice(prefix.length).split('.');
+			const childNewValue = childKeys.reduce((obj, key) => obj && obj[key], newValue);
+			const childOldValue = childKeys.reduce((obj, key) => obj && obj[key], oldValue);
+			this._dispatchToObservers(childObservers, childNewValue, childOldValue, childPath);
+		});
+	}
+
+	/**
+	 * Invokes a set of observer callbacks safely
+	 * @private
+	 */
+	_dispatchToObservers(observers, newValue, oldValue, path) {
+		observers.forEach(callback => {
+			try {
+				callback(newValue, oldValue, path);
+			} catch (error) {
+				ErrorHandler.handle(error, {
+					category: ErrorHandler.CATEGORIES.STATE_MANAGEMENT,
+					severity: ErrorHandler.SEVERITY.WARNING,
+					method: '_notifyObservers',
+					component: 'StateManager',
+					data: { path, newValue, oldValue },
+					strategy: ErrorHandler.RECOVERY_STRATEGIES.IGNORE
+				});
+			}
+		});
 	}
 
 	/**

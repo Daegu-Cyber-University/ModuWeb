@@ -316,6 +316,12 @@
 					}
 				}
 			}
+		},
+		"tts": {
+			"start": "自動読み上げ",
+			"stop": "自動読み上げ停止",
+			"focusStart": "フォーカス読み上げ",
+			"focusStop": "フォーカス読み上げ停止"
 		}
 	},
 	"command": {
@@ -555,12 +561,44 @@
 			"rowspan": "行の結合"
 		}
 	},
+	"tts": {
+		"input": {
+			"states": {
+				"checked": "チェック済み",
+				"unchecked": "未チェック",
+				"selected": "選択済み",
+				"unselected": "未選択"
+			},
+			"types": {
+				"button": "ボタン"
+			}
+		},
+		"link": {
+			"newWindow": "新しいウィンドウで開きます"
+		},
+		"button": {
+			"unlabeled": "ラベルのないボタン"
+		},
+		"image": {
+			"label": "画像",
+			"noDescription": "説明なし"
+		},
+		"progress": {
+			"label": "進行状況",
+			"percent": "パーセント"
+		},
+		"table": {
+			"label": "テーブル",
+			"size": "{rows}行 {cols}列"
+		}
+	},
 	"msg": {
 		"success": {
 			"save": "保存されました。"
 		},
 		"error": {
 			"default": "エラーが発生しました。",
+			"general": "エラーが発生しました。もう一度お試しください。",
 			"save": "保存中にエラーが発生しました。",
 			"load": "読み込み中にエラーが発生しました。",
 			"selectorNotFound": "\"{selector}\" 要素が見つかりません。",
@@ -580,8 +618,15 @@
 			"noChange": "変更内容はありません。",
 			"optionNotNode": "オプション \"{option}\" はノードではないため、スキップされます。",
 			"noSettingsChecked": "選択された設定がありません。",
-			"languageNotFound": "言語が見つかりません。"
+			"languageNotFound": "言語が見つかりません。",
+			"profileNotFound": "プロファイル「{profileName}」が見つかりません。"
+		},
+		"info": {
+			"dictionaryNotFound": "「{word}」の検索結果が見つかりません。"
 		}
+	},
+	"dictionary": {
+		"pronunciation": "発音"
 	},
 	"text": {
 		"fileSelected": "選択されたファイル",

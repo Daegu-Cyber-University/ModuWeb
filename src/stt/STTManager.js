@@ -54,7 +54,10 @@ export class STTManager {
 			this._setState(this.states.INACTIVE);
 		} else {
 			this._stopOtherSTT(this.states.VOICE_COMMAND);
-			this.voiceCommand.start();
+			// 시작 실패(미지원 브라우저 등) 시 상태 전이/UI 갱신/이벤트 디스패치를 건너뜀
+			if (!this.voiceCommand.start()) {
+				return;
+			}
 			this._setState(this.states.VOICE_COMMAND);
 		}
 
@@ -82,6 +85,30 @@ export class STTManager {
 
 	_stopAllSTT() {
 		if (this.voiceCommand) this.voiceCommand.stop();
+
+		// 정지 후 매니저 상태/UI/이벤트를 동기화
+		this.handleVoiceCommandStopped();
+	}
+
+	/**
+	 * VoiceCommand가 내부 오류(권한 거부, 재시도 초과 등)로 스스로 정지했을 때 호출됩니다.
+	 * 매니저 상태를 INACTIVE로 전환하고 UI 갱신 및 상태 변경 이벤트를 디스패치합니다.
+	 */
+	handleVoiceCommandStopped() {
+		if (this.currentState === this.states.INACTIVE) return;
+
+		const previousState = this.currentState;
+		this._setState(this.states.INACTIVE);
+		this._updateUI();
+
+		if (this.plugin && this.plugin._dispatchStateEvent) {
+			this.plugin._dispatchStateEvent('stt:stateChanged', {
+				isActive: false,
+				state: this.currentState,
+				previousState: previousState,
+				mode: 'voice_command'
+			});
+		}
 	}
 
 	_updateUI() {

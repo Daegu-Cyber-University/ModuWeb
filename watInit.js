@@ -1,3 +1,4 @@
+	// accTest 서버 배포용 변형본 — 표준판은 dist/watInit.js
 	// DOM 로딩 완료 후 WAT 초기화
 	document.addEventListener('DOMContentLoaded', () => {
 		const watOptions = {
@@ -11,6 +12,6 @@
 
 			// 초기화 완료 후 환영 메시지
 			document.addEventListener('wat:initialized', () => {
-				console.log('웹 접근성 도구가 준비되었습니다! 21');
+				console.log('웹 접근성 도구가 준비되었습니다!');
 			});
 	});

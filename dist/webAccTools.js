@@ -268,7 +268,8 @@ var WATPlugin = (function (exports) {
 			MEMORY_MANAGEMENT: 'memory_management',
 			VALIDATION: 'validation',
 			NETWORK: 'network',
-			USER_INPUT: 'user_input'
+			USER_INPUT: 'user_input',
+			UNKNOWN: 'unknown'
 		};
 
 		// Error recovery strategies
@@ -300,13 +301,68 @@ var WATPlugin = (function (exports) {
 			};
 		}
 
+		/**
+		 * handle()의 별칭 - 자유형 category/severity 문자열을 내부 enum으로 정규화하여 위임
+		 * @param {Error|string} error - Error object or error message
+		 * @param {Object} context - Error context information (자유형 문자열 허용)
+		 * @returns {Object} Error handling result
+		 */
+		static handleError(error, context = {}) {
+			return this.handle(error, {
+				...context,
+				category: this._normalizeCategory(context.category),
+				severity: this._normalizeSeverity(context.severity)
+			});
+		}
+
+		/**
+		 * 자유형 category 문자열을 CATEGORIES enum 값으로 정규화
+		 * @private
+		 */
+		static _normalizeCategory(category) {
+			if (typeof category !== 'string' || !category) return this.CATEGORIES.UNKNOWN;
+			const normalized = category.toLowerCase().replace(/[\s-]+/g, '_');
+			if (Object.values(this.CATEGORIES).includes(normalized)) return normalized;
+			// 자주 쓰이는 자유형 표현 매핑
+			const aliases = {
+				'configuration': this.CATEGORIES.INITIALIZATION,
+				'config': this.CATEGORIES.INITIALIZATION,
+				'init': this.CATEGORIES.INITIALIZATION,
+				'dom': this.CATEGORIES.DOM_OPERATION,
+				'style': this.CATEGORIES.STYLE_APPLICATION,
+				'cache': this.CATEGORIES.CACHE_OPERATION,
+				'event': this.CATEGORIES.EVENT_HANDLING,
+				'state': this.CATEGORIES.STATE_MANAGEMENT
+			};
+			return aliases[normalized] || this.CATEGORIES.UNKNOWN;
+		}
+
+		/**
+		 * 자유형 severity 문자열을 SEVERITY enum 값으로 정규화
+		 * @private
+		 */
+		static _normalizeSeverity(severity) {
+			if (typeof severity !== 'string' || !severity) return this.SEVERITY.ERROR;
+			const normalized = severity.toLowerCase();
+			if (Object.values(this.SEVERITY).includes(normalized)) return normalized;
+			// 자주 쓰이는 자유형 표현 매핑
+			const aliases = {
+				'fatal': this.SEVERITY.CRITICAL,
+				'high': this.SEVERITY.ERROR,
+				'medium': this.SEVERITY.WARNING,
+				'low': this.SEVERITY.INFO,
+				'notice': this.SEVERITY.INFO
+			};
+			return aliases[normalized] || this.SEVERITY.ERROR;
+		}
+
 		static _createErrorInfo(error, context) {
 			const isErrorObject = error instanceof Error;
 			return {
 				message: isErrorObject ? error.message : String(error),
 				stack: isErrorObject ? error.stack : new Error().stack,
 				name: isErrorObject ? error.name : 'WAT_Error',
-				category: context.category || this.CATEGORIES.ERROR,
+				category: context.category || this.CATEGORIES.UNKNOWN,
 				severity: context.severity || this.SEVERITY.ERROR,
 				method: context.method || 'unknown',
 				component: context.component || 'WAT',
@@ -435,11 +491,30 @@ var WATPlugin = (function (exports) {
 			}
 		}
 
+		// sessionStorage 기반 디버그 플래그 캐시 (null = 아직 미확인)
+		static _sessionDebugFlag = null;
+
+		/**
+		 * sessionStorage의 WAT_DEBUG 플래그 확인 (1회 캐시)
+		 * 쿠키 차단/샌드박스 iframe에서는 sessionStorage 접근 자체가 throw 하므로 try/catch로 보호
+		 * @private
+		 */
+		static _checkSessionDebugFlag() {
+			if (this._sessionDebugFlag === null) {
+				try {
+					this._sessionDebugFlag = sessionStorage.getItem('WAT_DEBUG') === 'true';
+				} catch (storageError) {
+					this._sessionDebugFlag = false;
+				}
+			}
+			return this._sessionDebugFlag;
+		}
+
 		/**
 		 * Debug logging utility
 		 */
 		static debugLog(message, data = null, level = 'log') {
-			if (typeof window !== 'undefined' && (window.WAT_DEBUG_MODE || sessionStorage.getItem('WAT_DEBUG') === 'true')) {
+			if (typeof window !== 'undefined' && (window.WAT_DEBUG_MODE || this._checkSessionDebugFlag())) {
 				const timestamp = new Date().toISOString();
 				const logMessage = `[WAT Debug ${timestamp}] ${message}`;
 				if (data !== null) {
@@ -463,17 +538,22 @@ var WATPlugin = (function (exports) {
 		 * @param {string} config.id - Container ID
 		 * @param {string} config.targetSelector - Target selector for container placement
 		 * @param {string} config.position - Position relative to target ('before' or 'after')
-		 * @returns {HTMLElement} Container element
+		 * @returns {HTMLElement|null} Container element (실패 시 null)
 		 */
 		static createOrFindContainer(config) {
 			return ErrorHandler.safeExecute(() => {
 				let container = document.getElementById(config.id);
 
 				if (!container) {
+					// 삽입 대상 확인 - document.body가 아직 없는 시점(head 실행 등)이면 명확한 에러로 처리
+					const target = document.querySelector(config.targetSelector) || document.body;
+					if (!target) {
+						throw new Error(`컨테이너 삽입 대상이 없습니다 (targetSelector: "${config.targetSelector}", document.body 미존재)`);
+					}
+
 					container = document.createElement('div');
 					container.id = config.id;
 
-					const target = document.querySelector(config.targetSelector) || document.body;
 					if (config.position === 'after') {
 						target.appendChild(container);
 					} else {
@@ -489,8 +569,9 @@ var WATPlugin = (function (exports) {
 				component: 'ContainerManager',
 				data: { config },
 				strategy: ErrorHandler.RECOVERY_STRATEGIES.FALLBACK,
-				recovery: () => document.body
-			}, document.body);
+				// document.body를 반환하면 호출측이 호스트 페이지 전체를 덮어쓸 수 있으므로 실패는 null로 전파
+				recovery: () => null
+			}, null);
 		}
 
 		/**
@@ -565,25 +646,6 @@ var WATPlugin = (function (exports) {
 			this.scheduleUpdate();
 		}
 
-		queueBulkStyles(elementStyleMap) {
-			for (const [element, styles] of elementStyleMap.entries()) {
-				this.queueMultipleStyles(element, styles);
-			}
-		}
-
-		queueStylesBySelector(selector, styleMap) {
-			const elements = document.querySelectorAll(selector);
-			elements.forEach(element => {
-				this.queueMultipleStyles(element, styleMap);
-			});
-		}
-
-		queueConditionalStyle(element, property, value, condition) {
-			if (condition(element)) {
-				this.queueStyleUpdate(element, property, value);
-			}
-		}
-
 		scheduleUpdate() {
 			if (!this.isScheduled) {
 				this.isScheduled = true;
@@ -650,7 +712,10 @@ var WATPlugin = (function (exports) {
 
 		cancelPendingUpdates() {
 			if (this.frameId) {
-				if (typeof cancelAnimationFrame !== 'undefined') {
+				// scheduleUpdate()와 동일한 분기 순서 - plugin의 rAF로 만든 frameId는 plugin의 cancel로 취소
+				if (this.plugin && this.plugin._requestAnimationFrame && typeof this.plugin._cancelAnimationFrame === 'function') {
+					this.plugin._cancelAnimationFrame(this.frameId);
+				} else if (typeof cancelAnimationFrame !== 'undefined') {
 					cancelAnimationFrame(this.frameId);
 				} else {
 					clearTimeout(this.frameId);
@@ -690,9 +755,19 @@ var WATPlugin = (function (exports) {
 				if (config === false) {
 					delete result[key];
 				} else if (typeof config === 'number') {
-					result[key] = config;
-				} else if (typeof config === 'object' && config.ratio) {
-					result[key] = config.ratio;
+					// 유한한 양수만 허용 - NaN/Infinity/0 이하 값은 건너뜀
+					if (Number.isFinite(config) && config > 0) {
+						result[key] = config;
+					} else {
+						console.warn(`[WAT:OptionsProcessor] 유효하지 않은 ratio 값을 건너뜁니다: ${key} = ${config}`);
+					}
+				} else if (config !== null && typeof config === 'object') {
+					// null 가드 - typeof null === 'object' 이므로 반드시 확인
+					if (typeof config.ratio === 'number' && Number.isFinite(config.ratio) && config.ratio > 0) {
+						result[key] = config.ratio;
+					} else {
+						console.warn(`[WAT:OptionsProcessor] 유효하지 않은 ratio 설정을 건너뜁니다: ${key} = ${JSON.stringify(config)}`);
+					}
 				}
 			}
 			return result;
@@ -706,6 +781,11 @@ var WATPlugin = (function (exports) {
 		 * @returns {Object} Processed language configuration
 		 */
 		static processLanguageOptions(inputLang, supportedLanguages, selectedLang = 'ko') {
+			// localStorage 유래 selectedLang 검증 - 지원 언어 목록에 없으면 'ko'로 폴백
+			if (typeof selectedLang !== 'string' || !Localization.SUPPORTED_LANGUAGES.includes(selectedLang)) {
+				selectedLang = 'ko';
+			}
+
 			if (inputLang && typeof inputLang === 'object' && !Array.isArray(inputLang)) {
 				const { languages, autoDetect = false, showSelector = true, defaultLanguage = 'ko' } = inputLang;
 
@@ -894,6 +974,8 @@ var WATPlugin = (function (exports) {
 				data: { options: this.options, savedPrefs: this.savedPrefs },
 				strategy: ErrorHandler.RECOVERY_STRATEGIES.FALLBACK,
 				recovery: () => {
+					// 설정 처리 실패 시 사용자 옵션이 전부 무시되므로 명확한 에러 로그로 알림
+					console.error('[WAT:ConfigurationManager] 설정 처리에 실패하여 모든 사용자 옵션을 무시하고 기본 설정으로 폴백합니다.');
 					this.containerConfig = { id: 'watContainer', targetSelector: 'body', position: 'before' };
 					this.styleConfig = { mode: 'dynamic', cssPath: '' };
 					this.selectorConfig = { apply: 'body', exclude: '' };
@@ -973,6 +1055,12 @@ var WATPlugin = (function (exports) {
 	 */
 
 	/**
+	 * 프로토타입 오염 방지를 위해 경로에서 금지되는 키 목록
+	 * @type {string[]}
+	 */
+	const FORBIDDEN_PATH_KEYS = ['__proto__', 'constructor', 'prototype'];
+
+	/**
 	 * Centralized state management system for WAT plugin
 	 * @class StateManager
 	 */
@@ -1006,10 +1094,12 @@ var WATPlugin = (function (exports) {
 		/**
 		 * Gets a value from state using dot notation path
 		 * @param {string} path - Dot notation path (e.g., 'plugin.isTTSActive')
-		 * @returns {*} The value at the path
+		 * @param {*} [defaultValue] - Value to return when the path resolves to undefined
+		 * @returns {*} The value at the path, or defaultValue if undefined
 		 */
-		get(path) {
-			return path.split('.').reduce((obj, key) => obj && obj[key], this._state);
+		get(path, defaultValue) {
+			const value = path.split('.').reduce((obj, key) => obj && obj[key], this._state);
+			return value === undefined ? defaultValue : value;
 		}
 
 		/**
@@ -1019,11 +1109,20 @@ var WATPlugin = (function (exports) {
 		 * @param {boolean} skipNotify - Whether to skip observer notifications
 		 */
 		set(path, value, skipNotify = false) {
-			const oldValue = this.get(path);
 			const keys = path.split('.');
+			if (keys.some(key => FORBIDDEN_PATH_KEYS.includes(key))) {
+				console.warn(`[StateManager] Forbidden key in path "${path}" - ignored to prevent prototype pollution`);
+				return;
+			}
+			const oldValue = this.get(path);
 			const lastKey = keys.pop();
 			const target = keys.reduce((obj, key) => {
-				if (!(key in obj)) obj[key] = {};
+				if (!Object.prototype.hasOwnProperty.call(obj, key)) {
+					obj[key] = {};
+				} else if (obj[key] === null || typeof obj[key] !== 'object') {
+					console.warn(`[StateManager] Overwriting non-object value at "${key}" while setting "${path}"`);
+					obj[key] = {};
+				}
 				return obj[key];
 			}, this._state);
 
@@ -1076,21 +1175,41 @@ var WATPlugin = (function (exports) {
 		_notifyObservers(path, newValue, oldValue) {
 			const observers = this._observers.get(path);
 			if (observers) {
-				observers.forEach(callback => {
-					try {
-						callback(newValue, oldValue, path);
-					} catch (error) {
-						ErrorHandler.handle(error, {
-							category: ErrorHandler.CATEGORIES.STATE_MANAGEMENT,
-							severity: ErrorHandler.SEVERITY.WARNING,
-							method: '_notifyObservers',
-							component: 'StateManager',
-							data: { path, newValue, oldValue },
-							strategy: ErrorHandler.RECOVERY_STRATEGIES.IGNORE
-						});
-					}
-				});
+				this._dispatchToObservers(observers, newValue, oldValue, path);
 			}
+
+			// 부모 경로 변경 시 하위 경로 구독자에게도 각자의 값으로 알림
+			const prefix = path + '.';
+			this._observers.forEach((childObservers, childPath) => {
+				if (!childPath.startsWith(prefix)) {
+					return;
+				}
+				const childKeys = childPath.slice(prefix.length).split('.');
+				const childNewValue = childKeys.reduce((obj, key) => obj && obj[key], newValue);
+				const childOldValue = childKeys.reduce((obj, key) => obj && obj[key], oldValue);
+				this._dispatchToObservers(childObservers, childNewValue, childOldValue, childPath);
+			});
+		}
+
+		/**
+		 * Invokes a set of observer callbacks safely
+		 * @private
+		 */
+		_dispatchToObservers(observers, newValue, oldValue, path) {
+			observers.forEach(callback => {
+				try {
+					callback(newValue, oldValue, path);
+				} catch (error) {
+					ErrorHandler.handle(error, {
+						category: ErrorHandler.CATEGORIES.STATE_MANAGEMENT,
+						severity: ErrorHandler.SEVERITY.WARNING,
+						method: '_notifyObservers',
+						component: 'StateManager',
+						data: { path, newValue, oldValue },
+						strategy: ErrorHandler.RECOVERY_STRATEGIES.IGNORE
+					});
+				}
+			});
 		}
 
 		/**
@@ -1174,6 +1293,7 @@ var WATPlugin = (function (exports) {
 			this.currentIndex = -1;
 			this.autoAdvanceTimer = null;
 			this.currentUtterance = null;
+			this.keepAliveTimer = null;
 		}
 
 		start() {
@@ -1193,6 +1313,14 @@ var WATPlugin = (function (exports) {
 			this._clearAutoAdvanceTimer();
 			this._removeAllHighlights();
 			this.currentIndex = -1;
+			this.elements = [];
+		}
+
+		/**
+		 * 자동 읽기를 완전히 정리합니다. (발화, 타이머, 하이라이트, 요소 목록)
+		 */
+		destroy() {
+			this.stop();
 		}
 
 		moveToPrevious() {
@@ -1378,9 +1506,66 @@ var WATPlugin = (function (exports) {
 
 			this.currentUtterance = new SpeechSynthesisUtterance(text);
 			this.currentUtterance.rate = this.ttsManager.config.speechRate;
-			this.currentUtterance.onend = onEnd;
+
+			const speechLang = this._getSpeechLang();
+			if (speechLang) {
+				this.currentUtterance.lang = speechLang;
+			}
+
+			this.currentUtterance.onend = () => {
+				this._stopKeepAlive();
+				this.currentUtterance = null;
+				if (typeof onEnd === 'function') onEnd();
+			};
+
+			this.currentUtterance.onerror = (event) => {
+				this._stopKeepAlive();
+				this.currentUtterance = null;
+				// 사용자 조작에 의한 중단/취소는 조용히 무시합니다.
+				if (event && (event.error === 'interrupted' || event.error === 'canceled')) {
+					return;
+				}
+				// 그 외 에러는 다음 요소로 진행해 자동 진행 체인을 유지합니다.
+				if (typeof onEnd === 'function') onEnd();
+			};
 
 			window.speechSynthesis.speak(this.currentUtterance);
+			this._startKeepAlive();
+		}
+
+		/**
+		 * 플러그인 언어 설정을 음성 합성용 BCP-47 언어 코드로 변환합니다.
+		 * @returns {string} 언어 코드 (설정이 없으면 빈 문자열)
+		 */
+		_getSpeechLang() {
+			const lang = this.plugin && this.plugin.language;
+			if (!lang) return '';
+			const langMap = { ko: 'ko-KR', ja: 'ja-JP', zh: 'zh-CN', de: 'de-DE' };
+			return langMap[lang] || lang;
+		}
+
+		/**
+		 * Chrome 의 장문 발화 시 약 15초 후 무음 정지되는 버그를 우회하기 위해
+		 * 발화 중 주기적으로 pause/resume 을 호출하는 킵얼라이브 타이머를 시작합니다.
+		 */
+		_startKeepAlive() {
+			this._stopKeepAlive();
+			this.keepAliveTimer = setInterval(() => {
+				if (window.speechSynthesis && window.speechSynthesis.speaking) {
+					window.speechSynthesis.pause();
+					window.speechSynthesis.resume();
+				}
+			}, 10000);
+		}
+
+		/**
+		 * 킵얼라이브 타이머를 해제합니다.
+		 */
+		_stopKeepAlive() {
+			if (this.keepAliveTimer) {
+				clearInterval(this.keepAliveTimer);
+				this.keepAliveTimer = null;
+			}
 		}
 
 		_scheduleAutoAdvance() {
@@ -1417,10 +1602,16 @@ var WATPlugin = (function (exports) {
 		}
 
 		_stopCurrentSpeech() {
+			this._stopKeepAlive();
+			// cancel() 호출 전에 핸들러를 해제해 정지한 자동 읽기가 저절로 재시작되는 것을 방지합니다.
+			if (this.currentUtterance) {
+				this.currentUtterance.onend = null;
+				this.currentUtterance.onerror = null;
+				this.currentUtterance = null;
+			}
 			if (window.speechSynthesis) {
 				window.speechSynthesis.cancel();
 			}
-			this.currentUtterance = null;
 		}
 
 		_clearAutoAdvanceTimer() {
@@ -1443,6 +1634,8 @@ var WATPlugin = (function (exports) {
 			this.currentUtterance = null;
 			this.highlightWrapper = null;
 			this.originalSelection = null;
+			this.keepAliveTimer = null;
+			this.highlightRemoveTimer = null;
 		}
 
 		/**
@@ -1479,9 +1672,10 @@ var WATPlugin = (function (exports) {
 				try {
 					range.surroundContents(this.highlightWrapper);
 				} catch (e) {
-					const contents = range.extractContents();
-					this.highlightWrapper.appendChild(contents);
-					range.insertNode(this.highlightWrapper);
+					// surroundContents 실패 시(요소 경계를 가로지르는 선택 등)
+					// 호스트 페이지의 DOM을 분할/훼손하지 않도록 하이라이트를 포기하고 발화만 진행합니다.
+					this.highlightWrapper = null;
+					return;
 				}
 
 				const newRange = document.createRange();
@@ -1501,6 +1695,7 @@ var WATPlugin = (function (exports) {
 		 * 하이라이트 래퍼를 제거하고 원래 DOM 구조를 복원합니다.
 		 */
 		_removeHighlight() {
+			this._clearHighlightRemoveTimer();
 			if (this.highlightWrapper && this.highlightWrapper.parentNode) {
 				try {
 					const parent = this.highlightWrapper.parentNode;
@@ -1538,21 +1733,89 @@ var WATPlugin = (function (exports) {
 			this.currentUtterance = new SpeechSynthesisUtterance(text);
 			this.currentUtterance.rate = this.ttsManager.config.speechRate;
 
+			const speechLang = this._getSpeechLang();
+			if (speechLang) {
+				this.currentUtterance.lang = speechLang;
+			}
+
 			this.currentUtterance.onend = () => {
+				this._stopKeepAlive();
+				this.currentUtterance = null;
 				if (typeof onEnd === 'function') onEnd();
 			};
 
 			this.currentUtterance.onerror = () => {
+				this._stopKeepAlive();
+				this.currentUtterance = null;
 				if (typeof onError === 'function') onError();
 			};
 
 			window.speechSynthesis.speak(this.currentUtterance);
+			this._startKeepAlive();
+		}
+
+		/**
+		 * 플러그인 언어 설정을 음성 합성용 BCP-47 언어 코드로 변환합니다.
+		 * @returns {string} 언어 코드 (설정이 없으면 빈 문자열)
+		 */
+		_getSpeechLang() {
+			const lang = this.plugin && this.plugin.language;
+			if (!lang) return '';
+			const langMap = { ko: 'ko-KR', ja: 'ja-JP', zh: 'zh-CN', de: 'de-DE' };
+			return langMap[lang] || lang;
+		}
+
+		/**
+		 * Chrome 의 장문 발화 시 약 15초 후 무음 정지되는 버그를 우회하기 위해
+		 * 발화 중 주기적으로 pause/resume 을 호출하는 킵얼라이브 타이머를 시작합니다.
+		 */
+		_startKeepAlive() {
+			this._stopKeepAlive();
+			this.keepAliveTimer = setInterval(() => {
+				if (window.speechSynthesis && window.speechSynthesis.speaking) {
+					window.speechSynthesis.pause();
+					window.speechSynthesis.resume();
+				}
+			}, 10000);
+		}
+
+		/**
+		 * 킵얼라이브 타이머를 해제합니다.
+		 */
+		_stopKeepAlive() {
+			if (this.keepAliveTimer) {
+				clearInterval(this.keepAliveTimer);
+				this.keepAliveTimer = null;
+			}
+		}
+
+		/**
+		 * 하이라이트 제거를 지연 예약합니다. (핸들을 보관해 취소 가능)
+		 * @param {number} [delay=500] - 지연 시간(ms)
+		 */
+		_scheduleHighlightRemoval(delay = 500) {
+			this._clearHighlightRemoveTimer();
+			this.highlightRemoveTimer = setTimeout(() => {
+				this.highlightRemoveTimer = null;
+				this._removeHighlight();
+			}, delay);
+		}
+
+		/**
+		 * 예약된 하이라이트 제거 타이머를 취소합니다.
+		 */
+		_clearHighlightRemoveTimer() {
+			if (this.highlightRemoveTimer) {
+				clearTimeout(this.highlightRemoveTimer);
+				this.highlightRemoveTimer = null;
+			}
 		}
 
 		/**
 		 * 현재 진행 중인 음성 합성을 중지합니다.
 		 */
 		_stopCurrentSpeech() {
+			this._stopKeepAlive();
 			if (this.currentUtterance) {
 				this.currentUtterance.onend = null;
 				this.currentUtterance.onerror = null;
@@ -1561,6 +1824,15 @@ var WATPlugin = (function (exports) {
 			if (window.speechSynthesis) {
 				window.speechSynthesis.cancel();
 			}
+		}
+
+		/**
+		 * 진행 중인 발화, 타이머, 하이라이트를 모두 정리합니다.
+		 */
+		destroy() {
+			this._stopCurrentSpeech();
+			this._clearHighlightRemoveTimer();
+			this._removeHighlight();
 		}
 	}
 
@@ -1576,6 +1848,7 @@ var WATPlugin = (function (exports) {
 			this.isEnabled = false;
 			this.lastEventTime = 0;
 			this.eventDebounceDelay = 150;
+			this.selectionTimer = null;
 
 			this.boundHandlers = {
 				doubleClick: this._handleDoubleClick.bind(this),
@@ -1598,9 +1871,28 @@ var WATPlugin = (function (exports) {
 			document.removeEventListener('dblclick', this.boundHandlers.doubleClick, { passive: true });
 			document.removeEventListener('mouseup', this.boundHandlers.mouseUp, { passive: true });
 
+			this._clearSelectionTimer();
 			this._stopCurrentSpeech();
 			this._removeHighlight();
 			this.lastEventTime = 0;
+		}
+
+		/**
+		 * 포커스 읽기를 완전히 정리합니다. (리스너, 발화, 타이머, 하이라이트)
+		 */
+		destroy() {
+			this.disable();
+			super.destroy();
+		}
+
+		/**
+		 * 예약된 선택 텍스트 처리 타이머를 취소합니다.
+		 */
+		_clearSelectionTimer() {
+			if (this.selectionTimer) {
+				clearTimeout(this.selectionTimer);
+				this.selectionTimer = null;
+			}
 		}
 
 		_handleDoubleClick(event) {
@@ -1621,7 +1913,13 @@ var WATPlugin = (function (exports) {
 				return;
 			}
 
-			setTimeout(() => {
+			this._clearSelectionTimer();
+			this.selectionTimer = setTimeout(() => {
+				this.selectionTimer = null;
+				// 지연 사이에 disable() 된 경우 발화하지 않도록 재확인합니다.
+				if (!this.isEnabled) {
+					return;
+				}
 				if (Date.now() - this.lastEventTime < this.eventDebounceDelay) {
 					return;
 				}
@@ -1634,7 +1932,8 @@ var WATPlugin = (function (exports) {
 			const selectedText = selection.toString().trim();
 
 			if (selectedText && selectedText.length >= 2) {
-				if (this.currentUtterance && !this.currentUtterance.ended &&
+				// 발화 종료 시 currentUtterance 가 null 로 초기화되므로 null 여부로 진행 중인지 판단합니다.
+				if (this.currentUtterance !== null &&
 					this.highlightWrapper && this.highlightWrapper.textContent.trim() === selectedText) {
 					return;
 				}
@@ -1643,7 +1942,7 @@ var WATPlugin = (function (exports) {
 					this.originalSelection = selection.getRangeAt(0).cloneRange();
 					this._createHighlightWrapper(this.originalSelection);
 					this._speakText(selectedText, {
-						onEnd: () => setTimeout(() => this._removeHighlight(), 500),
+						onEnd: () => this._scheduleHighlightRemoval(500),
 						onError: () => this._removeHighlight()
 					});
 				}
@@ -1724,7 +2023,7 @@ var WATPlugin = (function (exports) {
 					'box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.4) !important;'
 				);
 				this._speakText(selectedText, {
-					onEnd: () => setTimeout(() => this._removeHighlight(), 500),
+					onEnd: () => this._scheduleHighlightRemoval(500),
 					onError: () => this._removeHighlight()
 				});
 			}
@@ -1850,6 +2149,32 @@ var WATPlugin = (function (exports) {
 			}
 		}
 
+		/**
+		 * TTS 매니저를 완전히 정리합니다.
+		 * 플러그인 cleanup(destroy) 시 호출해 리스너, 타이머, 진행 중인 발화를 모두 해제합니다.
+		 */
+		destroy() {
+			try {
+				if (this.autoTTS) this.autoTTS.destroy();
+			} catch (error) {
+				console.warn('Failed to destroy AutoTTS:', error);
+			}
+			try {
+				if (this.focusTTS) this.focusTTS.destroy();
+			} catch (error) {
+				console.warn('Failed to destroy FocusTTS:', error);
+			}
+			try {
+				if (this.keyboardTTS) this.keyboardTTS.destroy();
+			} catch (error) {
+				console.warn('Failed to destroy KeyboardTTS:', error);
+			}
+			if (window.speechSynthesis) {
+				window.speechSynthesis.cancel();
+			}
+			this.currentState = this.states.INACTIVE;
+		}
+
 		_updateUI() {
 			this._updateAutoTTSButton();
 			this._updateFocusTTSButton();
@@ -1917,7 +2242,9 @@ var WATPlugin = (function (exports) {
 			this.timers = {
 				cooldown: null,
 				silenceDetection: null,
-				commandTimeout: null
+				commandTimeout: null,
+				postCommand: null,
+				restart: null
 			};
 
 			this.config = {
@@ -1933,6 +2260,7 @@ var WATPlugin = (function (exports) {
 			this.statusDisplay = null;
 			this.lastCommandTime = 0;
 			this.commandHistory = [];
+			this.retryCount = 0;
 
 			this.audioContext = null;
 			this.analyser = null;
@@ -1941,27 +2269,46 @@ var WATPlugin = (function (exports) {
 			this.lastSpeechTime = 0;
 		}
 
+		/**
+		 * 음성 명령을 시작합니다.
+		 * @returns {boolean} 시작 성공 여부 (미지원 브라우저면 false)
+		 */
 		start() {
 			if (!this._checkSupport()) {
 				this.plugin.showNotification('음성 인식을 지원하지 않는 브라우저입니다.');
-				return;
+				return false;
 			}
 
+			this.retryCount = 0;
 			this._createStatusDisplay();
 			this._setState(this.states.WAITING);
 			this._startContinuousRecognition();
+			return true;
 		}
 
 		stop() {
 			this._setState(this.states.INACTIVE);
 			this._clearAllTimers();
 
-			if (this.recognition && this.isActive) {
-				this.recognition.stop();
+			// stop() 대신 abort() 사용: 보류 중인 인식 결과로 명령이 실행되는 것을 방지
+			if (this.recognition) {
+				this.recognition.abort();
 				this.isActive = false;
 			}
 
 			this._removeStatusDisplay();
+		}
+
+		/**
+		 * 복구 불가능한 오류로 음성 명령을 완전히 정지하고 매니저에 통지합니다.
+		 * (권한 거부, 재시도 횟수 초과 등)
+		 */
+		_deactivate() {
+			this.stop();
+
+			if (this.sttManager && typeof this.sttManager.handleVoiceCommandStopped === 'function') {
+				this.sttManager.handleVoiceCommandStopped();
+			}
 		}
 
 		_createStatusDisplay() {
@@ -1970,6 +2317,9 @@ var WATPlugin = (function (exports) {
 			this.statusDisplay = document.createElement('div');
 			this.statusDisplay.id = 'wat-voice-status';
 			this.statusDisplay.className = 'wat-voice-status';
+			// 스크린 리더가 상태 변화를 자동으로 읽을 수 있도록 라이브 영역으로 지정
+			this.statusDisplay.setAttribute('role', 'status');
+			this.statusDisplay.setAttribute('aria-live', 'polite');
 			this.statusDisplay.innerHTML = `
 			<div class="status-icon">🎤</div>
 			<div class="status-text">음성 명령 준비 중...</div>
@@ -2072,12 +2422,22 @@ var WATPlugin = (function (exports) {
 		}
 
 		_startContinuousRecognition() {
+			// 이전 사이클의 commandTimeout이 남아 있으면 해제 (타이머 누수 방지)
+			if (this.timers.commandTimeout) {
+				clearTimeout(this.timers.commandTimeout);
+				this.timers.commandTimeout = null;
+			}
+
 			this._initializeRecognition();
 
 			this.timers.commandTimeout = setTimeout(() => {
 				if (this.currentState === this.states.WAITING ||
 					this.currentState === this.states.LISTENING) {
 					this._setState(this.states.COOLDOWN);
+					// 타임아웃 시 진행 중인 인식도 실제로 중단
+					if (this.recognition) {
+						this.recognition.abort();
+					}
 					this.plugin.showNotification('음성 명령 대기 시간이 초과되었습니다.');
 					this._startCooldown();
 				}
@@ -2087,6 +2447,9 @@ var WATPlugin = (function (exports) {
 		}
 
 		_startCooldown() {
+			// stop() 이후에는 쿨다운을 통한 재시작을 하지 않음 (좀비 재시작 방지)
+			if (this.currentState === this.states.INACTIVE) return;
+
 			this._clearAllTimers();
 			this._setState(this.states.COOLDOWN);
 
@@ -2144,6 +2507,25 @@ var WATPlugin = (function (exports) {
 			const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 			const SpeechGrammarList = window.SpeechGrammarList || window.webkitSpeechGrammarList;
 
+			// 기존 인스턴스가 있으면 핸들러 해제 + 중단 후 교체 (이벤트 중복/유령 인식 방지)
+			if (this.recognition) {
+				this.recognition.onstart = null;
+				this.recognition.onend = null;
+				this.recognition.onresult = null;
+				this.recognition.onerror = null;
+				this.recognition.onnomatch = null;
+				this.recognition.onspeechstart = null;
+				this.recognition.onspeechend = null;
+				this.recognition.onsoundstart = null;
+				this.recognition.onsoundend = null;
+				try {
+					this.recognition.abort();
+				} catch (error) {
+					// 이미 종료된 인스턴스면 무시
+				}
+				this.isActive = false;
+			}
+
 			this.recognition = new SpeechRecognition();
 
 			if (SpeechGrammarList) {
@@ -2152,15 +2534,23 @@ var WATPlugin = (function (exports) {
 			}
 
 			this.recognition.lang = this.sttManager.config.language;
-			this.recognition.interimResults = false;
+			this.recognition.interimResults = this.sttManager.config.interimResults;
+			// 상태 머신(WAITING→LISTENING→…→COOLDOWN)이 단발 인식을 전제로 설계되어
+			// 설정값과 무관하게 continuous는 항상 false를 유지합니다.
 			this.recognition.continuous = false;
-			this.recognition.maxAlternatives = 1;
+			this.recognition.maxAlternatives = this.sttManager.config.maxAlternatives;
 
 			this._setupEventHandlers();
 		}
 
 		_setupEventHandlers() {
 			this.recognition.onstart = () => {
+				// stop()이 이미 호출된 상태라면 뒤늦게 시작된 인식을 즉시 중단
+				if (this.currentState === this.states.INACTIVE) {
+					this.recognition.abort();
+					return;
+				}
+
 				this.isActive = true;
 				this._setState(this.states.LISTENING);
 				this.lastSpeechTime = Date.now();
@@ -2173,7 +2563,9 @@ var WATPlugin = (function (exports) {
 					this.currentState === this.states.PROCESSING) {
 					this._setState(this.states.WAITING);
 
-					setTimeout(() => {
+					// 재시작 전 기존 타이머를 정리하고, 재시작 타이머도 등록해 stop() 시 취소되도록 함
+					this._clearAllTimers();
+					this.timers.restart = setTimeout(() => {
 						if (this.currentState === this.states.WAITING) {
 							this._startContinuousRecognition();
 						}
@@ -2182,7 +2574,12 @@ var WATPlugin = (function (exports) {
 			};
 
 			this.recognition.onresult = (event) => {
+				// stop() 이후 도착한 보류 결과는 무시
+				if (this.currentState === this.states.INACTIVE) return;
+
 				this._setState(this.states.PROCESSING);
+				// 인식 성공 시 재시도 카운터 초기화
+				this.retryCount = 0;
 
 				const result = event.results[0][0];
 				const transcript = result.transcript.toLowerCase().trim();
@@ -2206,16 +2603,33 @@ var WATPlugin = (function (exports) {
 				console.error('음성 인식 오류:', event.error);
 				this.isActive = false;
 
+				// stop() 이후 발생한 오류나 내부에서 호출한 abort()로 인한 오류는 무시
+				if (this.currentState === this.states.INACTIVE || event.error === 'aborted') {
+					return;
+				}
+
+				// 권한/장치 오류는 재시도해도 해결되지 않으므로 재시도 없이 완전 정지
+				if (event.error === 'not-allowed' || event.error === 'audio-capture') {
+					const fatalMessage = event.error === 'not-allowed'
+						? '마이크 사용 권한이 필요합니다. 음성 명령을 종료합니다.'
+						: '마이크에 접근할 수 없습니다. 권한을 확인해주세요. 음성 명령을 종료합니다.';
+					this.plugin.showNotification(fatalMessage);
+					this._deactivate();
+					return;
+				}
+
+				// 일시적인 오류는 최대 재시도 횟수까지만 재시도
+				this.retryCount++;
+				if (this.retryCount > this.config.maxRetries) {
+					this.plugin.showNotification('음성 인식 재시도 횟수를 초과하여 음성 명령을 종료합니다.');
+					this._deactivate();
+					return;
+				}
+
 				let errorMessage = '음성 인식 오류가 발생했습니다.';
 				switch (event.error) {
 					case 'no-speech':
 						errorMessage = '음성이 감지되지 않았습니다. 다시 시도해주세요.';
-						break;
-					case 'audio-capture':
-						errorMessage = '마이크에 접근할 수 없습니다. 권한을 확인해주세요.';
-						break;
-					case 'not-allowed':
-						errorMessage = '마이크 사용 권한이 필요합니다.';
 						break;
 					case 'network':
 						errorMessage = '네트워크 오류가 발생했습니다.';
@@ -2263,7 +2677,9 @@ var WATPlugin = (function (exports) {
 			this.timers = {
 				cooldown: null,
 				silenceDetection: null,
-				commandTimeout: null
+				commandTimeout: null,
+				postCommand: null,
+				restart: null
 			};
 		}
 
@@ -2301,7 +2717,8 @@ var WATPlugin = (function (exports) {
 						this.commandHistory.pop();
 					}
 
-					setTimeout(() => {
+					// 타이머로 등록해 stop() 시 _clearAllTimers()로 취소되도록 함 (좀비 재시작 방지)
+					this.timers.postCommand = setTimeout(() => {
 						this._startCooldown();
 					}, 1000);
 				} else {
@@ -2320,6 +2737,9 @@ var WATPlugin = (function (exports) {
 				...this.commands.action,
 				...this.commands.settings
 			];
+
+			// 최장 일치 우선: 긴 명령어부터 검사해 부분 문자열 오매칭을 완화
+			allCommands.sort((a, b) => b.length - a.length);
 
 			const command = allCommands.find(cmd => transcript.includes(cmd));
 			if (command) {
@@ -2356,6 +2776,10 @@ var WATPlugin = (function (exports) {
 		_collectElementTexts(element) {
 			const texts = [];
 			if (element.textContent) texts.push(element.textContent.trim());
+			// input[type=submit|button] 등은 value가 표시 텍스트이므로 함께 수집
+			if (element.tagName.toLowerCase() === 'input' && element.value) {
+				texts.push(element.value.trim());
+			}
 			const img = element.querySelector('img');
 			if (img && img.alt) texts.push(img.alt);
 			if (element.title) texts.push(element.title);
@@ -2382,6 +2806,10 @@ var WATPlugin = (function (exports) {
 						element.getAttribute('role') === 'button') {
 						element.click();
 						this.plugin.showNotification(`"${element.textContent?.trim() || '요소'}"을(를) 클릭했습니다.`);
+					} else if (element.tagName.toLowerCase() === 'input' &&
+						(element.type === 'submit' || element.type === 'button')) {
+						element.click();
+						this.plugin.showNotification(`"${element.value || '버튼'}"을(를) 클릭했습니다.`);
 					} else if (element.tagName.toLowerCase() === 'input' &&
 						(element.type === 'radio' || element.type === 'checkbox')) {
 						element.checked = !element.checked;
@@ -2453,7 +2881,10 @@ var WATPlugin = (function (exports) {
 				this._setState(this.states.INACTIVE);
 			} else {
 				this._stopOtherSTT(this.states.VOICE_COMMAND);
-				this.voiceCommand.start();
+				// 시작 실패(미지원 브라우저 등) 시 상태 전이/UI 갱신/이벤트 디스패치를 건너뜀
+				if (!this.voiceCommand.start()) {
+					return;
+				}
 				this._setState(this.states.VOICE_COMMAND);
 			}
 
@@ -2481,6 +2912,30 @@ var WATPlugin = (function (exports) {
 
 		_stopAllSTT() {
 			if (this.voiceCommand) this.voiceCommand.stop();
+
+			// 정지 후 매니저 상태/UI/이벤트를 동기화
+			this.handleVoiceCommandStopped();
+		}
+
+		/**
+		 * VoiceCommand가 내부 오류(권한 거부, 재시도 초과 등)로 스스로 정지했을 때 호출됩니다.
+		 * 매니저 상태를 INACTIVE로 전환하고 UI 갱신 및 상태 변경 이벤트를 디스패치합니다.
+		 */
+		handleVoiceCommandStopped() {
+			if (this.currentState === this.states.INACTIVE) return;
+
+			const previousState = this.currentState;
+			this._setState(this.states.INACTIVE);
+			this._updateUI();
+
+			if (this.plugin && this.plugin._dispatchStateEvent) {
+				this.plugin._dispatchStateEvent('stt:stateChanged', {
+					isActive: false,
+					state: this.currentState,
+					previousState: previousState,
+					mode: 'voice_command'
+				});
+			}
 		}
 
 		_updateUI() {
@@ -2532,6 +2987,39 @@ var WATPlugin = (function (exports) {
 		}
 	})();
 
+	// localStorage 등 외부 유래 문자열의 안전한 JSON 파싱 — 손상된 값이 초기화 전체를 중단시키지 않도록
+	function safeParseJSON(raw, fallback = {}) {
+		if (raw === null || raw === undefined) return fallback;
+		try {
+			return JSON.parse(raw);
+		} catch (e) {
+			console.warn('[WAT] 저장된 설정 값이 손상되어 기본값을 사용합니다:', e.message);
+			return fallback;
+		}
+	}
+
+	// HTML 템플릿 문자열에 삽입되는 외부 유래 값(config 라벨 등)의 이스케이프 — XSS 방지
+	function escapeHTML(value) {
+		if (value === null || value === undefined) return '';
+		return String(value)
+			.replace(/&/g, '&amp;')
+			.replace(/</g, '&lt;')
+			.replace(/>/g, '&gt;')
+			.replace(/"/g, '&quot;')
+			.replace(/'/g, '&#39;');
+	}
+
+	// config 등 외부 유래 URL의 스킴 검증 — javascript: 등 위험 스킴 차단
+	function isSafeHttpUrl(url) {
+		if (typeof url !== 'string' || !url) return false;
+		try {
+			const parsed = new URL(url, typeof document !== 'undefined' ? document.baseURI : undefined);
+			return parsed.protocol === 'https:' || parsed.protocol === 'http:';
+		} catch (e) {
+			return false;
+		}
+	}
+
 	class WAT {
 		// Static property assignments - 이미 추출된 모듈들을 WAT의 정적 속성으로 참조
 		static Constants = Constants;
@@ -2568,7 +3056,7 @@ var WATPlugin = (function (exports) {
 			 */
 			constructor(options = {}) {
 				this.options = options;
-				const savedPrefs = JSON.parse(localStorage.getItem(Constants.STORAGE_KEYS.SETTINGS) || '{}');
+				const savedPrefs = safeParseJSON(localStorage.getItem(Constants.STORAGE_KEYS.SETTINGS), {});
 				this._configManager = new ConfigurationManager(options, savedPrefs, basePath);
 
 				this._config = null;
@@ -2597,7 +3085,7 @@ var WATPlugin = (function (exports) {
 			 * @private
 			 */
 			_initializeStateManager() {
-				const savedSettings = JSON.parse(localStorage.getItem(Constants.STORAGE_KEYS.SETTINGS) || '{}');
+				const savedSettings = safeParseJSON(localStorage.getItem(Constants.STORAGE_KEYS.SETTINGS), {});
 				const defaultSettings = Defaults.SETTINGS;
 				
 				this.state = new StateManager({
@@ -2848,6 +3336,10 @@ var WATPlugin = (function (exports) {
 				
 				// Create or find container
 				this.container = ContainerManager.createOrFindContainer(containerConfig);
+				// 컨테이너 생성 실패 또는 body 폴백 시 초기화 중단 — 이후 innerHTML 초기화가 호스트 페이지를 파괴하는 것을 방지
+				if (!this.container || this.container === document.body || this.container === document.documentElement) {
+					throw new Error('[WAT] 컨테이너를 생성하지 못했습니다. containerTargetSelector 설정을 확인하세요.');
+				}
 				this.selector = `#${this.container.id}`;
 				this.containerID = containerConfig.id;
 				this.containerTargetSelector = containerConfig.targetSelector;
@@ -3038,7 +3530,8 @@ var WATPlugin = (function (exports) {
 						detail: {
 							plugin: this,
 							timestamp: Date.now(),
-							version: "2.0.1",
+							// 번들러 치환이 없는 환경(테스트 등)에서 ReferenceError로 초기화 이벤트가 사라지지 않도록 가드
+						version: (typeof "2.0.1" !== 'undefined') ? "2.0.1" : 'dev',
 							language: this.language,
 							features: {
 								tts: !!this.ttsManager,
@@ -3048,7 +3541,7 @@ var WATPlugin = (function (exports) {
 							},
 							state: {
 								isInitialized: true,
-								containerId: this.containerSelector,
+								containerId: this.containerID, // containerSelector는 미할당 프로퍼티였음 (항상 undefined)
 								options: { ...this.options }
 							}
 						},
@@ -3114,6 +3607,9 @@ var WATPlugin = (function (exports) {
 			 */
 			cleanup() {
 				ErrorHandler.safeExecute(() => {
+					// 정리 이후 지연 콜백(iframe load 등)이 파괴된 인스턴스를 조작하지 않도록 플래그 설정
+					this._destroyed = true;
+
 					// Log memory stats before cleanup
 					this._logMemoryUsage('before cleanup');
 
@@ -3137,9 +3633,9 @@ var WATPlugin = (function (exports) {
 				// 1. Clean up all tracked timers and animation frames
 				this._cleanupTimersAndFrames();
 				
-				// 2. Remove global event listeners
+				// 2. Remove global event listeners (등록 대상(window/document)과 동일한 곳에서 제거)
 				this._globalEventHandlers.forEach((listenerInfo, eventType) => {
-					document.removeEventListener(eventType, listenerInfo.handler, listenerInfo.options);
+					(listenerInfo.target || document).removeEventListener(eventType, listenerInfo.handler, listenerInfo.options);
 				});
 				this._globalEventHandlers.clear();
 				
@@ -3167,13 +3663,17 @@ var WATPlugin = (function (exports) {
 				}
 				
 				// 5. Clean up legacy timers/animations (for backward compatibility)
-				const scrollInterval = this.state.get('plugin.scrollInterval');
+				const scrollInterval = this.state.get('plugin.scrollInterval') || this.scrollInterval;
 				if (scrollInterval) {
 					cancelAnimationFrame(scrollInterval);
 					this.state.set('plugin.scrollInterval', null);
+					this.scrollInterval = null;
 				}
-				
-				// 6. Clean up TTS
+
+				// 6. Clean up TTS (매니저의 리스너·타이머·발화 일괄 정리)
+				if (this.ttsManager && typeof this.ttsManager.destroy === 'function') {
+					this.ttsManager.destroy();
+				}
 				if (this.speechSynthesis) {
 					this.speechSynthesis.cancel();
 					this.state.set('plugin.currentUtterance', null);
@@ -3188,11 +3688,9 @@ var WATPlugin = (function (exports) {
 				
 				// 9. Clean up DOM elements
 				this._cleanupDOMElements();
-				
-					// Final memory check
-					this._setTimeout(() => {
-						this._logMemoryUsage('after cleanup');
-					}, 100);
+
+					// Final memory check — 정리 완료 상태를 다시 오염시키지 않도록 추적 타이머를 쓰지 않고 즉시 기록
+					this._logMemoryUsage('after cleanup');
 				}, {
 					category: ErrorHandler.CATEGORIES.MEMORY_MANAGEMENT,
 					severity: ErrorHandler.SEVERITY.WARNING,
@@ -3568,7 +4066,8 @@ var WATPlugin = (function (exports) {
 			 * const buttons = this._getCachedElementsBySelector('.btn', 'custom-buttons');
 			 */
 			_getCachedElementsBySelector(selector, cacheKey = null, useCache = true) {
-				const key = cacheKey || selector.replace(/[^a-zA-Z0-9]/g, '_');
+				// 선택자 원문을 키로 사용 — 특수문자 치환 시 서로 다른 선택자('.a .b' vs '.a>.b')가 같은 키로 충돌함
+				const key = cacheKey || selector;
 				
 				this._performanceMetrics.domQueries++;
 				
@@ -3814,13 +4313,16 @@ var WATPlugin = (function (exports) {
 				if (eventType === 'focusin' && this._globalEventHandlers.has(eventType)) {
 					this._removeGlobalEventListener(eventType);
 				}
-				
-				document.addEventListener(eventType, handler, options);
-				
+
+				// beforeunload/pagehide 등은 window에서만 발생하므로 대상 분기 — document에 걸면 영원히 발화하지 않음
+				const target = ['beforeunload', 'pagehide', 'unload', 'resize'].includes(eventType) ? window : document;
+				target.addEventListener(eventType, handler, options);
+
 				this._globalEventHandlers.set(eventType, {
 					handlerKey,
 					handler,
-					options
+					options,
+					target
 				});
 			}
 
@@ -3832,8 +4334,8 @@ var WATPlugin = (function (exports) {
 			_removeGlobalEventListener(eventType) {
 				const listenerInfo = this._globalEventHandlers.get(eventType);
 				if (!listenerInfo) return;
-				
-				document.removeEventListener(eventType, listenerInfo.handler, listenerInfo.options);
+
+				(listenerInfo.target || document).removeEventListener(eventType, listenerInfo.handler, listenerInfo.options);
 				this._globalEventHandlers.delete(eventType);
 			}
 
@@ -4019,11 +4521,18 @@ var WATPlugin = (function (exports) {
 						// Focus on clicked element and simulate focus event (클릭된 요소에 포커스를 주고 포커스 이벤트 시뮬레이션)
 						if (e.target.tabIndex === -1) {
 							e.target.tabIndex = 0; // 포커스 가능하게 만들기
+							// 나중에 원복할 수 있도록 플러그인이 부여한 tabindex임을 표시 (호스트 탭 순서 영구 변형 방지)
+							e.target.dataset.watTabindexAdded = 'true';
 						}
-						e.target.focus();
-						
-						// Handle manually if focus event doesn't occur automatically (포커스 이벤트가 자동으로 발생하지 않는 경우 수동으로 처리)
-						setTimeout(() => {
+						const clickedTarget = e.target;
+						const hadFocus = document.activeElement === clickedTarget;
+						clickedTarget.focus();
+
+						// 포커스 이벤트가 자동으로 발생하지 않는 경우에만 수동 처리 (중복 발화 방지, 추적형 타이머)
+						this._setTimeout(() => {
+							if (hadFocus || document.activeElement !== clickedTarget) {
+								return; // 실제 focusin이 이미 처리됐거나 포커스가 이동함
+							}
 							const focusEvent = new FocusEvent('focusin', {
 								view: window,
 								bubbles: true,
@@ -4031,7 +4540,7 @@ var WATPlugin = (function (exports) {
 								relatedTarget: null
 							});
 							Object.defineProperty(focusEvent, 'target', {
-								value: e.target,
+								value: clickedTarget,
 								enumerable: true
 							});
 							this._handleFocusIn(focusEvent);
@@ -4075,9 +4584,11 @@ var WATPlugin = (function (exports) {
 				}
 				
 				// WAT 도구 자체의 버튼들은 제외
-				if (e.target.closest('#wat-container') || 
-					e.target.id.startsWith('wat-') || 
-					e.target.className.includes('wat-')) {
+				// (SVG 요소의 className은 SVGAnimatedString이라 includes가 없으므로 getAttribute로 안전하게 확인)
+				const targetClassAttr = (typeof e.target.getAttribute === 'function' && e.target.getAttribute('class')) || '';
+				if (e.target.closest('#wat-container') ||
+					(typeof e.target.id === 'string' && e.target.id.startsWith('wat-')) ||
+					targetClassAttr.includes('wat-')) {
 					return;
 				}
 				
@@ -4096,6 +4607,12 @@ var WATPlugin = (function (exports) {
 			 * @private
 			 */
 			_handleKeyDown(e) {
+				// 입력 요소에서는 단축키를 가로채지 않음 — 폼에 대문자 T/D/S 입력이 불가능해지는 문제 방지
+				const target = e.target;
+				if (target && (target.isContentEditable ||
+					(typeof target.matches === 'function' && target.matches('input, textarea, select')))) {
+					return;
+				}
 				// Shift + T: 키보드 단축어 TTS
 				if (e.shiftKey && e.key.toLowerCase() === 't') {
 					e.preventDefault();
@@ -4140,17 +4657,14 @@ var WATPlugin = (function (exports) {
 			 */
 			_handleDoubleClick(e) {
 				const selectedText = window.getSelection().toString().trim();
-				
+
 				if (selectedText) {
 					if (this.state.get('plugin.isDictionEnabled')) {
 						// 사전 기능이 활성화되어 있으면 사전 검색을 우선 처리
 						this.performDiction(selectedText);
-
-					} else if (this.ttsManager && this.ttsManager.currentState === this.ttsManager.states.FOCUS_TTS) {
-						// 포커스 TTS 기능이 활성화되어 있으면 TTS 처리
-						this.tts_draggableText();
-
 					}
+					// 포커스 TTS의 선택 텍스트 읽기는 FocusTTS 모듈이 자체 리스너로 처리
+					// (여기서 tts_draggableText()를 중복 호출하면 이중 발화·하이라이트 중첩 발생)
 				}
 			}
 
@@ -4161,15 +4675,8 @@ var WATPlugin = (function (exports) {
 			 * @private
 			 */
 			_handleMouseUp(e) {
-				const selectedText = window.getSelection().toString().trim();
-
-				if (selectedText) {
-					if (this.ttsManager && this.ttsManager.currentState === this.ttsManager.states.FOCUS_TTS) {
-						// 포커스 TTS 기능이 활성화되어 있으면 처리
-						this.tts_draggableText();
-
-					}
-				}
+				// 포커스 TTS의 선택 텍스트 읽기는 FocusTTS 모듈이 자체 mouseup 리스너로 처리
+				// (레거시 경로와 중복 실행 시 이중 발화·상호 취소 경합이 발생하므로 여기서는 처리하지 않음)
 			}
 
 
@@ -4188,7 +4695,12 @@ var WATPlugin = (function (exports) {
 			 */
 			async loadLocale(language) {
 				try {
-					const response = await fetch(`${basePath}/${Constants.PATHS.LOCALES}${language}.json`);
+					// basePath는 '/'로 끝나므로 이중 슬래시가 생기지 않도록 결합, 없으면 상대 경로
+					const localeUrl = `${basePath || './'}${Constants.PATHS.LOCALES}${language}.json`;
+					const response = await fetch(localeUrl);
+					if (!response.ok) {
+						throw new Error(`HTTP ${response.status} - ${localeUrl}`);
+					}
 					const localeData = await response.json();
 					this.state.set('locale', localeData);
 				} catch (error) {
@@ -4212,10 +4724,10 @@ var WATPlugin = (function (exports) {
 				const locale = this.state.get('locale');
 				let translation = key.split('.').reduce((o, i) => (o ? o[i] : null), locale);
 
-				// translation이 null이나 undefined인 경우 기본값 반환
+				// 키 미존재 시 빈 문자열 반환 — null 반환 시 aria-label="null", TTS "null" 발화 등이 발생함
+				// (호출부의 `|| 폴백` 패턴은 빈 문자열에서도 동일하게 동작)
 				if (!translation) {
-					//return key; // 키를 그대로 반환
-					return null; // 키를 그대로 반환
+					return '';
 				}
 
 				// params에 포함된 값을 {key} 형태로 치환
@@ -4358,14 +4870,21 @@ var WATPlugin = (function (exports) {
 						'resources.fonts.materialIcons',
 						'https://fonts.googleapis.com/icon?family=Material+Icons'
 					);
-					const link = document.createElement('link');
-					link.id = 'material-icons-link';
-					link.rel = 'stylesheet';
-					link.href = materialIconsUrl;
-					document.head.appendChild(link);
+					if (isSafeHttpUrl(materialIconsUrl)) {
+						const link = document.createElement('link');
+						link.id = 'material-icons-link';
+						link.rel = 'stylesheet';
+						link.href = materialIconsUrl;
+						document.head.appendChild(link);
+					} else {
+						console.warn('[WAT] materialIcons URL 스킴이 유효하지 않아 무시합니다:', materialIconsUrl);
+					}
 				}
 
-				// Initialize container
+				// Initialize container — body/documentElement이면 호스트 페이지가 삭제되므로 차단
+				if (!container || container === document.body || container === document.documentElement) {
+					throw new Error('[WAT] 유효하지 않은 컨테이너입니다. 초기화를 중단합니다.');
+				}
 				container.innerHTML = "";
 				container.classList.add('wat-container', 'no-speech', 'wat-exclude');
 				
@@ -4464,9 +4983,10 @@ var WATPlugin = (function (exports) {
 				});
 				copyrightSince.textContent = '2025';
 				
-				// 대구사이버대학교 링크 생성
+				// 대구사이버대학교 링크 생성 (config 유래 URL은 http(s) 스킴만 허용)
+				const configCopyrightUrl = this.getConfigValue('branding.copyrightUrl', 'https://www.dcu.ac.kr');
 				const dcuLink = this.createElementWithAttrs('a', {
-					href: this.getConfigValue('branding.copyrightUrl', 'https://www.dcu.ac.kr'),
+					href: isSafeHttpUrl(configCopyrightUrl) ? configCopyrightUrl : 'https://www.dcu.ac.kr',
 					target: '_blank',
 					rel: 'noopener noreferrer',
 					class: 'dcu-link'
@@ -4697,12 +5217,13 @@ var WATPlugin = (function (exports) {
 						e.preventDefault();
 						const tabId = tab.getAttribute('aria-controls');
 						this.showTabContent(tabId);
-						history.pushState(null, '', `#${tabId}`);
+						// history.pushState 제거 — 호스트 페이지 히스토리를 오염시키고 popstate 복원 로직도 없음
 					});
 				});
 
-				// 초기 탭 상태 설정
-				const initialTabId = location.hash ? location.hash.substring(1) : 'wat_personal';
+				// 초기 탭 상태 설정 — 해시는 wat_ 접두 탭 ID일 때만 사용 (호스트 임의 요소 노출 방지)
+				const hashId = location.hash ? location.hash.substring(1) : '';
+				const initialTabId = /^wat_[A-Za-z0-9_-]+$/.test(hashId) ? hashId : 'wat_personal';
 				this.showTabContent(initialTabId);
 				document.documentElement.dataset.watPanel = 'opened';
 			}
@@ -4799,30 +5320,31 @@ var WATPlugin = (function (exports) {
 			 * this.setupTabs();
 			 */
 			setupTabs() {
-				//const tabs = document.querySelectorAll('.wat_tab[role="tab"]');	// 2024.09.19. Temporarily saved before other work (타 작업전 임시저장)
-				const tabs = document.querySelectorAll('[role="tab"]');
-				const panels = document.querySelectorAll('[role="tabpanel"]');
+				// 호스트 페이지의 ARIA 탭을 하이재킹하지 않도록 플러그인 컨테이너 내부로 검색 범위 제한
+				const root = this.container || document.getElementById(Constants.ELEMENT_IDS.MAIN_WRAP);
+				if (!root) return;
+				const tabs = root.querySelectorAll('[role="tab"]');
+				const panels = root.querySelectorAll('[role="tabpanel"]');
 
 				// Tab click events (탭 클릭 이벤트)
 				tabs.forEach((tab, index) => {
+					// 언어 변경 등으로 재호출될 때 리스너 중복 등록 방지
+					if (tab.dataset.watTabBound === 'true') return;
+					tab.dataset.watTabBound = 'true';
+
 					tab.addEventListener('click', () => {
 						this.activateTab(tabs, panels, tab);
 					});
 
-					// 키보드 탐색 이벤트 (화살표)
+					// 키보드 탐색(화살표) 및 선택(Enter/Space) — 단일 리스너로 통합
 					tab.addEventListener('keydown', (e) => {
-						let newIndex = index;
-						if (e.key === 'ArrowRight') {
-							newIndex = (index + 1) % tabs.length;
-						} else if (e.key === 'ArrowLeft') {
-							newIndex = (index - 1 + tabs.length) % tabs.length;
-						}
-						tabs[newIndex].focus();
-					});
-
-					// 엔터 또는 스페이스바로 탭 선택
-					tab.addEventListener('keydown', (e) => {
-						if (e.key === 'Enter' || e.key === ' ') {
+						if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+							const newIndex = e.key === 'ArrowRight'
+								? (index + 1) % tabs.length
+								: (index - 1 + tabs.length) % tabs.length;
+							tabs[newIndex].focus();
+						} else if (e.key === 'Enter' || e.key === ' ') {
+							e.preventDefault(); // Space로 인한 페이지 스크롤 방지
 							this.activateTab(tabs, panels, tab);
 						}
 					});
@@ -4839,8 +5361,10 @@ var WATPlugin = (function (exports) {
 			 * this.activateInitialTab();
 			 */
 			activateInitialTab() {
-				const tabs = document.querySelectorAll('[role="tab"]');
-				const panels = document.querySelectorAll('[role="tabpanel"]');
+				const root = this.container || document.getElementById(Constants.ELEMENT_IDS.MAIN_WRAP);
+				if (!root) return;
+				const tabs = root.querySelectorAll('[role="tab"]');
+				const panels = root.querySelectorAll('[role="tabpanel"]');
 
 				// URL에 해시가 있으면 해당 탭을 활성화
 				//const hash = window.location.hash.substring(1);
@@ -4917,16 +5441,20 @@ var WATPlugin = (function (exports) {
 			 * this.togglePanel(true);
 			 */
 			togglePanel(action_hidden) {
-				const settingsPanel = document.getElementById(Constants.ELEMENT_IDS.SETTINGS_PANEL);
-				const optionsPanel = document.getElementById(Constants.ELEMENT_IDS.OPTIONS_PANEL);
-				const settingsButton = document.getElementById(Constants.ELEMENT_IDS.SETTINGS_BUTTON);
+				const settingsPanel = document.getElementById(Constants.ELEMENT_IDS.PANEL_SET);
+				const optionsPanel = document.getElementById(Constants.ELEMENT_IDS.PANEL_OPT);
+				const settingsButton = document.getElementById(Constants.ELEMENT_IDS.BTN_SET);
+				if (!settingsPanel || !optionsPanel || !settingsButton) {
+					console.warn('[WAT] togglePanel: 패널 요소를 찾을 수 없습니다.');
+					return;
+				}
 				const isHidden = settingsPanel.hidden;
 				action_hidden = action_hidden === undefined ? !isHidden : action_hidden;
 				settingsPanel.hidden = action_hidden;
 				optionsPanel.hidden = !action_hidden;
 				settingsButton.setAttribute('aria-expanded', !action_hidden ? 'true' : 'false');
 				settingsButton.setAttribute('aria-label', !action_hidden ? this.getLocalizedText('command.close') : this.getLocalizedText('command.open'));
-				settingsButton.toggleAttribute('aria-pressed', !action_hidden ? 'true' : 'false');
+				settingsButton.setAttribute('aria-pressed', !action_hidden ? 'true' : 'false');
 			}
 
 			/**
@@ -4944,7 +5472,7 @@ var WATPlugin = (function (exports) {
 			 */
 			updateViewMode(req_viewMode) {
 				//const wat = viewModeWrap.closest('#wat');
-				document.getElementById(Constants.ELEMENT_IDS.MAIN_WRAPPER);
+				document.getElementById(Constants.ELEMENT_IDS.MAIN_WRAP);
 				//const isIconMode = viewMode === 'icon';
 				const viewModeStr = req_viewMode.toString().toLowerCase();
 				document.documentElement.dataset['watViewmode'] = viewModeStr;
@@ -4976,7 +5504,7 @@ var WATPlugin = (function (exports) {
 
 				for (const profile in profileValues) {
 					const profileItemElement = this.createElementWithAttrs('li', { class: 'profileItem' });
-					const profileItemContainerElement = this.createElementWithAttrs('filedset', { class: 'watSet-profile-item-container', 'data-profile': profile });
+					const profileItemContainerElement = this.createElementWithAttrs('fieldset', { class: 'watSet-profile-item-container', 'data-profile': profile });
 					const profileItemTitleElement = this.createElementWithAttrs('legend', { class: ['watSet-profile-title', 'profileItemTitle'] });
 					const profileItemTitleLabelElement = this.createElementWithAttrs('label', { class: ['watSet-label', 'watSet-profile-title-label', `${profile}`], for: `watSet_profile_button_toggle_${profile}` });
 					const profileTitleText = this.getLocalizedText(`panel.settings.profile.options.${profile}.title`);
@@ -5250,14 +5778,15 @@ var WATPlugin = (function (exports) {
 						if (item.id === 'watSet_storage_save') {
 							this.savePreferences();
 						} else if (item.id === 'watSet_storage_reset') {
-							localStorage.clear(Constants.STORAGE_KEYS.SETTINGS);
+							// localStorage.clear()는 호스트 사이트의 전체 데이터를 삭제하므로 WAT 키만 개별 삭제
+							Object.values(Constants.STORAGE_KEYS).forEach(key => localStorage.removeItem(key));
 						} else if (item.id === 'watSet_storage_check') {
 							// Storage check functionality
 							const storageData = {};
 							const settings = localStorage.getItem(Constants.STORAGE_KEYS.SETTINGS);
 							const container = localStorage.getItem(Constants.STORAGE_KEYS.CONTAINER);
 
-							storageData.settings = settings ? JSON.parse(settings) : null;
+							storageData.settings = settings ? safeParseJSON(settings, null) : null;
 							storageData.container = container;
 							storageData.totalItems = localStorage.length;
 							storageData.allKeys = Object.keys(localStorage);
@@ -5332,26 +5861,29 @@ var WATPlugin = (function (exports) {
 			 * ]);
 			 */
 			createSettingsItem(itemType, titleText, optionName, optionItems, optionControls) {
+				// config/로케일 유래 값이 innerHTML 템플릿에 삽입되므로 전부 이스케이프 (XSS 방지)
+				titleText = escapeHTML(titleText);
 				const itemsHtml = optionItems.map(item => {
-					const elementId = `${optionName}_${item.value}`;
-					const itemLabel = item.label;
-					const toggleLabel = item.label_toggle || '';
-					const additionalClass = item.addClass || '';
+					const elementId = escapeHTML(`${optionName}_${item.value}`);
+					const itemLabel = escapeHTML(item.label);
+					const toggleLabel = escapeHTML(item.label_toggle || '');
+					const additionalClass = escapeHTML(item.addClass || '');
 					const checkedAttr = item.checked ? 'checked' : '';
-					const selectedClass = item.selected ? Constants.CSS_CLASSES.UI_SELECTED : '';
+					const selectedClass = item.selected ? Constants.CSS_CLASSES.SELECTED : '';
 					const disabledAttr = item.disabled ? 'disabled' : '';
-					const itemStyle = item.style || '';
-					const labelTitleEsc = itemLabel != null ? String(itemLabel).replace(/"/g, '&quot;') : '';
-					const labelTitleAttr = labelTitleEsc ? ` title="${labelTitleEsc}"` : '';
+					const itemStyle = escapeHTML(item.style || '');
+					const itemValue = escapeHTML(item.value);
+					const itemSrc = escapeHTML(item.src || '');
+					const labelTitleAttr = itemLabel ? ` title="${itemLabel}"` : '';
 					let htmlString = `
 					<li class='opt_item wat-item-li'>
-						<input type="${itemType}" class="wat-items wat-item-type-radio" id="wat-${itemType}-${elementId}" name="${optionName}" title="${titleText} ${itemLabel}" value="${item.value}" ${checkedAttr} ${disabledAttr}><label for="wat-${itemType}-${elementId}"${labelTitleAttr}>${itemLabel}</label>
+						<input type="${itemType}" class="wat-items wat-item-type-radio" id="wat-${itemType}-${elementId}" name="${optionName}" title="${titleText} ${itemLabel}" value="${itemValue}" ${checkedAttr} ${disabledAttr}><label for="wat-${itemType}-${elementId}"${labelTitleAttr}>${itemLabel}</label>
 					</li>
 					`;
 					if (itemType === 'select') {
 						htmlString = `
 						<li class='opt_item'>
-							<option class="wat-items wat-item-type-option" value="${item.value}" ${selectedClass} ${disabledAttr}>${itemLabel}</option>
+							<option class="wat-items wat-item-type-option" value="${itemValue}" ${selectedClass} ${disabledAttr}>${itemLabel}</option>
 						</li>
 						`;
 					} else if (itemType === 'button') {
@@ -5361,31 +5893,31 @@ var WATPlugin = (function (exports) {
 						}
 						htmlString = `
 						<li class='opt_item' style="${itemStyle}">
-							<button type="button" class="wat-items wat-item-type-button btn_basic ${additionalClass}" id="wat-${itemType}-${elementId}" name="${optionName}" value="${item.value}" ${disabledAttr} ${toggleAttr} title="${titleText} ${itemLabel}">${itemLabel}</button>
+							<button type="button" class="wat-items wat-item-type-button btn_basic ${additionalClass}" id="wat-${itemType}-${elementId}" name="${optionName}" value="${itemValue}" ${disabledAttr} ${toggleAttr} title="${titleText} ${itemLabel}">${itemLabel}</button>
 						</li>
 						`;
 					} else if (itemType === 'buttonMix') {
 						htmlString = `
 						<li class='opt_item'>
-							<button type="button" class="wat-items wat-item-type-button" id="wat-${itemType}-${elementId}" name="${optionName}" value="${item.value}" ${disabledAttr}>${itemLabel}</button>
+							<button type="button" class="wat-items wat-item-type-button" id="wat-${itemType}-${elementId}" name="${optionName}" value="${itemValue}" ${disabledAttr}>${itemLabel}</button>
 						</li>
 						`;
 					} else if (itemType === 'buttonImg') {
 						htmlString = `
 						<li class='opt_item'>
-							<button type="button" class="wat-items wat-item-type-button btn_buttonImg ${additionalClass}" id="wat-${itemType}-${elementId}" name="${optionName}" value="${item.value}" ${disabledAttr}><img src="${item.src}" alt="${itemLabel}"></button>
+							<button type="button" class="wat-items wat-item-type-button btn_buttonImg ${additionalClass}" id="wat-${itemType}-${elementId}" name="${optionName}" value="${itemValue}" ${disabledAttr}><img src="${itemSrc}" alt="${itemLabel}"></button>
 						</li>
 						`;
 					} else if (itemType === 'buttonImgSVG') {
 						htmlString = `
 						<li class='opt_item'>
-							<button type="button" class="wat-items wat-item-type-button btn_buttonImgSVG ${additionalClass}" id="wat-${itemType}-${elementId}" name="${optionName}" value="${item.value}" ${disabledAttr} title="${titleText} ${itemLabel}"><span class="icon-svg"></span></button>
+							<button type="button" class="wat-items wat-item-type-button btn_buttonImgSVG ${additionalClass}" id="wat-${itemType}-${elementId}" name="${optionName}" value="${itemValue}" ${disabledAttr} title="${titleText} ${itemLabel}"><span class="icon-svg"></span></button>
 						</li>
 						`;
 					} else if (itemType === 'checkbox') {
 						htmlString = `
 						<li class='opt_item'>
-							<input type="${itemType}" class="wat-items wat-item-type-checkbox switch" id="wat-${itemType}-${optionName}" name="${optionName}" value="${item.value}" title="${titleText} ${itemLabel}" role="switch" aria-checked="false" ${checkedAttr} ${disabledAttr}><label for="wat-${itemType}-${elementId}" class="switch-label">${itemLabel}</label>
+							<input type="${itemType}" class="wat-items wat-item-type-checkbox switch" id="wat-${itemType}-${optionName}" name="${optionName}" value="${itemValue}" title="${titleText} ${itemLabel}" role="switch" aria-checked="${item.checked ? 'true' : 'false'}" ${checkedAttr} ${disabledAttr}><label for="wat-${itemType}-${optionName}" class="switch-label">${itemLabel}</label>
 							<span class="switch-state" data-stateText-on="${itemLabel}" data-stateText-off="${toggleLabel}">${itemLabel}</span>
 						</li>
 						`;
@@ -5602,8 +6134,8 @@ var WATPlugin = (function (exports) {
 
 				// 병합된 폰트 목록을 순회하며 옵션 생성
 				for (const [fontName, fontConfig] of Object.entries(mergedFontOptions)) {
-					// false로 명시적으로 설정된 폰트는 제외
-					if (fontConfig === false || (typeof fontConfig === 'object' && !fontConfig.enabled)) continue;
+					// 명시적으로 비활성화(false)된 폰트만 제외 — enabled 생략은 활성으로 취급
+					if (fontConfig === false || (typeof fontConfig === 'object' && fontConfig.enabled === false)) continue;
 
 					// 웹폰트 URL이 있는 경우 동적으로 로드
 					if (typeof fontConfig === 'object' && fontConfig.url) {
@@ -5613,7 +6145,8 @@ var WATPlugin = (function (exports) {
 					const optionItem = {
 						value: fontName,
 						label: this.getLocalizedText(`panel.personal.options.fontFamily.options.${fontName}`) || fontConfig.label || fontName,
-						checked: fontConfig === true || (typeof fontConfig === 'object' && fontConfig.enabled === true)
+						// enabled(표시 여부)와 checked(선택 여부)는 별개 — 기본 선택은 'initial'만
+						checked: fontName === 'initial'
 					};
 
 					option_items.push(optionItem);
@@ -5915,11 +6448,16 @@ var WATPlugin = (function (exports) {
 			 * this.applyProfileSettings('lowVision');
 			 */
 			applyProfileSettings(profileName) {
-				const profileData = Defaults.PROFILES[profileName];
-				if (!profileData) {
+				const profileDefault = Defaults.PROFILES[profileName];
+				if (!profileDefault) {
 					console.warn(this.getLocalizedText('msg.warning.profileNotFound', { profileName: profileName }));
 					return;
 				}
+				// 정적 기본값(Defaults.PROFILES)을 UI 상태로 직접 변이하면 세션 내내 기본값이 오염되므로 복사본 사용
+				const profileData = {
+					settings: { ...profileDefault.settings },
+					enabled: { ...profileDefault.enabled }
+				};
 				
 				// Reset accessibility settings to default when switching profiles, maintain view mode/position (프로필 전환 시 접근성 설정들을 기본값으로 초기화하고 보기모드/위치는 유지)
 				const currentSettings = {
@@ -5947,21 +6485,32 @@ var WATPlugin = (function (exports) {
 				if (checkedCheckbox.length === 0) {
 					const profileToggle = document.querySelector(`.watSet-profile-item-container[data-profile="${profileName}"] .profileToggle`);
 					alert(this.getLocalizedText('msg.warning.noSettingsChecked'));
-					profileCheckboxs[0].focus();
-					profileCheckboxs[0].classList.add('force-focus');
-					
-					const handleFocusOut = () => {
-						this._setTimeout(() => {
-							if (document.activeElement !== profileCheckboxs[0]) {
-								profileCheckboxs[0].classList.remove('force-focus');
-								profileCheckboxs[0].removeEventListener('focusout', handleFocusOut);
-							}
-						}, 100);
-					};
-					
-					profileCheckboxs[0].addEventListener('focusout', handleFocusOut);
-					profileToggle.textContent = this.getLocalizedText('tags.button.text.on');
-					profileToggle.setAttribute('aria-pressed', 'false');
+					// 체크박스가 하나도 렌더링되지 않은 경우(옵션 전체 비활성화) 크래시 방지
+					if (profileCheckboxs.length > 0) {
+						profileCheckboxs[0].focus();
+						profileCheckboxs[0].classList.add('force-focus');
+
+						const handleFocusOut = () => {
+							this._setTimeout(() => {
+								if (document.activeElement !== profileCheckboxs[0]) {
+									profileCheckboxs[0].classList.remove('force-focus');
+									profileCheckboxs[0].removeEventListener('focusout', handleFocusOut);
+								}
+							}, 100);
+						};
+
+						profileCheckboxs[0].addEventListener('focusout', handleFocusOut);
+					}
+					if (profileToggle) {
+						// textContent 직접 설정 시 내부 .watSet-button-label span이 파괴되어 이후 토글이 고장남
+						const toggleLabel = profileToggle.querySelector('.watSet-button-label');
+						if (toggleLabel) {
+							toggleLabel.textContent = this.getLocalizedText('tags.button.text.on');
+						} else {
+							profileToggle.textContent = this.getLocalizedText('tags.button.text.on');
+						}
+						profileToggle.setAttribute('aria-pressed', 'false');
+					}
 					return;
 				}
 				// ************************* Checkboxes Validation .End   *************************
@@ -6157,7 +6706,7 @@ var WATPlugin = (function (exports) {
 				const resetSettings = {};
 				
 				switch (profileId) {
-					case 'visualImpairment':
+					case 'lowVision': // 실제 프로필 키(Defaults.PROFILES)와 일치시킴 — 구 명칭 'visualImpairment'
 						this.changeFontSize('initial');
 						this.changeFontFamily('initial');
 						this.toggleImgTextConversion(false);
@@ -6166,7 +6715,7 @@ var WATPlugin = (function (exports) {
 						resetSettings.fontFamily = 'initial';
 						break;
 					case 'colorBlindness':
-						this.changeSaturation('');
+						this.changeSaturation('initial');
 						this.toggleDataAttribute('stopAni', false);
 						this.tts_toggleFocusDetection(false);
 						resetSettings.saturation = 'initial';
@@ -6249,7 +6798,7 @@ var WATPlugin = (function (exports) {
 			 */
 			loadPreferences() {
 				const savedSettings = localStorage.getItem(Constants.STORAGE_KEYS.SETTINGS);
-				const loadedSettings = savedSettings ? JSON.parse(savedSettings) : {};
+				const loadedSettings = safeParseJSON(savedSettings, {});
 				const defaultSettings = Defaults.SETTINGS;
 			
 				// 초기값 설정
@@ -6858,6 +7407,10 @@ var WATPlugin = (function (exports) {
 			 */
 			getRadioTargetIndex(targetWrap, direction) {
 				const radios = targetWrap.querySelectorAll('.setCont input[type="radio"]');
+				// 라디오가 없으면 % 0 연산으로 NaN이 반환되므로 조기 반환
+				if (radios.length === 0) {
+					return 0;
+				}
 				let currentIndex = -1;
 
 				// Get Current Index
@@ -7013,7 +7566,17 @@ var WATPlugin = (function (exports) {
 					if (!this._observers) {
 						this._observers = new Map();
 					}
-					
+
+					// 같은 타입을 재생성할 때 이전 옵저버가 disconnect 없이 유실되어 계속 동작하는 누수 방지
+					const existingObserver = this._observers.get(type);
+					if (existingObserver) {
+						try {
+							existingObserver.disconnect();
+						} catch (e) {
+							// disconnect 실패는 무시
+						}
+					}
+
 					this._observers.set(type, observer);
 					
 					if (WAT_DEBUG_ENABLED) ;
@@ -7171,36 +7734,57 @@ var WATPlugin = (function (exports) {
 				
 				const selector = `${rootSelector} *${notSelector}`;
 
-				function getPxValue(el, prop) {
-					const val = window.getComputedStyle(el).getPropertyValue(prop);
+				// computed 스타일 객체를 재사용해 요소당 getComputedStyle 호출을 1회로 축소 (성능)
+				function getPxValue(el, prop, computed) {
+					const val = computed.getPropertyValue(prop);
 					if (!val) return '';
 					if (prop === 'line-height' && val === 'normal') return '';
 					if (val.endsWith('px')) return parseFloat(val);
-					if (val.endsWith('em') || val.endsWith('rem')) {
-						const base = parseFloat(window.getComputedStyle(el).fontSize);
+					if (val.endsWith('rem')) {
+						// rem은 요소가 아닌 문서 루트 폰트 크기 기준
+						const rootBase = parseFloat(window.getComputedStyle(el.ownerDocument.documentElement).fontSize) || 16;
+						return parseFloat(val) * rootBase;
+					}
+					if (val.endsWith('em')) {
+						const base = parseFloat(computed.fontSize);
 						return parseFloat(val) * base;
 					}
 					return parseFloat(val) || '';
 				}
 
-				document.querySelectorAll(selector).forEach(el => {
+				// 사용자 config 유래 excludeSelector가 유효하지 않은 CSS면 SyntaxError로
+				// 동적 스타일링 전체가 죽으므로 try/catch로 방어
+				let targetElements;
+				try {
+					targetElements = document.querySelectorAll(selector);
+				} catch (e) {
+					console.error('[WAT] excludeSelector 설정이 유효한 CSS 선택자가 아닙니다. 제외 없이 진행합니다:', e.message);
+					try {
+						targetElements = document.querySelectorAll(`${rootSelector} *`);
+					} catch (e2) {
+						console.error('[WAT] rootSelector도 유효하지 않아 동적 스타일 마킹을 건너뜁니다:', e2.message);
+						return;
+					}
+				}
+
+				targetElements.forEach(el => {
 					// 추가 검증: 제외 대상인지 다시 한 번 확인
 					if (this.shouldExcludeElement(el)) {
 						return;
 					}
-					
+
 					if (!el.textContent.trim()) return;
 
 					let hasDynamic = false;
 					const origStyles = {};
+					const computed = window.getComputedStyle(el);
 
 					styleProps.forEach(({ css, className, px }) => {
-						const computed = window.getComputedStyle(el);
 						const elVal = computed.getPropertyValue(css);
 
 						let value = elVal;
 						if (px && value) {
-							const pxValue = getPxValue(el, css);
+							const pxValue = getPxValue(el, css, computed);
 							if (pxValue) value = pxValue;
 						}
 						origStyles[css] = value;
@@ -7416,7 +8000,13 @@ var WATPlugin = (function (exports) {
 						const existingLink = document.querySelector(`link[href="${path}"]`);
 						if (existingLink) {
 							if (WAT_DEBUG_ENABLED) ;
-							resolve(true);
+							// 링크가 존재해도 아직 로딩 중일 수 있음 — sheet가 준비된 경우에만 즉시 성공 처리
+							if (existingLink.sheet) {
+								resolve(true);
+							} else {
+								existingLink.addEventListener('load', () => resolve(true), { once: true });
+								existingLink.addEventListener('error', () => resolve(false), { once: true });
+							}
 							return;
 						}
 						
@@ -7828,17 +8418,9 @@ var WATPlugin = (function (exports) {
 								}
 							});
 							
-							// 추가로 모든 요소에서 !important font-family 제거
-							const allElements = document.querySelectorAll('*');
-							let removedCount = 0;
-							allElements.forEach(el => {
-								if (el.style.fontFamily && el.style.fontFamily.includes('!important')) {
-									el.style.removeProperty('font-family');
-									removedCount++;
-								}
-							});
-							
-							if (WAT_DEBUG_ENABLED) ;
+							// (제거됨) el.style.fontFamily는 priority(!important)를 포함하지 않으므로
+							// includes('!important')가 항상 false인 죽은 코드였음 — 전체 DOM 풀스캔 비용만 유발.
+							// 실제 !important 인라인 제거는 위의 removeProperty 루프가 담당함.
 						}
 						
 						if (WAT_DEBUG_ENABLED) ;
@@ -7904,8 +8486,9 @@ var WATPlugin = (function (exports) {
 				
 				if (font === 'initial') {
 					elements.forEach(el => {
-						// initial 폰트의 경우 font-family 속성을 완전히 제거
-						el.style.removeProperty('font-family');
+						// initial도 배치 큐를 경유해 제거 — 즉시 제거하면 큐에 남은 이전 폰트 적용 배치가
+						// 다음 프레임에 리셋을 되돌리는 경합이 발생함 (null 값은 removeProperty로 처리됨)
+						this.styleBatchProcessor.queueStyleUpdate(el, 'font-family', null);
 						el.classList.remove('wat-dyn-fontfamily');
 					});
 				} else {
@@ -7952,11 +8535,21 @@ var WATPlugin = (function (exports) {
 			 * this.loadWebFont('https://fonts.googleapis.com/css2?family=Noto+Sans+KR&display=swap');
 			 */
 			loadWebFont(url) {
-				if (!document.querySelector(`link[href="${url}"]`)) {
-					const link = document.createElement('link');
-					link.rel = 'stylesheet';
-					link.href = url;
-					document.head.appendChild(link);
+				// config 유래 URL — 스킴 검증(https/http만) 및 셀렉터 보간 시 이스케이프 (따옴표 포함 URL로 인한 SyntaxError 방지)
+				if (!isSafeHttpUrl(url)) {
+					console.warn('[WAT] 유효하지 않은 웹폰트 URL을 건너뜁니다:', url);
+					return;
+				}
+				try {
+					const escapedUrl = typeof CSS !== 'undefined' && CSS.escape ? url.replace(/"/g, '\\"') : url;
+					if (!document.querySelector(`link[href="${escapedUrl}"]`)) {
+						const link = document.createElement('link');
+						link.rel = 'stylesheet';
+						link.href = url;
+						document.head.appendChild(link);
+					}
+				} catch (e) {
+					console.warn('[WAT] 웹폰트 로드 실패:', e.message);
 				}
 			}
 
@@ -7998,6 +8591,8 @@ var WATPlugin = (function (exports) {
 			changeScreenScale(scale) {
 				const ratio = this.screenScaleRatios[scale] || 1;
 				this.currentScreenScale = ratio; // 현재 확대 비율 저장
+				// convertScaledCoordinates 등이 state에서 읽으므로 두 저장소를 동기화 (마스크 좌표 어긋남 방지)
+				this.state.set('plugin.currentScreenScale', ratio);
 				
 				if (this.styleMode === 'manual') {
 					document.documentElement.dataset.screenScale = scale;
@@ -8025,6 +8620,7 @@ var WATPlugin = (function (exports) {
 			applyDynamicScreenScale(scale) {
 				const ratio = this.screenScaleRatios[scale] || 1;
 				this.currentScreenScale = ratio; // 현재 확대 비율 저장
+				this.state.set('plugin.currentScreenScale', ratio); // state 소비처와 동기화
 				
 				if (scale === 'initial') {
 					document.documentElement.style.removeProperty('zoom');
@@ -8157,8 +8753,9 @@ var WATPlugin = (function (exports) {
 				
 				masks.forEach(mask => {
 					if (scale !== 1) {
-						// 확대된 경우 마스크 요소에 역방향 스케일 적용
-						mask.style.transform = `scale(${scale})`;
+						// 확대된 경우 마스크 요소에 역방향(1/scale) 스케일 적용
+						// (정방향이면 documentElement zoom과 중첩되어 이중 확대됨)
+						mask.style.transform = `scale(${1 / scale})`;
 						mask.style.transformOrigin = 'top left';
 					} else {
 						// 기본 배율일 때는 변형 제거
@@ -8440,9 +9037,10 @@ var WATPlugin = (function (exports) {
 			 */
 			changeColorTheme(theme) {
 				document.documentElement.dataset.colorTheme = theme;
-				//localStorage.setItem('colorTheme', theme);
 				this.updatePersonalSettingsUI('radio', 'colorTheme', theme);
 				this.savePreferences();
+				// 다른 change* 계열과 동일하게 iframe에도 동기화 (누락 시 iframe만 원래 색 유지)
+				this.syncStyleToIframes('colorTheme', theme);
 			}
 
 			/**
@@ -8463,9 +9061,10 @@ var WATPlugin = (function (exports) {
 			 */
 			changeSaturation(level) {
 				document.documentElement.dataset.saturation = level;
-				//localStorage.setItem('saturation', level);
 				this.updatePersonalSettingsUI('radio', 'saturation', level);
 				this.savePreferences();
+				// 다른 change* 계열과 동일하게 iframe에도 동기화
+				this.syncStyleToIframes('saturation', level);
 			}
 
 			// ========== UI Update           ==========
@@ -8541,9 +9140,9 @@ var WATPlugin = (function (exports) {
 							const label = input.closest('label');
 							if (label) {
 								if (input.value === value) {
-									label.classList.add(Constants.CSS_CLASSES.UI_SELECTED);
+									label.classList.add(Constants.CSS_CLASSES.SELECTED);
 								} else {
-									label.classList.remove(Constants.CSS_CLASSES.UI_SELECTED);
+									label.classList.remove(Constants.CSS_CLASSES.SELECTED);
 								}
 							}
 						});
@@ -8603,7 +9202,7 @@ var WATPlugin = (function (exports) {
 			 * @private
 			 */
 			saveMinimizeState(wasMinimized) {
-				const settings = JSON.parse(localStorage.getItem(Constants.STORAGE_KEYS.SETTINGS) || '{}');
+				const settings = safeParseJSON(localStorage.getItem(Constants.STORAGE_KEYS.SETTINGS), {});
 				settings.isMinimized = !wasMinimized;
 				localStorage.setItem(Constants.STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
 			}
@@ -8613,10 +9212,10 @@ var WATPlugin = (function (exports) {
 			 * @private
 			 */
 			restoreMinimizeState() {
-				const settings = JSON.parse(localStorage.getItem(Constants.STORAGE_KEYS.SETTINGS) || '{}');
+				const settings = safeParseJSON(localStorage.getItem(Constants.STORAGE_KEYS.SETTINGS), {});
 				if (settings.isMinimized) {
-					// DOM이 준비된 후 실행
-					setTimeout(() => {
+					// DOM이 준비된 후 실행 (추적형 타이머 사용 — destroy 후 발화 방지)
+					this._setTimeout(() => {
 					this.toggleMinimize();
 					}, 100);
 				}
@@ -8729,8 +9328,9 @@ var WATPlugin = (function (exports) {
 					viewportHeight = window.innerHeight;
 				}
 				
-				const topMask = document.querySelector('.reading-mask-top');
-				const bottomMask = document.querySelector('.reading-mask-bottom');
+				// 호스트 페이지의 동명 클래스와 충돌하지 않도록 플러그인 클래스로 스코프 제한
+				const topMask = document.querySelector('.wat-reading-guide.reading-mask-top');
+				const bottomMask = document.querySelector('.wat-reading-guide.reading-mask-bottom');
 
 				if (topMask && bottomMask) {
 					// 원본 좌표계 기준으로 마스크 높이 계산
@@ -8885,7 +9485,13 @@ var WATPlugin = (function (exports) {
 			toggleImgTextConversion(isEnabled) {
 				const images = document.querySelectorAll('img');
 				images.forEach(img => {
+					// 플러그인이 생성한 placeholder 아이콘 이미지는 변환 대상에서 제외
+					if (img.classList.contains('wat-image-placeholder-dsp')) return;
 					if (isEnabled) {
+						// 중복 호출 시 placeholder가 누적되지 않도록 기존 것이 있으면 건너뜀
+						if (img.nextElementSibling && img.nextElementSibling.classList.contains('wat-image-placeholder')) {
+							return;
+						}
 						const altText = img.getAttribute('alt');
 						const titleText = img.getAttribute('title');
 						let replacementText;
@@ -8903,44 +9509,36 @@ var WATPlugin = (function (exports) {
 						const blindElement = img.nextElementSibling;
 						if (blindElement && blindElement.classList.contains('blind') && !blindElement.classList.contains('skipConversion') ) {
 							replacementText = '[' + replacementText + ' - 상세설명' + ']';
-							const blindText = blindElement.innerHTML;
-							/*
-							const blindText = blindElement.innerHTML
-								.replace(/<[^>]*>/g, '') // 모든 HTML 태그 제거
-								.replace(/\n/g, '.') // 줄바꿈을 '.'로 대체
-								.replace(/^\./, '') // 제일 앞에 붙는 '.' 제거
-								.replace(/\.(\s*\.)+/g, '.') // '.'과 '.' 사이의 공백 제거 및 여러 '.'을 하나로 대체
-								.replace(/\.{2,}/g, '.') // '..' 이상을 '.'로 대체
-								.trim();
-							*/
+							// textContent 사용 — innerHTML을 이어붙이면 페이지 콘텐츠 유래 마크업이 활성화됨(주입 위험)
+							const blindText = blindElement.textContent.trim();
 							replacementText += ' ' + blindText;
 						}
 
-						// 이미지를 텍스트로 교체
+						// 이미지를 텍스트로 교체 — alt 속성 문자열이 HTML로 파싱되지 않도록 textContent 사용
 						const placeholder = document.createElement('div');
-						//placeholder.textContent = replacementText;
-						placeholder.innerHTML = replacementText;
+						placeholder.textContent = replacementText;
 						placeholder.classList.add('wat-image-placeholder');
 
 						const imgDsp = document.createElement('img');
-						imgDsp.src = './images/icon_image.png';
-						imgDsp.alt = '텍스트로 변환된 이미지';
+						// 호스트 페이지 상대경로가 아닌 플러그인 배포 경로 기준으로 아이콘 로드
+						imgDsp.src = basePath ? `${basePath}assets/images/icon_image.png` : './images/icon_image.png';
+						imgDsp.alt = this.getLocalizedText('panel.personal.options.imgTextConvert.title') || '텍스트로 변환된 이미지';
 						imgDsp.classList.add('wat-image-placeholder-dsp');
-						//placeholder.appendChild(imgDsp);
 						placeholder.prepend(imgDsp);
 
 						img.style.display = 'none';
 						img.insertAdjacentElement('afterend', placeholder);
-						this.toggleDataAttribute('hideImg', true);
 					} else {
 						const placeholder = img.nextElementSibling;
 						if (placeholder && placeholder.classList.contains('wat-image-placeholder')) {
 							placeholder.remove();
 							img.style.display = 'inline';
 						}
-						this.toggleDataAttribute('hideImg', false);
 					}
 				});
+				// 저장은 이미지 개수만큼 반복하지 않고 루프 밖에서 1회만 수행
+				// (또한 별개 기능인 hideImg 속성을 여기서 토글하지 않음 — 기능 간 상태 얽힘 방지)
+				this.savePreferences();
 			}
 
 			/**
@@ -8960,6 +9558,8 @@ var WATPlugin = (function (exports) {
 				if (isEnabled) {
 					const contents = document.querySelectorAll('.blind, .displayNone');
 					contents.forEach(content => {
+						// 원래 어떤 클래스였는지 기록해 복원 시 정확히 되돌림 (.displayNone → .blind 오염 방지)
+						content.dataset.watHiddenClass = content.classList.contains('displayNone') ? 'displayNone' : 'blind';
 						content.classList.remove('blind', 'displayNone');
 						content.classList.add('wat-wasBlind');
 					});
@@ -8967,7 +9567,8 @@ var WATPlugin = (function (exports) {
 					const contents = document.querySelectorAll('.wat-wasBlind');
 					contents.forEach(content => {
 						content.classList.remove('wat-wasBlind');
-						content.classList.add('blind');
+						content.classList.add(content.dataset.watHiddenClass || 'blind');
+						delete content.dataset.watHiddenClass;
 					});
 				}
 			}
@@ -9003,13 +9604,16 @@ var WATPlugin = (function (exports) {
 					if (mode === 'hide') {
 						img.style.display = 'none'; // 이미지를 숨김
 					} else if (mode === 'convert') {
-						const altText = img.getAttribute('alt') || this.getLocalizedText('panel.personal.options.imgTextConvert.msg.noAlt');
+						// alt → title → "설명 없음" 순서로 폴백 (기존 || 결합은 title 분기를 데드 코드로 만들었음)
+						const altText = img.getAttribute('alt');
 						const titleText = img.getAttribute('title') || '';
-						let replacementText = altText;
-
-						// `alt` 텍스트가 없고 `title` 텍스트가 있으면 `title` 텍스트를 사용
-						if (!altText && titleText) {
+						let replacementText;
+						if (altText) {
+							replacementText = altText;
+						} else if (titleText) {
 							replacementText = titleText;
+						} else {
+							replacementText = this.getLocalizedText('panel.personal.options.imgTextConvert.msg.noAlt');
 						}
 
 						// `.blind` 클래스의 텍스트를 추가적으로 처리
@@ -9026,13 +9630,15 @@ var WATPlugin = (function (exports) {
 							replacementText += ` [${blindText}]`;
 						}
 
-						// 이미지를 텍스트로 교체
+						// 이미지를 텍스트로 교체 — alt 문자열이 HTML로 파싱되지 않도록 DOM API로 구성
 						const newPlaceholder = document.createElement('div');
 						newPlaceholder.classList.add('wat-image-placeholder');
-						newPlaceholder.innerHTML = `
-				<img class="wat-image-placeholder-dsp" src="./images/icon_image.png" alt="">
-				${replacementText}
-				`;
+						const placeholderIcon = document.createElement('img');
+						placeholderIcon.classList.add('wat-image-placeholder-dsp');
+						placeholderIcon.src = basePath ? `${basePath}assets/images/icon_image.png` : './images/icon_image.png';
+						placeholderIcon.alt = '';
+						newPlaceholder.appendChild(placeholderIcon);
+						newPlaceholder.appendChild(document.createTextNode(replacementText));
 						img.style.display = 'none';
 						img.insertAdjacentElement('afterend', newPlaceholder);
 					} else {
@@ -9161,8 +9767,8 @@ var WATPlugin = (function (exports) {
 						if (window.innerHeight + window.scrollY >= document.body.offsetHeight) {
 							this._cancelAnimationFrame(this.scrollInterval);
 							this.scrollInterval = null;
-							//elm_toggle_btn.classList.remove('playing');
-							//elm_toggle_btn.setAttribute('aria-pressed', 'false');
+							// 자연 종료 시 버튼 상태(aria-pressed)도 복원 — 라벨과 상태 불일치 방지
+							elm_toggle_btn.setAttribute('aria-pressed', 'false');
 							elm_toggle_btn.textContent = this.getLocalizedText('panel.personal.options.pageScroll.options.start');
 							elm_toggle_btn.focus();
 						} else {
@@ -9240,16 +9846,21 @@ var WATPlugin = (function (exports) {
 			 * this.stopPageScroll();
 			 */
 			stopPageScroll() {
-				document.getElementById('wat-button-pageScroll_toggle').setAttribute('aria-pressed', 'false');
-				const scrollInterval = this.state.get('plugin.scrollInterval');
+				const toggleBtn = document.getElementById('wat-button-pageScroll_toggle');
+				if (toggleBtn) toggleBtn.setAttribute('aria-pressed', 'false');
+				// 시작 측이 this.scrollInterval에 저장하므로 동일한 위치에서 읽어야 정지가 동작함
+				const scrollInterval = this.scrollInterval || this.state.get('plugin.scrollInterval');
 				if (scrollInterval) {
 					this._cancelAnimationFrame(scrollInterval);
+					this.scrollInterval = null;
 					this.state.set('plugin.scrollInterval', null);
-					//document.getElementById('wat-button-pageScroll_start').style.display = 'inline';
-					//document.getElementById('wat-button-pageScroll_stop').style.display = 'none';
-					document.getElementById('wat-button-pageScroll_start').disabled = false;
-					document.getElementById('wat-button-pageScroll_stop').disabled = true;
-					document.getElementById('wat-button-pageScroll_start').focus();
+					const startBtn = document.getElementById('wat-button-pageScroll_start');
+					const stopBtn = document.getElementById('wat-button-pageScroll_stop');
+					if (startBtn) {
+						startBtn.disabled = false;
+						startBtn.focus();
+					}
+					if (stopBtn) stopBtn.disabled = true;
 				}
 			}
 
@@ -9304,7 +9915,14 @@ var WATPlugin = (function (exports) {
 					}
 					
 					const loadedConfig = await response.json();
-					
+
+					// 타임아웃 폴백이 이미 발동한 뒤 늦게 도착한 응답이 사용 중인 config를
+					// 도중에 교체하지 않도록 무시 (비결정적 동작 방지)
+					if (this._configLoaded) {
+						console.warn('⚠️ 타임아웃 이후 도착한 config 응답을 무시합니다:', this._configPath);
+						return;
+					}
+
 					// Merge with fallback configuration
 					this._config = this._mergeConfigurations(this._getFallbackConfig(), loadedConfig);
 					this._configLoaded = true;
@@ -9395,6 +10013,10 @@ var WATPlugin = (function (exports) {
 					const result = { ...target };
 					
 				for (const key of Object.keys(source)) {
+					// 프로토타입 오염 방지 — 외부 config의 위험 키는 병합하지 않음
+					if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+						continue;
+					}
 					if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
 						result[key] = merge(target[key] || {}, source[key]);
 					} else {
@@ -9488,21 +10110,19 @@ var WATPlugin = (function (exports) {
 			 * @private
 			 */
 			_applyConfigResources() {
-				// 폰트 URL 오버라이드
-				const nanumUrl = this.getConfigValue('resources.fonts.nanumMyeongjo', null);
-				if (nanumUrl && WAT.FONT_FAMILY_OPTIONS['nanum-myeongjo']) {
-					WAT.FONT_FAMILY_OPTIONS['nanum-myeongjo'].url = nanumUrl;
-				}
-
-				const notoUrl = this.getConfigValue('resources.fonts.notoSerifKR', null);
-				if (notoUrl && WAT.FONT_FAMILY_OPTIONS['noto-serif-kr']) {
-					WAT.FONT_FAMILY_OPTIONS['noto-serif-kr'].url = notoUrl;
-				}
-
-				const koddiUrl = this.getConfigValue('resources.fonts.koddiUdonGothic', null);
-				if (koddiUrl && WAT.FONT_FAMILY_OPTIONS['koddi-udon-gothic']) {
-					WAT.FONT_FAMILY_OPTIONS['koddi-udon-gothic'].url = koddiUrl;
-				}
+				// 폰트 URL 오버라이드 — config 유래 URL은 https/http 스킴만 허용
+				const applyFontUrl = (configKey, fontKey) => {
+					const url = this.getConfigValue(configKey, null);
+					if (!url || !WAT.FONT_FAMILY_OPTIONS[fontKey]) return;
+					if (!isSafeHttpUrl(url)) {
+						console.warn(`[WAT] ${configKey}의 폰트 URL 스킴이 유효하지 않아 무시합니다:`, url);
+						return;
+					}
+					WAT.FONT_FAMILY_OPTIONS[fontKey].url = url;
+				};
+				applyFontUrl('resources.fonts.nanumMyeongjo', 'nanum-myeongjo');
+				applyFontUrl('resources.fonts.notoSerifKR', 'noto-serif-kr');
+				applyFontUrl('resources.fonts.koddiUdonGothic', 'koddi-udon-gothic');
 			}
 
 			/**
@@ -9797,8 +10417,9 @@ var WATPlugin = (function (exports) {
 				this.removeAllDictionLayers();
 
 				// Get UI settings from configuration
-				const modalWidth = this.getConfigValue('ui.modalWidth', 600);
-				const showPronunciation = this.getConfigValue('ui.showPronunciation', true);
+				// config 실제 구조는 settings.ui.* — 잘못된 경로면 config 값이 항상 무시됨
+				const modalWidth = this.getConfigValue('settings.ui.modalWidth', 600);
+				const showPronunciation = this.getConfigValue('settings.ui.showPronunciation', true);
 
 				// 새로운 레이어 생성
 				const layer = document.createElement('div');
@@ -9810,30 +10431,35 @@ var WATPlugin = (function (exports) {
 				// Apply configured width
 				layer.style.maxWidth = `${modalWidth}px`;
 
-				// 레이어 내용 구성
+				// 레이어 내용 구성 — 외부 API 응답은 textContent로만 삽입 (XSS 방지)
 				const titleElement = document.createElement('h3');
 				titleElement.id = 'diction-result-title';
-				titleElement.innerHTML = item.title;
+				titleElement.textContent = item.title;
 				layer.appendChild(titleElement);
 
 				const descriptionElement = document.createElement('p');
-				descriptionElement.innerHTML = item.description;
+				descriptionElement.textContent = item.description;
 				layer.appendChild(descriptionElement);
 
 				// Show pronunciation if enabled and available
 				if (showPronunciation && item.pronunciation) {
 					const pronunciationElement = document.createElement('div');
 					pronunciationElement.className = 'wat-diction-pronunciation';
-					pronunciationElement.innerHTML = `<strong>${this.getLocalizedText('dictionary.pronunciation')}:</strong> ${item.pronunciation}`;
+					const pronunciationLabel = document.createElement('strong');
+					pronunciationLabel.textContent = `${this.getLocalizedText('dictionary.pronunciation')}:`;
+					pronunciationElement.appendChild(pronunciationLabel);
+					pronunciationElement.appendChild(document.createTextNode(` ${item.pronunciation}`));
 					layer.appendChild(pronunciationElement);
 				}
 
-				if (item.link) {
+				// 링크는 http(s) 스킴만 허용 (javascript: URL 차단)
+				if (item.link && isSafeHttpUrl(item.link)) {
 					const linkIcon = document.createElement('span');
-					linkIcon.innerHTML = '🔗';
+					linkIcon.textContent = '🔗';
 					const linkElement = document.createElement('a');
 					linkElement.href = item.link;
 					linkElement.target = '_blank';
+					linkElement.rel = 'noopener noreferrer';
 					linkElement.appendChild(linkIcon);
 					titleElement.appendChild(linkElement);
 				}
@@ -10110,9 +10736,9 @@ var WATPlugin = (function (exports) {
 				const body = document.body;
 				body.classList.add('overlay-active');
 			
-				// 오버레이 생성 및 추가
+				// 오버레이 생성 및 추가 — 호스트 페이지의 .overlay와 구분되도록 플러그인 클래스 병기
 				const overlay = document.createElement('div');
-				overlay.classList.add('overlay');
+				overlay.classList.add('overlay', 'wat-overlay');
 				fragment.appendChild(overlay);
 			
 				// 모달 레이어 생성
@@ -10359,7 +10985,16 @@ var WATPlugin = (function (exports) {
 						li.classList.add('pgStruct_item', 'link');
 					
 						const tag_a = document.createElement('a');
-						tag_a.textContent = decodeURI(link.textContent || link.href).trim();
+						// decodeURI는 '%' 포함 일반 텍스트에서 URIError를 던지므로 href에만 시도하고 실패 시 원문 사용
+					let linkLabel = (link.textContent || '').trim();
+					if (!linkLabel) {
+						try {
+							linkLabel = decodeURI(link.href);
+						} catch (e) {
+							linkLabel = link.href;
+						}
+					}
+					tag_a.textContent = linkLabel;
 						tag_a.href = link.href;
 						tag_a.target = '_blank';
 						tag_a.title = link.title || this.getLocalizedText('text.newWindow');
@@ -10421,6 +11056,8 @@ var WATPlugin = (function (exports) {
 					} else if (e.key === 'Escape') {
 						layer.remove();
 						overlay.remove();
+						// 닫기 버튼 경로와 동일하게 body 상태 클래스도 정리 (스크롤 잠금 잔존 방지)
+						document.body.classList.remove('overlay-active');
 						if (previousFocusedElement) {
 							previousFocusedElement.focus();
 						} else {
@@ -10428,7 +11065,7 @@ var WATPlugin = (function (exports) {
 						}
 					}
 				}
-			
+
 				layer.addEventListener('keydown', handleTab);
 			}
 
@@ -10443,7 +11080,8 @@ var WATPlugin = (function (exports) {
 			 */
 			closePageStructure() {
 				const layer = document.getElementById('pgStructure_layer');
-				const overlay = document.querySelector('.overlay');
+				// 플러그인이 만든 오버레이만 제거 (호스트 페이지의 .overlay 오삭제 방지)
+				const overlay = document.querySelector('.overlay.wat-overlay');
 				const body = document.body;
 				if (layer) {
 					layer.classList.add('hidden');
@@ -10487,9 +11125,10 @@ var WATPlugin = (function (exports) {
 				];
 			
 				// 모든 포커스 가능한 요소들을 검색하고 배열로 변환
-				//const focusableNodes = Array.from(document.querySelectorAll(focusableElements.join(',')));
+				// 전달받은 element를 검색 루트로 사용 (기존에는 인자를 무시하고 항상 document 전체를 검색했음)
+				const searchRoot = element || document;
 				const combinedSelector = focusableElements.join(', ');
-				const focusableNodes = Array.from(document.querySelectorAll(combinedSelector)).filter(el => el.offsetWidth > 0 && el.offsetHeight > 0);
+				const focusableNodes = Array.from(searchRoot.querySelectorAll(combinedSelector)).filter(el => el.offsetWidth > 0 && el.offsetHeight > 0);
 				//console.log(focusableNodes);
 				Array.from(document.querySelectorAll(extractClassElements.join(',')));
 			
@@ -10533,7 +11172,8 @@ var WATPlugin = (function (exports) {
 				this.tts_updateHighlight(index);
 			
 				const utterance = new SpeechSynthesisUtterance(ttsElements[index].innerText);
-				const ttsSpeed = 2;
+				// 사용자가 설정한 읽기 속도 반영 (하드코딩 시 속도 설정이 무시됨)
+				const ttsSpeed = this.state.get('plugin.readingSpeed') || 1;
 				const language = this.language;
 				utterance.rate = parseFloat(ttsSpeed);
 				utterance.lang = language; // 사용자가 선택한 언어 설정
@@ -10570,11 +11210,17 @@ var WATPlugin = (function (exports) {
 					const currentEl = ttsElements[index];
 					currentEl.classList.add('wat-tts_highlight');
 					currentEl.focus();
-			
+
+					// 같은 요소가 재하이라이트될 때마다 리스너가 누적되어 Enter 한 번에 click이 다중 실행되는 것을 방지
+					if (currentEl._watTtsKeydownHandler) {
+						currentEl.removeEventListener('keydown', currentEl._watTtsKeydownHandler);
+					}
 					// 키다운 이벤트 리스너를 추가하여 스페이스바나 엔터키가 눌리면 TTS를 중지하고, 해당 요소를 실행하도록 함
-					currentEl.addEventListener('keydown', (e) => {
+					const keydownHandler = (e) => {
 						if (e.key === ' ' || e.key === 'Enter') {
 							e.preventDefault();
+							currentEl.removeEventListener('keydown', keydownHandler);
+							currentEl._watTtsKeydownHandler = null;
 							this.speechSynthesis.cancel();
 							// 만약 링크나 버튼과 같이 클릭이 가능한 요소라면 클릭 이벤트를 발생시킴
 							const tag = currentEl.tagName.toLowerCase();
@@ -10584,7 +11230,9 @@ var WATPlugin = (function (exports) {
 							this.tts_stopReading();
 							this.toggleStartbtn_ttsStops(false); // 정지 상태로 버튼 토글
 						}
-					}, { once: true });
+					};
+					currentEl._watTtsKeydownHandler = keydownHandler;
+					currentEl.addEventListener('keydown', keydownHandler);
 				}
 			}
 
@@ -10647,8 +11295,9 @@ var WATPlugin = (function (exports) {
 				notification.classList.add('wat-notification'); // 스타일 적용을 위해 클래스 추가
 				document.body.appendChild(notification);
 
-				setTimeout(() => {
-					document.body.removeChild(notification);
+				// 추적형 타이머 + remove() — 선제거 시 NotFoundError 방지, destroy 시 해제
+				this._setTimeout(() => {
+					notification.remove();
 				}, 3000);
 			}
 
@@ -10704,7 +11353,7 @@ var WATPlugin = (function (exports) {
 							}
 
 							const utterance = new SpeechSynthesisUtterance(textToRead);
-							utterance.rate = 2;
+							utterance.rate = this.state.get('plugin.readingSpeed') || 1;
 							utterance.lang = this.language;
 
 							// TTS 시작 시 포커스 감지 상태 확인
@@ -10924,14 +11573,21 @@ var WATPlugin = (function (exports) {
 			 */
 			_fallbackHighlight(range) {
 				// 선택된 영역에 CSS 클래스를 추가하여 시각적 하이라이트만 제공
-				window.getSelection();
-				const rangeParent = range.commonAncestorContainer;
-				
-				if (rangeParent.nodeType === Node.ELEMENT_NODE) {
+				let rangeParent = range.commonAncestorContainer;
+				// 텍스트 노드면 부모 요소로 승격해 하이라이트가 적용되도록 함
+				if (rangeParent.nodeType === Node.TEXT_NODE) {
+					rangeParent = rangeParent.parentElement;
+				}
+
+				if (rangeParent && rangeParent.nodeType === Node.ELEMENT_NODE) {
+					// 공통 조상이 body/html이면 페이지 전체가 하이라이트되므로 생략
+					if (rangeParent === document.body || rangeParent === document.documentElement) {
+						return;
+					}
 					rangeParent.classList.add('wat-tts_highlight-fallback');
-					
-					// 일정 시간 후 클래스 제거
-					setTimeout(() => {
+
+					// 일정 시간 후 클래스 제거 (추적형 타이머 — destroy 후 발화 방지)
+					this._setTimeout(() => {
 						rangeParent.classList.remove('wat-tts_highlight-fallback');
 					}, 3000);
 				}
@@ -10972,7 +11628,7 @@ var WATPlugin = (function (exports) {
 			 */
 			_speakTextOnly(text) {
 				const utterance = new SpeechSynthesisUtterance(text);
-				utterance.rate = 2;
+				utterance.rate = this.state.get('plugin.readingSpeed') || 1;
 				utterance.lang = this.language;
 
 				this.speechSynthesis.cancel();
@@ -10987,8 +11643,7 @@ var WATPlugin = (function (exports) {
 			 */
 			_executeTTS(selectedText, highlightSpan) {
 				const utterance = new SpeechSynthesisUtterance(selectedText);
-				console.log('TTS Speaking:', selectedText);
-				utterance.rate = 2;
+				utterance.rate = this.state.get('plugin.readingSpeed') || 1;
 				utterance.lang = this.language;
 
 				// 상태 업데이트
@@ -11086,6 +11741,10 @@ var WATPlugin = (function (exports) {
 						// 다른 TTS가 시작되었거나 상태가 변경된 경우 정리
 						console.debug('[TTS] Speech canceled due to state change');
 						this._cleanupTTSHighlight(highlightSpan);
+						// 발화되지 않은 utterance가 상태에 잔류해 hasCurrentUtterance가 영구 true가 되는 것을 방지
+						if (this.state.get('plugin.currentUtterance') === utterance) {
+							this.state.set('plugin.currentUtterance', null);
+						}
 					}
 				}, cancelDelay);
 			}
@@ -11144,7 +11803,13 @@ var WATPlugin = (function (exports) {
 					
 					// 포커스 이벤트 리스너 제거
 					this._removeGlobalEventListener('focusin');
-					
+
+					// 포커스 TTS가 클릭 시 부여했던 tabindex를 원복 (호스트 페이지 탭 순서 영구 변형 방지)
+					document.querySelectorAll('[data-wat-tabindex-added]').forEach(el => {
+						el.removeAttribute('tabindex');
+						delete el.dataset.watTabindexAdded;
+					});
+
 					// UI 업데이트
 					const btn = document.getElementById('wat-button-tts_focus_toggle');
 					if (btn) {
@@ -11357,13 +12022,14 @@ var WATPlugin = (function (exports) {
 			 * this.toggleStartbtn_ttsStops(false);
 			 */
 			toggleStartbtn_ttsStops(flag_ttsStarting) {
-					//document.getElementById('wat-button-tts_start').disabled = flag_ttsStarting;
-					//document.getElementById('wat-button-tts_stop').disabled = !flag_ttsStarting;
+					// 패널 미렌더/제거 상태에서 호출돼도 크래시 없이 이벤트 디스패치까지 진행되도록 null 가드
+					const ttsToggleBtn = document.getElementById('wat-button-tts_toggle');
+					const ttsNextBtn = document.getElementById('wat-button-tts_next');
+					const ttsPrevBtn = document.getElementById('wat-button-tts_prev');
 
-					document.getElementById('wat-button-tts_toggle').setAttribute('aria-pressed', flag_ttsStarting ? 'true' : 'false');
-
-					document.getElementById('wat-button-tts_next').disabled = !flag_ttsStarting;
-					document.getElementById('wat-button-tts_prev').disabled = !flag_ttsStarting;
+					if (ttsToggleBtn) ttsToggleBtn.setAttribute('aria-pressed', flag_ttsStarting ? 'true' : 'false');
+					if (ttsNextBtn) ttsNextBtn.disabled = !flag_ttsStarting;
+					if (ttsPrevBtn) ttsPrevBtn.disabled = !flag_ttsStarting;
 					
 					// Dispatch TTS state change event
 					this._dispatchStateEvent('tts:stateChanged', {
@@ -11731,16 +12397,19 @@ var WATPlugin = (function (exports) {
 			generateTableText(element, lang) {
 				const caption = element.querySelector('caption');
 				const rows = element.querySelectorAll('tr').length;
-				const cols = element.querySelectorAll('th, td').length / rows;
-				
+				// 행이 0개인 빈 테이블에서 0으로 나눠 NaN이 발화되는 것을 방지
+				const cols = rows > 0 ? element.querySelectorAll('th, td').length / rows : 0;
+
 				let text = this.getLocalizedText('tts.table.label') + ' ';
-				
+
 				if (caption) {
 					text += caption.textContent + ' ';
 				}
-				
-				text += this.getLocalizedText('tts.table.size', { rows: rows, cols: Math.round(cols) });
-				
+
+				if (rows > 0) {
+					text += this.getLocalizedText('tts.table.size', { rows: rows, cols: Math.round(cols) });
+				}
+
 				return text.trim();
 			}
 
@@ -11755,11 +12424,16 @@ var WATPlugin = (function (exports) {
 			 * const label = this.findLabelForElement(inputElement);
 			 */
 			findLabelForElement(element) {
-				// 1. label[for] 속성으로 연결된 경우
+				// 1. label[for] 속성으로 연결된 경우 — 호스트 페이지 id에 특수문자가 있어도 안전하도록 이스케이프
 				if (element.id) {
-					const label = document.querySelector(`label[for="${element.id}"]`);
-					if (label) {
-						return label.textContent.trim();
+					try {
+						const escapedId = typeof CSS !== 'undefined' && CSS.escape ? CSS.escape(element.id) : element.id;
+						const label = document.querySelector(`label[for="${escapedId}"]`);
+						if (label) {
+							return label.textContent.trim();
+						}
+					} catch (e) {
+						// 셀렉터 오류 시 다음 탐색 방법으로 진행
 					}
 				}
 				
@@ -11777,9 +12451,16 @@ var WATPlugin = (function (exports) {
 				
 				const ariaLabelledBy = element.getAttribute('aria-labelledby');
 				if (ariaLabelledBy) {
-					const labelElement = document.getElementById(ariaLabelledBy);
-					if (labelElement) {
-						return labelElement.textContent.trim();
+					// aria-labelledby는 공백으로 구분된 여러 ID를 가질 수 있음
+					const labelText = ariaLabelledBy.split(/\s+/)
+						.map(id => {
+							const labelElement = document.getElementById(id);
+							return labelElement ? labelElement.textContent.trim() : '';
+						})
+						.filter(Boolean)
+						.join(' ');
+					if (labelText) {
+						return labelText;
 					}
 				}
 				
@@ -12057,21 +12738,29 @@ var WATPlugin = (function (exports) {
 					const notSelector = excludeSelectors.length > 0 ? `:not(${excludeSelectors.join('):not(')})` : '';
 					
 					const selector = `*${notSelector}`;
-					const elements = iframeDoc.querySelectorAll(selector);
-					
+					// 사용자 excludeSelector가 잘못된 CSS면 전체가 죽지 않도록 방어 (메인 문서 버전과 동일)
+					let elements;
+					try {
+						elements = iframeDoc.querySelectorAll(selector);
+					} catch (e) {
+						console.warn(`[WAT] iframe excludeSelector가 유효하지 않아 제외 없이 진행합니다: ${iframeId}`, e.message);
+						elements = iframeDoc.querySelectorAll('*');
+					}
+
 					elements.forEach(el => {
 						// iframe 내부에서도 제외 검증
 						if (this.shouldExcludeElementInIframe(el, iframeDoc)) {
 							return;
 						}
-						
+
 						if (!el.textContent.trim()) return;
 
 						let hasDynamic = false;
 						const origStyles = {};
+						// 요소당 getComputedStyle 1회로 축소 (성능 — 대형 iframe 프리즈 방지)
+						const computed = el.ownerDocument.defaultView.getComputedStyle(el);
 
 						styleProps.forEach(({ css, className, px }) => {
-							const computed = el.ownerDocument.defaultView.getComputedStyle(el);
 							const elVal = computed.getPropertyValue(css);
 
 							let value = elVal;
@@ -12307,8 +12996,9 @@ var WATPlugin = (function (exports) {
 				const ratio = this.lineHeightRatios[height] || 1;
 				
 				elements.forEach(el => {
+					// fontSize 버전과 동일하게 null 가드 — 원본 맵 미등록 요소에서 TypeError로 전체 중단 방지
 					const orig = this._originalStyleMap.get(el);
-					const origPx = parseFloat(orig['line-height']);
+					const origPx = orig && parseFloat(orig['line-height']);
 					if (origPx) {
 						el.style.setProperty('line-height', (origPx * ratio) + 'px', 'important');
 					}
@@ -12459,14 +13149,21 @@ var WATPlugin = (function (exports) {
 					return;
 				}
 				
-				// iframe 로드 완료 대기
-				if (iframe.complete || iframe.readyState === 'complete') {
-					// 이미 로드된 경우 바로 처리
-					setTimeout(() => this.processNewIframe(iframe), 100);
+				// iframe 로드 완료 대기 — HTMLIFrameElement에는 complete/readyState가 없으므로 contentDocument로 판정
+				let alreadyLoaded = false;
+				try {
+					alreadyLoaded = !!(iframe.contentDocument && iframe.contentDocument.readyState === 'complete');
+				} catch (e) {
+					// cross-origin — load 이벤트 대기로 폴백
+				}
+				if (alreadyLoaded) {
+					// 이미 로드된 경우 바로 처리 (추적형 타이머 — destroy 후 재주입 방지)
+					this._setTimeout(() => this.processNewIframe(iframe), 100);
 				} else {
-					// 로드 완료 대기
+					// 로드 완료 대기 (cleanup 이후 발화 시 재주입 방지 가드 포함)
 					iframe.addEventListener('load', () => {
-						setTimeout(() => this.processNewIframe(iframe), 100);
+						if (this._destroyed) return;
+						this._setTimeout(() => this.processNewIframe(iframe), 100);
 					}, { once: true });
 				}
 			}
@@ -12559,8 +13256,9 @@ var WATPlugin = (function (exports) {
 				notification.textContent = message;
 				notification.classList.add('wat-notification');
 				document.body.appendChild(notification);
-				setTimeout(() => {
-					document.body.removeChild(notification);
+				// 추적형 타이머 + remove() 사용 — 다른 경로가 먼저 제거해도 예외 없이 멱등 처리
+				this._setTimeout(() => {
+					notification.remove();
 				}, duration);
 			}
 
@@ -12598,8 +13296,24 @@ var WATPlugin = (function (exports) {
 				this.closePageStructure();
 				this.removeReadingGuide();
 				
-				// 생성된 스타일 요소들 제거
+				// 포커스 TTS가 부여한 tabindex 원복
+				document.querySelectorAll('[data-wat-tabindex-added]').forEach(el => {
+					el.removeAttribute('tabindex');
+					delete el.dataset.watTabindexAdded;
+				});
+
+				// 생성된 스타일 요소들 제거 — TTS 래퍼는 호스트 페이지의 원본 텍스트를 감싸고 있으므로
+				// 통째로 제거하지 않고 unwrap(자식을 부모로 이동 후 래퍼만 제거)해야 함
 				document.querySelectorAll(Constants.DOM_SELECTORS.NOTIFICATION_AND_TTS).forEach(el => {
+					if (el.classList.contains('wat-tts_wrapper')) {
+						const parent = el.parentNode;
+						if (parent) {
+							while (el.firstChild) {
+								parent.insertBefore(el.firstChild, el);
+							}
+							parent.normalize();
+						}
+					}
 					el.remove();
 				});
 			}

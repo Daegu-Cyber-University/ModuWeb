@@ -316,6 +316,12 @@
 					}
 				}
 			}
+		},
+		"tts": {
+			"start": "自动朗读",
+			"stop": "停止自动朗读",
+			"focusStart": "焦点朗读",
+			"focusStop": "停止焦点朗读"
 		}
 	},
 	"command": {
@@ -555,12 +561,44 @@
 			"rowspan": "行合并"
 		}
 	},
+	"tts": {
+		"input": {
+			"states": {
+				"checked": "已选中",
+				"unchecked": "未选中",
+				"selected": "已选择",
+				"unselected": "未选择"
+			},
+			"types": {
+				"button": "按钮"
+			}
+		},
+		"link": {
+			"newWindow": "在新窗口中打开"
+		},
+		"button": {
+			"unlabeled": "无标签按钮"
+		},
+		"image": {
+			"label": "图片",
+			"noDescription": "无描述"
+		},
+		"progress": {
+			"label": "进度",
+			"percent": "百分比"
+		},
+		"table": {
+			"label": "表格",
+			"size": "{rows}行 {cols}列"
+		}
+	},
 	"msg": {
 		"success": {
 			"save": "保存成功。"
 		},
 		"error": {
 			"default": "发生错误。",
+			"general": "发生错误，请重试。",
 			"save": "保存时发生错误。",
 			"load": "加载时发生错误。",
 			"selectorNotFound": "未找到 \"{selector}\" 元素。",
@@ -580,8 +618,15 @@
 			"noChange": "没有更改。",
 			"optionNotNode": "选项 \"{option}\" 不是节点，将被跳过。",
 			"noSettingsChecked": "未选中任何设置。",
-			"languageNotFound": "图像（语言未找到）"
+			"languageNotFound": "图像（语言未找到）",
+			"profileNotFound": "找不到配置文件\"{profileName}\"。"
+		},
+		"info": {
+			"dictionaryNotFound": "未找到\"{word}\"的搜索结果。"
 		}
+	},
+	"dictionary": {
+		"pronunciation": "发音"
 	},
 	"text": {
 		"fileSelected": "已选文件",

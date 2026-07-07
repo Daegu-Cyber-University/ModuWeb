@@ -71,6 +71,8 @@ export class ConfigurationManager {
 			data: { options: this.options, savedPrefs: this.savedPrefs },
 			strategy: ErrorHandler.RECOVERY_STRATEGIES.FALLBACK,
 			recovery: () => {
+				// 설정 처리 실패 시 사용자 옵션이 전부 무시되므로 명확한 에러 로그로 알림
+				console.error('[WAT:ConfigurationManager] 설정 처리에 실패하여 모든 사용자 옵션을 무시하고 기본 설정으로 폴백합니다.');
 				this.containerConfig = { id: 'watContainer', targetSelector: 'body', position: 'before' };
 				this.styleConfig = { mode: 'dynamic', cssPath: '' };
 				this.selectorConfig = { apply: 'body', exclude: '' };

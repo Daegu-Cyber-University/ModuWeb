@@ -20,6 +20,15 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
       - name: Validate config.example.json is valid JSON
         run: node -e "JSON.parse(require('fs').readFileSync('config.example.json','utf8')); console.log('config.example.json OK')"
 

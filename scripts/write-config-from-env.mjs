@@ -26,8 +26,19 @@ function loadDotEnv(filePath) {
 		}
 		const key = trimmed.slice(0, eq).trim();
 		let val = trimmed.slice(eq + 1).trim();
-		if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
-			val = val.slice(1, -1);
+		if (val.startsWith('"') || val.startsWith("'")) {
+			// 따옴표로 감싼 값: 닫는 따옴표까지가 값, 그 뒤 인라인 주석은 무시
+			const quote = val[0];
+			const end = val.indexOf(quote, 1);
+			if (end !== -1) {
+				val = val.slice(1, end);
+			}
+		} else {
+			// 인라인 주석 제거 (공백 + # 이후 절삭)
+			const hash = val.search(/\s#/);
+			if (hash !== -1) {
+				val = val.slice(0, hash).trim();
+			}
 		}
 		out[key] = val;
 	}
@@ -76,6 +87,8 @@ if (timeoutStr) {
 		base.api = base.api || {};
 		base.api.dictionary = base.api.dictionary || {};
 		base.api.dictionary.timeout = n;
+	} else {
+		console.warn(`Invalid WAT_DICTIONARY_TIMEOUT value "${timeoutStr}" - ignoring.`);
 	}
 }
 

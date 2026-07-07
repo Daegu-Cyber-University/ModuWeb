@@ -1,7 +1,11 @@
+	// 스크립트 로드 시점에 자신의 src 기준으로 config.json 절대 경로 계산
+	// (문서 URL 기준 상대 경로는 하위 페이지에서 404가 나므로)
+	const watConfigPath = new URL('./config.json', (document.currentScript && document.currentScript.src) || document.baseURI).href;
+
 	// DOM 로딩 완료 후 WAT 초기화
 	document.addEventListener('DOMContentLoaded', () => {
 		const watOptions = {
-			configPath: './config.json',		// config.json
+			configPath: watConfigPath,		// config.json
 		};
 			// 기본 설정으로 WAT 초기화
 			//const wat = new WAT();

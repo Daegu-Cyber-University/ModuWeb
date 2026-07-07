@@ -26,7 +26,7 @@ export class KeyboardTTS extends BaseTTS {
 				'box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.4) !important;'
 			);
 			this._speakText(selectedText, {
-				onEnd: () => setTimeout(() => this._removeHighlight(), 500),
+				onEnd: () => this._scheduleHighlightRemoval(500),
 				onError: () => this._removeHighlight()
 			});
 		}

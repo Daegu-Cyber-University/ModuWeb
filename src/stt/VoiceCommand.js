@@ -23,7 +23,9 @@ export class VoiceCommand {
 		this.timers = {
 			cooldown: null,
 			silenceDetection: null,
-			commandTimeout: null
+			commandTimeout: null,
+			postCommand: null,
+			restart: null
 		};
 
 		this.config = {
@@ -39,6 +41,7 @@ export class VoiceCommand {
 		this.statusDisplay = null;
 		this.lastCommandTime = 0;
 		this.commandHistory = [];
+		this.retryCount = 0;
 
 		this.audioContext = null;
 		this.analyser = null;
@@ -47,27 +50,46 @@ export class VoiceCommand {
 		this.lastSpeechTime = 0;
 	}
 
+	/**
+	 * 음성 명령을 시작합니다.
+	 * @returns {boolean} 시작 성공 여부 (미지원 브라우저면 false)
+	 */
 	start() {
 		if (!this._checkSupport()) {
 			this.plugin.showNotification('음성 인식을 지원하지 않는 브라우저입니다.');
-			return;
+			return false;
 		}
 
+		this.retryCount = 0;
 		this._createStatusDisplay();
 		this._setState(this.states.WAITING);
 		this._startContinuousRecognition();
+		return true;
 	}
 
 	stop() {
 		this._setState(this.states.INACTIVE);
 		this._clearAllTimers();
 
-		if (this.recognition && this.isActive) {
-			this.recognition.stop();
+		// stop() 대신 abort() 사용: 보류 중인 인식 결과로 명령이 실행되는 것을 방지
+		if (this.recognition) {
+			this.recognition.abort();
 			this.isActive = false;
 		}
 
 		this._removeStatusDisplay();
+	}
+
+	/**
+	 * 복구 불가능한 오류로 음성 명령을 완전히 정지하고 매니저에 통지합니다.
+	 * (권한 거부, 재시도 횟수 초과 등)
+	 */
+	_deactivate() {
+		this.stop();
+
+		if (this.sttManager && typeof this.sttManager.handleVoiceCommandStopped === 'function') {
+			this.sttManager.handleVoiceCommandStopped();
+		}
 	}
 
 	_createStatusDisplay() {
@@ -76,6 +98,9 @@ export class VoiceCommand {
 		this.statusDisplay = document.createElement('div');
 		this.statusDisplay.id = 'wat-voice-status';
 		this.statusDisplay.className = 'wat-voice-status';
+		// 스크린 리더가 상태 변화를 자동으로 읽을 수 있도록 라이브 영역으로 지정
+		this.statusDisplay.setAttribute('role', 'status');
+		this.statusDisplay.setAttribute('aria-live', 'polite');
 		this.statusDisplay.innerHTML = `
 			<div class="status-icon">🎤</div>
 			<div class="status-text">음성 명령 준비 중...</div>
@@ -178,12 +203,22 @@ export class VoiceCommand {
 	}
 
 	_startContinuousRecognition() {
+		// 이전 사이클의 commandTimeout이 남아 있으면 해제 (타이머 누수 방지)
+		if (this.timers.commandTimeout) {
+			clearTimeout(this.timers.commandTimeout);
+			this.timers.commandTimeout = null;
+		}
+
 		this._initializeRecognition();
 
 		this.timers.commandTimeout = setTimeout(() => {
 			if (this.currentState === this.states.WAITING ||
 				this.currentState === this.states.LISTENING) {
 				this._setState(this.states.COOLDOWN);
+				// 타임아웃 시 진행 중인 인식도 실제로 중단
+				if (this.recognition) {
+					this.recognition.abort();
+				}
 				this.plugin.showNotification('음성 명령 대기 시간이 초과되었습니다.');
 				this._startCooldown();
 			}
@@ -193,6 +228,9 @@ export class VoiceCommand {
 	}
 
 	_startCooldown() {
+		// stop() 이후에는 쿨다운을 통한 재시작을 하지 않음 (좀비 재시작 방지)
+		if (this.currentState === this.states.INACTIVE) return;
+
 		this._clearAllTimers();
 		this._setState(this.states.COOLDOWN);
 
@@ -250,6 +288,25 @@ export class VoiceCommand {
 		const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 		const SpeechGrammarList = window.SpeechGrammarList || window.webkitSpeechGrammarList;
 
+		// 기존 인스턴스가 있으면 핸들러 해제 + 중단 후 교체 (이벤트 중복/유령 인식 방지)
+		if (this.recognition) {
+			this.recognition.onstart = null;
+			this.recognition.onend = null;
+			this.recognition.onresult = null;
+			this.recognition.onerror = null;
+			this.recognition.onnomatch = null;
+			this.recognition.onspeechstart = null;
+			this.recognition.onspeechend = null;
+			this.recognition.onsoundstart = null;
+			this.recognition.onsoundend = null;
+			try {
+				this.recognition.abort();
+			} catch (error) {
+				// 이미 종료된 인스턴스면 무시
+			}
+			this.isActive = false;
+		}
+
 		this.recognition = new SpeechRecognition();
 
 		if (SpeechGrammarList) {
@@ -258,15 +315,23 @@ export class VoiceCommand {
 		}
 
 		this.recognition.lang = this.sttManager.config.language;
-		this.recognition.interimResults = false;
+		this.recognition.interimResults = this.sttManager.config.interimResults;
+		// 상태 머신(WAITING→LISTENING→…→COOLDOWN)이 단발 인식을 전제로 설계되어
+		// 설정값과 무관하게 continuous는 항상 false를 유지합니다.
 		this.recognition.continuous = false;
-		this.recognition.maxAlternatives = 1;
+		this.recognition.maxAlternatives = this.sttManager.config.maxAlternatives;
 
 		this._setupEventHandlers();
 	}
 
 	_setupEventHandlers() {
 		this.recognition.onstart = () => {
+			// stop()이 이미 호출된 상태라면 뒤늦게 시작된 인식을 즉시 중단
+			if (this.currentState === this.states.INACTIVE) {
+				this.recognition.abort();
+				return;
+			}
+
 			this.isActive = true;
 			this._setState(this.states.LISTENING);
 			this.lastSpeechTime = Date.now();
@@ -279,7 +344,9 @@ export class VoiceCommand {
 				this.currentState === this.states.PROCESSING) {
 				this._setState(this.states.WAITING);
 
-				setTimeout(() => {
+				// 재시작 전 기존 타이머를 정리하고, 재시작 타이머도 등록해 stop() 시 취소되도록 함
+				this._clearAllTimers();
+				this.timers.restart = setTimeout(() => {
 					if (this.currentState === this.states.WAITING) {
 						this._startContinuousRecognition();
 					}
@@ -288,7 +355,12 @@ export class VoiceCommand {
 		};
 
 		this.recognition.onresult = (event) => {
+			// stop() 이후 도착한 보류 결과는 무시
+			if (this.currentState === this.states.INACTIVE) return;
+
 			this._setState(this.states.PROCESSING);
+			// 인식 성공 시 재시도 카운터 초기화
+			this.retryCount = 0;
 
 			const result = event.results[0][0];
 			const transcript = result.transcript.toLowerCase().trim();
@@ -312,16 +384,33 @@ export class VoiceCommand {
 			console.error('음성 인식 오류:', event.error);
 			this.isActive = false;
 
+			// stop() 이후 발생한 오류나 내부에서 호출한 abort()로 인한 오류는 무시
+			if (this.currentState === this.states.INACTIVE || event.error === 'aborted') {
+				return;
+			}
+
+			// 권한/장치 오류는 재시도해도 해결되지 않으므로 재시도 없이 완전 정지
+			if (event.error === 'not-allowed' || event.error === 'audio-capture') {
+				const fatalMessage = event.error === 'not-allowed'
+					? '마이크 사용 권한이 필요합니다. 음성 명령을 종료합니다.'
+					: '마이크에 접근할 수 없습니다. 권한을 확인해주세요. 음성 명령을 종료합니다.';
+				this.plugin.showNotification(fatalMessage);
+				this._deactivate();
+				return;
+			}
+
+			// 일시적인 오류는 최대 재시도 횟수까지만 재시도
+			this.retryCount++;
+			if (this.retryCount > this.config.maxRetries) {
+				this.plugin.showNotification('음성 인식 재시도 횟수를 초과하여 음성 명령을 종료합니다.');
+				this._deactivate();
+				return;
+			}
+
 			let errorMessage = '음성 인식 오류가 발생했습니다.';
 			switch (event.error) {
 				case 'no-speech':
 					errorMessage = '음성이 감지되지 않았습니다. 다시 시도해주세요.';
-					break;
-				case 'audio-capture':
-					errorMessage = '마이크에 접근할 수 없습니다. 권한을 확인해주세요.';
-					break;
-				case 'not-allowed':
-					errorMessage = '마이크 사용 권한이 필요합니다.';
 					break;
 				case 'network':
 					errorMessage = '네트워크 오류가 발생했습니다.';
@@ -369,7 +458,9 @@ export class VoiceCommand {
 		this.timers = {
 			cooldown: null,
 			silenceDetection: null,
-			commandTimeout: null
+			commandTimeout: null,
+			postCommand: null,
+			restart: null
 		};
 	}
 
@@ -407,7 +498,8 @@ export class VoiceCommand {
 					this.commandHistory.pop();
 				}
 
-				setTimeout(() => {
+				// 타이머로 등록해 stop() 시 _clearAllTimers()로 취소되도록 함 (좀비 재시작 방지)
+				this.timers.postCommand = setTimeout(() => {
 					this._startCooldown();
 				}, 1000);
 			} else {
@@ -426,6 +518,9 @@ export class VoiceCommand {
 			...this.commands.action,
 			...this.commands.settings
 		];
+
+		// 최장 일치 우선: 긴 명령어부터 검사해 부분 문자열 오매칭을 완화
+		allCommands.sort((a, b) => b.length - a.length);
 
 		const command = allCommands.find(cmd => transcript.includes(cmd));
 		if (command) {
@@ -462,6 +557,10 @@ export class VoiceCommand {
 	_collectElementTexts(element) {
 		const texts = [];
 		if (element.textContent) texts.push(element.textContent.trim());
+		// input[type=submit|button] 등은 value가 표시 텍스트이므로 함께 수집
+		if (element.tagName.toLowerCase() === 'input' && element.value) {
+			texts.push(element.value.trim());
+		}
 		const img = element.querySelector('img');
 		if (img && img.alt) texts.push(img.alt);
 		if (element.title) texts.push(element.title);
@@ -488,6 +587,10 @@ export class VoiceCommand {
 					element.getAttribute('role') === 'button') {
 					element.click();
 					this.plugin.showNotification(`"${element.textContent?.trim() || '요소'}"을(를) 클릭했습니다.`);
+				} else if (element.tagName.toLowerCase() === 'input' &&
+					(element.type === 'submit' || element.type === 'button')) {
+					element.click();
+					this.plugin.showNotification(`"${element.value || '버튼'}"을(를) 클릭했습니다.`);
 				} else if (element.tagName.toLowerCase() === 'input' &&
 					(element.type === 'radio' || element.type === 'checkbox')) {
 					element.checked = !element.checked;

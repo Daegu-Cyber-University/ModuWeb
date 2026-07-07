@@ -31,6 +31,39 @@ const basePath = (() => {
 	}
 })();
 
+// localStorage 등 외부 유래 문자열의 안전한 JSON 파싱 — 손상된 값이 초기화 전체를 중단시키지 않도록
+function safeParseJSON(raw, fallback = {}) {
+	if (raw === null || raw === undefined) return fallback;
+	try {
+		return JSON.parse(raw);
+	} catch (e) {
+		console.warn('[WAT] 저장된 설정 값이 손상되어 기본값을 사용합니다:', e.message);
+		return fallback;
+	}
+}
+
+// HTML 템플릿 문자열에 삽입되는 외부 유래 값(config 라벨 등)의 이스케이프 — XSS 방지
+function escapeHTML(value) {
+	if (value === null || value === undefined) return '';
+	return String(value)
+		.replace(/&/g, '&amp;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;')
+		.replace(/"/g, '&quot;')
+		.replace(/'/g, '&#39;');
+}
+
+// config 등 외부 유래 URL의 스킴 검증 — javascript: 등 위험 스킴 차단
+function isSafeHttpUrl(url) {
+	if (typeof url !== 'string' || !url) return false;
+	try {
+		const parsed = new URL(url, typeof document !== 'undefined' ? document.baseURI : undefined);
+		return parsed.protocol === 'https:' || parsed.protocol === 'http:';
+	} catch (e) {
+		return false;
+	}
+}
+
 export class WAT {
 	// Static property assignments - 이미 추출된 모듈들을 WAT의 정적 속성으로 참조
 	static Constants = Constants;
@@ -67,7 +100,7 @@ export class WAT {
 		 */
 		constructor(options = {}) {
 			this.options = options;
-			const savedPrefs = JSON.parse(localStorage.getItem(Constants.STORAGE_KEYS.SETTINGS) || '{}');
+			const savedPrefs = safeParseJSON(localStorage.getItem(Constants.STORAGE_KEYS.SETTINGS), {});
 			this._configManager = new ConfigurationManager(options, savedPrefs, basePath);
 
 			this._config = null;
@@ -96,7 +129,7 @@ export class WAT {
 		 * @private
 		 */
 		_initializeStateManager() {
-			const savedSettings = JSON.parse(localStorage.getItem(Constants.STORAGE_KEYS.SETTINGS) || '{}');
+			const savedSettings = safeParseJSON(localStorage.getItem(Constants.STORAGE_KEYS.SETTINGS), {});
 			const defaultSettings = Defaults.SETTINGS;
 			
 			this.state = new StateManager({
@@ -347,6 +380,10 @@ export class WAT {
 			
 			// Create or find container
 			this.container = ContainerManager.createOrFindContainer(containerConfig);
+			// 컨테이너 생성 실패 또는 body 폴백 시 초기화 중단 — 이후 innerHTML 초기화가 호스트 페이지를 파괴하는 것을 방지
+			if (!this.container || this.container === document.body || this.container === document.documentElement) {
+				throw new Error('[WAT] 컨테이너를 생성하지 못했습니다. containerTargetSelector 설정을 확인하세요.');
+			}
 			this.selector = `#${this.container.id}`;
 			this.containerID = containerConfig.id;
 			this.containerTargetSelector = containerConfig.targetSelector;
@@ -537,7 +574,8 @@ export class WAT {
 					detail: {
 						plugin: this,
 						timestamp: Date.now(),
-						version: __MODUWEB_VERSION_JSON__,
+						// 번들러 치환이 없는 환경(테스트 등)에서 ReferenceError로 초기화 이벤트가 사라지지 않도록 가드
+					version: (typeof __MODUWEB_VERSION_JSON__ !== 'undefined') ? __MODUWEB_VERSION_JSON__ : 'dev',
 						language: this.language,
 						features: {
 							tts: !!this.ttsManager,
@@ -547,7 +585,7 @@ export class WAT {
 						},
 						state: {
 							isInitialized: true,
-							containerId: this.containerSelector,
+							containerId: this.containerID, // containerSelector는 미할당 프로퍼티였음 (항상 undefined)
 							options: { ...this.options }
 						}
 					},
@@ -617,6 +655,9 @@ export class WAT {
 		 */
 		cleanup() {
 			ErrorHandler.safeExecute(() => {
+				// 정리 이후 지연 콜백(iframe load 등)이 파괴된 인스턴스를 조작하지 않도록 플래그 설정
+				this._destroyed = true;
+
 				// Log memory stats before cleanup
 				this._logMemoryUsage('before cleanup');
 
@@ -640,9 +681,9 @@ export class WAT {
 			// 1. Clean up all tracked timers and animation frames
 			this._cleanupTimersAndFrames();
 			
-			// 2. Remove global event listeners
+			// 2. Remove global event listeners (등록 대상(window/document)과 동일한 곳에서 제거)
 			this._globalEventHandlers.forEach((listenerInfo, eventType) => {
-				document.removeEventListener(eventType, listenerInfo.handler, listenerInfo.options);
+				(listenerInfo.target || document).removeEventListener(eventType, listenerInfo.handler, listenerInfo.options);
 			});
 			this._globalEventHandlers.clear();
 			
@@ -670,13 +711,17 @@ export class WAT {
 			}
 			
 			// 5. Clean up legacy timers/animations (for backward compatibility)
-			const scrollInterval = this.state.get('plugin.scrollInterval');
+			const scrollInterval = this.state.get('plugin.scrollInterval') || this.scrollInterval;
 			if (scrollInterval) {
 				cancelAnimationFrame(scrollInterval);
 				this.state.set('plugin.scrollInterval', null);
+				this.scrollInterval = null;
 			}
-			
-			// 6. Clean up TTS
+
+			// 6. Clean up TTS (매니저의 리스너·타이머·발화 일괄 정리)
+			if (this.ttsManager && typeof this.ttsManager.destroy === 'function') {
+				this.ttsManager.destroy();
+			}
 			if (this.speechSynthesis) {
 				this.speechSynthesis.cancel();
 				this.state.set('plugin.currentUtterance', null);
@@ -691,11 +736,9 @@ export class WAT {
 			
 			// 9. Clean up DOM elements
 			this._cleanupDOMElements();
-			
-				// Final memory check
-				this._setTimeout(() => {
-					this._logMemoryUsage('after cleanup');
-				}, 100);
+
+				// Final memory check — 정리 완료 상태를 다시 오염시키지 않도록 추적 타이머를 쓰지 않고 즉시 기록
+				this._logMemoryUsage('after cleanup');
 			}, {
 				category: ErrorHandler.CATEGORIES.MEMORY_MANAGEMENT,
 				severity: ErrorHandler.SEVERITY.WARNING,
@@ -1091,7 +1134,8 @@ export class WAT {
 		 * const buttons = this._getCachedElementsBySelector('.btn', 'custom-buttons');
 		 */
 		_getCachedElementsBySelector(selector, cacheKey = null, useCache = true) {
-			const key = cacheKey || selector.replace(/[^a-zA-Z0-9]/g, '_');
+			// 선택자 원문을 키로 사용 — 특수문자 치환 시 서로 다른 선택자('.a .b' vs '.a>.b')가 같은 키로 충돌함
+			const key = cacheKey || selector;
 			
 			this._performanceMetrics.domQueries++;
 			
@@ -1337,13 +1381,16 @@ export class WAT {
 			if (eventType === 'focusin' && this._globalEventHandlers.has(eventType)) {
 				this._removeGlobalEventListener(eventType);
 			}
-			
-			document.addEventListener(eventType, handler, options);
-			
+
+			// beforeunload/pagehide 등은 window에서만 발생하므로 대상 분기 — document에 걸면 영원히 발화하지 않음
+			const target = ['beforeunload', 'pagehide', 'unload', 'resize'].includes(eventType) ? window : document;
+			target.addEventListener(eventType, handler, options);
+
 			this._globalEventHandlers.set(eventType, {
 				handlerKey,
 				handler,
-				options
+				options,
+				target
 			});
 		}
 
@@ -1355,8 +1402,8 @@ export class WAT {
 		_removeGlobalEventListener(eventType) {
 			const listenerInfo = this._globalEventHandlers.get(eventType);
 			if (!listenerInfo) return;
-			
-			document.removeEventListener(eventType, listenerInfo.handler, listenerInfo.options);
+
+			(listenerInfo.target || document).removeEventListener(eventType, listenerInfo.handler, listenerInfo.options);
 			this._globalEventHandlers.delete(eventType);
 		}
 
@@ -1552,11 +1599,18 @@ export class WAT {
 					// Focus on clicked element and simulate focus event (클릭된 요소에 포커스를 주고 포커스 이벤트 시뮬레이션)
 					if (e.target.tabIndex === -1) {
 						e.target.tabIndex = 0; // 포커스 가능하게 만들기
+						// 나중에 원복할 수 있도록 플러그인이 부여한 tabindex임을 표시 (호스트 탭 순서 영구 변형 방지)
+						e.target.dataset.watTabindexAdded = 'true';
 					}
-					e.target.focus();
-					
-					// Handle manually if focus event doesn't occur automatically (포커스 이벤트가 자동으로 발생하지 않는 경우 수동으로 처리)
-					setTimeout(() => {
+					const clickedTarget = e.target;
+					const hadFocus = document.activeElement === clickedTarget;
+					clickedTarget.focus();
+
+					// 포커스 이벤트가 자동으로 발생하지 않는 경우에만 수동 처리 (중복 발화 방지, 추적형 타이머)
+					this._setTimeout(() => {
+						if (hadFocus || document.activeElement !== clickedTarget) {
+							return; // 실제 focusin이 이미 처리됐거나 포커스가 이동함
+						}
 						const focusEvent = new FocusEvent('focusin', {
 							view: window,
 							bubbles: true,
@@ -1564,7 +1618,7 @@ export class WAT {
 							relatedTarget: null
 						});
 						Object.defineProperty(focusEvent, 'target', {
-							value: e.target,
+							value: clickedTarget,
 							enumerable: true
 						});
 						this._handleFocusIn(focusEvent);
@@ -1608,9 +1662,11 @@ export class WAT {
 			}
 			
 			// WAT 도구 자체의 버튼들은 제외
-			if (e.target.closest('#wat-container') || 
-				e.target.id.startsWith('wat-') || 
-				e.target.className.includes('wat-')) {
+			// (SVG 요소의 className은 SVGAnimatedString이라 includes가 없으므로 getAttribute로 안전하게 확인)
+			const targetClassAttr = (typeof e.target.getAttribute === 'function' && e.target.getAttribute('class')) || '';
+			if (e.target.closest('#wat-container') ||
+				(typeof e.target.id === 'string' && e.target.id.startsWith('wat-')) ||
+				targetClassAttr.includes('wat-')) {
 				return;
 			}
 			
@@ -1629,6 +1685,12 @@ export class WAT {
 		 * @private
 		 */
 		_handleKeyDown(e) {
+			// 입력 요소에서는 단축키를 가로채지 않음 — 폼에 대문자 T/D/S 입력이 불가능해지는 문제 방지
+			const target = e.target;
+			if (target && (target.isContentEditable ||
+				(typeof target.matches === 'function' && target.matches('input, textarea, select')))) {
+				return;
+			}
 			// Shift + T: 키보드 단축어 TTS
 			if (e.shiftKey && e.key.toLowerCase() === 't') {
 				e.preventDefault();
@@ -1673,17 +1735,14 @@ export class WAT {
 		 */
 		_handleDoubleClick(e) {
 			const selectedText = window.getSelection().toString().trim();
-			
+
 			if (selectedText) {
 				if (this.state.get('plugin.isDictionEnabled')) {
 					// 사전 기능이 활성화되어 있으면 사전 검색을 우선 처리
 					this.performDiction(selectedText);
-
-				} else if (this.ttsManager && this.ttsManager.currentState === this.ttsManager.states.FOCUS_TTS) {
-					// 포커스 TTS 기능이 활성화되어 있으면 TTS 처리
-					this.tts_draggableText();
-
 				}
+				// 포커스 TTS의 선택 텍스트 읽기는 FocusTTS 모듈이 자체 리스너로 처리
+				// (여기서 tts_draggableText()를 중복 호출하면 이중 발화·하이라이트 중첩 발생)
 			}
 		}
 
@@ -1694,15 +1753,8 @@ export class WAT {
 		 * @private
 		 */
 		_handleMouseUp(e) {
-			const selectedText = window.getSelection().toString().trim();
-
-			if (selectedText) {
-				if (this.ttsManager && this.ttsManager.currentState === this.ttsManager.states.FOCUS_TTS) {
-					// 포커스 TTS 기능이 활성화되어 있으면 처리
-					this.tts_draggableText();
-
-				}
-			}
+			// 포커스 TTS의 선택 텍스트 읽기는 FocusTTS 모듈이 자체 mouseup 리스너로 처리
+			// (레거시 경로와 중복 실행 시 이중 발화·상호 취소 경합이 발생하므로 여기서는 처리하지 않음)
 		}
 
 
@@ -1721,7 +1773,12 @@ export class WAT {
 		 */
 		async loadLocale(language) {
 			try {
-				const response = await fetch(`${basePath}/${Constants.PATHS.LOCALES}${language}.json`);
+				// basePath는 '/'로 끝나므로 이중 슬래시가 생기지 않도록 결합, 없으면 상대 경로
+				const localeUrl = `${basePath || './'}${Constants.PATHS.LOCALES}${language}.json`;
+				const response = await fetch(localeUrl);
+				if (!response.ok) {
+					throw new Error(`HTTP ${response.status} - ${localeUrl}`);
+				}
 				const localeData = await response.json();
 				this.state.set('locale', localeData);
 			} catch (error) {
@@ -1745,10 +1802,11 @@ export class WAT {
 			const locale = this.state.get('locale');
 			let translation = key.split('.').reduce((o, i) => (o ? o[i] : null), locale);
 
-			// translation이 null이나 undefined인 경우 기본값 반환
+			// 키 미존재 시 빈 문자열 반환 — null 반환 시 aria-label="null", TTS "null" 발화 등이 발생함
+			// (호출부의 `|| 폴백` 패턴은 빈 문자열에서도 동일하게 동작)
 			if (!translation) {
-				//return key; // 키를 그대로 반환
-				return null; // 키를 그대로 반환
+				if (WAT_DEBUG_ENABLED) console.warn(`[WAT] 로케일 키 누락: ${key}`);
+				return '';
 			}
 
 			// params에 포함된 값을 {key} 형태로 치환
@@ -1891,14 +1949,21 @@ export class WAT {
 					'resources.fonts.materialIcons',
 					'https://fonts.googleapis.com/icon?family=Material+Icons'
 				);
-				const link = document.createElement('link');
-				link.id = 'material-icons-link';
-				link.rel = 'stylesheet';
-				link.href = materialIconsUrl;
-				document.head.appendChild(link);
+				if (isSafeHttpUrl(materialIconsUrl)) {
+					const link = document.createElement('link');
+					link.id = 'material-icons-link';
+					link.rel = 'stylesheet';
+					link.href = materialIconsUrl;
+					document.head.appendChild(link);
+				} else {
+					console.warn('[WAT] materialIcons URL 스킴이 유효하지 않아 무시합니다:', materialIconsUrl);
+				}
 			}
 
-			// Initialize container
+			// Initialize container — body/documentElement이면 호스트 페이지가 삭제되므로 차단
+			if (!container || container === document.body || container === document.documentElement) {
+				throw new Error('[WAT] 유효하지 않은 컨테이너입니다. 초기화를 중단합니다.');
+			}
 			container.innerHTML = "";
 			container.classList.add('wat-container', 'no-speech', 'wat-exclude');
 			
@@ -1997,9 +2062,10 @@ export class WAT {
 			});
 			copyrightSince.textContent = '2025';
 			
-			// 대구사이버대학교 링크 생성
+			// 대구사이버대학교 링크 생성 (config 유래 URL은 http(s) 스킴만 허용)
+			const configCopyrightUrl = this.getConfigValue('branding.copyrightUrl', 'https://www.dcu.ac.kr');
 			const dcuLink = this.createElementWithAttrs('a', {
-				href: this.getConfigValue('branding.copyrightUrl', 'https://www.dcu.ac.kr'),
+				href: isSafeHttpUrl(configCopyrightUrl) ? configCopyrightUrl : 'https://www.dcu.ac.kr',
 				target: '_blank',
 				rel: 'noopener noreferrer',
 				class: 'dcu-link'
@@ -2230,12 +2296,13 @@ export class WAT {
 					e.preventDefault();
 					const tabId = tab.getAttribute('aria-controls');
 					this.showTabContent(tabId);
-					history.pushState(null, '', `#${tabId}`);
+					// history.pushState 제거 — 호스트 페이지 히스토리를 오염시키고 popstate 복원 로직도 없음
 				});
 			});
 
-			// 초기 탭 상태 설정
-			const initialTabId = location.hash ? location.hash.substring(1) : 'wat_personal';
+			// 초기 탭 상태 설정 — 해시는 wat_ 접두 탭 ID일 때만 사용 (호스트 임의 요소 노출 방지)
+			const hashId = location.hash ? location.hash.substring(1) : '';
+			const initialTabId = /^wat_[A-Za-z0-9_-]+$/.test(hashId) ? hashId : 'wat_personal';
 			this.showTabContent(initialTabId);
 			document.documentElement.dataset.watPanel = 'opened';
 		}
@@ -2332,30 +2399,31 @@ export class WAT {
 		 * this.setupTabs();
 		 */
 		setupTabs() {
-			//const tabs = document.querySelectorAll('.wat_tab[role="tab"]');	// 2024.09.19. Temporarily saved before other work (타 작업전 임시저장)
-			const tabs = document.querySelectorAll('[role="tab"]');
-			const panels = document.querySelectorAll('[role="tabpanel"]');
+			// 호스트 페이지의 ARIA 탭을 하이재킹하지 않도록 플러그인 컨테이너 내부로 검색 범위 제한
+			const root = this.container || document.getElementById(Constants.ELEMENT_IDS.MAIN_WRAP);
+			if (!root) return;
+			const tabs = root.querySelectorAll('[role="tab"]');
+			const panels = root.querySelectorAll('[role="tabpanel"]');
 
 			// Tab click events (탭 클릭 이벤트)
 			tabs.forEach((tab, index) => {
+				// 언어 변경 등으로 재호출될 때 리스너 중복 등록 방지
+				if (tab.dataset.watTabBound === 'true') return;
+				tab.dataset.watTabBound = 'true';
+
 				tab.addEventListener('click', () => {
 					this.activateTab(tabs, panels, tab);
 				});
 
-				// 키보드 탐색 이벤트 (화살표)
+				// 키보드 탐색(화살표) 및 선택(Enter/Space) — 단일 리스너로 통합
 				tab.addEventListener('keydown', (e) => {
-					let newIndex = index;
-					if (e.key === 'ArrowRight') {
-						newIndex = (index + 1) % tabs.length;
-					} else if (e.key === 'ArrowLeft') {
-						newIndex = (index - 1 + tabs.length) % tabs.length;
-					}
-					tabs[newIndex].focus();
-				});
-
-				// 엔터 또는 스페이스바로 탭 선택
-				tab.addEventListener('keydown', (e) => {
-					if (e.key === 'Enter' || e.key === ' ') {
+					if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+						const newIndex = e.key === 'ArrowRight'
+							? (index + 1) % tabs.length
+							: (index - 1 + tabs.length) % tabs.length;
+						tabs[newIndex].focus();
+					} else if (e.key === 'Enter' || e.key === ' ') {
+						e.preventDefault(); // Space로 인한 페이지 스크롤 방지
 						this.activateTab(tabs, panels, tab);
 					}
 				});
@@ -2372,8 +2440,10 @@ export class WAT {
 		 * this.activateInitialTab();
 		 */
 		activateInitialTab() {
-			const tabs = document.querySelectorAll('[role="tab"]');
-			const panels = document.querySelectorAll('[role="tabpanel"]');
+			const root = this.container || document.getElementById(Constants.ELEMENT_IDS.MAIN_WRAP);
+			if (!root) return;
+			const tabs = root.querySelectorAll('[role="tab"]');
+			const panels = root.querySelectorAll('[role="tabpanel"]');
 
 			// URL에 해시가 있으면 해당 탭을 활성화
 			//const hash = window.location.hash.substring(1);
@@ -2450,16 +2520,20 @@ export class WAT {
 		 * this.togglePanel(true);
 		 */
 		togglePanel(action_hidden) {
-			const settingsPanel = document.getElementById(Constants.ELEMENT_IDS.SETTINGS_PANEL);
-			const optionsPanel = document.getElementById(Constants.ELEMENT_IDS.OPTIONS_PANEL);
-			const settingsButton = document.getElementById(Constants.ELEMENT_IDS.SETTINGS_BUTTON);
+			const settingsPanel = document.getElementById(Constants.ELEMENT_IDS.PANEL_SET);
+			const optionsPanel = document.getElementById(Constants.ELEMENT_IDS.PANEL_OPT);
+			const settingsButton = document.getElementById(Constants.ELEMENT_IDS.BTN_SET);
+			if (!settingsPanel || !optionsPanel || !settingsButton) {
+				console.warn('[WAT] togglePanel: 패널 요소를 찾을 수 없습니다.');
+				return;
+			}
 			const isHidden = settingsPanel.hidden;
 			action_hidden = action_hidden === undefined ? !isHidden : action_hidden;
 			settingsPanel.hidden = action_hidden;
 			optionsPanel.hidden = !action_hidden;
 			settingsButton.setAttribute('aria-expanded', !action_hidden ? 'true' : 'false');
 			settingsButton.setAttribute('aria-label', !action_hidden ? this.getLocalizedText('command.close') : this.getLocalizedText('command.open'));
-			settingsButton.toggleAttribute('aria-pressed', !action_hidden ? 'true' : 'false');
+			settingsButton.setAttribute('aria-pressed', !action_hidden ? 'true' : 'false');
 		}
 
 		/**
@@ -2477,7 +2551,7 @@ export class WAT {
 		 */
 		updateViewMode(req_viewMode) {
 			//const wat = viewModeWrap.closest('#wat');
-			const wat = document.getElementById(Constants.ELEMENT_IDS.MAIN_WRAPPER);
+			const wat = document.getElementById(Constants.ELEMENT_IDS.MAIN_WRAP);
 			//const isIconMode = viewMode === 'icon';
 			const viewModeStr = req_viewMode.toString().toLowerCase();
 			const isIconMode = viewModeStr === 'icon' ? true : false;
@@ -2510,7 +2584,7 @@ export class WAT {
 
 			for (const profile in profileValues) {
 				const profileItemElement = this.createElementWithAttrs('li', { class: 'profileItem' });
-				const profileItemContainerElement = this.createElementWithAttrs('filedset', { class: 'watSet-profile-item-container', 'data-profile': profile });
+				const profileItemContainerElement = this.createElementWithAttrs('fieldset', { class: 'watSet-profile-item-container', 'data-profile': profile });
 				const profileItemTitleElement = this.createElementWithAttrs('legend', { class: ['watSet-profile-title', 'profileItemTitle'] });
 				const profileItemTitleLabelElement = this.createElementWithAttrs('label', { class: ['watSet-label', 'watSet-profile-title-label', `${profile}`], for: `watSet_profile_button_toggle_${profile}` });
 				const profileTitleText = this.getLocalizedText(`panel.settings.profile.options.${profile}.title`);
@@ -2784,14 +2858,15 @@ export class WAT {
 					if (item.id === 'watSet_storage_save') {
 						this.savePreferences();
 					} else if (item.id === 'watSet_storage_reset') {
-						localStorage.clear(Constants.STORAGE_KEYS.SETTINGS);
+						// localStorage.clear()는 호스트 사이트의 전체 데이터를 삭제하므로 WAT 키만 개별 삭제
+						Object.values(Constants.STORAGE_KEYS).forEach(key => localStorage.removeItem(key));
 					} else if (item.id === 'watSet_storage_check') {
 						// Storage check functionality
 						const storageData = {};
 						const settings = localStorage.getItem(Constants.STORAGE_KEYS.SETTINGS);
 						const container = localStorage.getItem(Constants.STORAGE_KEYS.CONTAINER);
 
-						storageData.settings = settings ? JSON.parse(settings) : null;
+						storageData.settings = settings ? safeParseJSON(settings, null) : null;
 						storageData.container = container;
 						storageData.totalItems = localStorage.length;
 						storageData.allKeys = Object.keys(localStorage);
@@ -2866,26 +2941,29 @@ export class WAT {
 		 * ]);
 		 */
 		createSettingsItem(itemType, titleText, optionName, optionItems, optionControls) {
+			// config/로케일 유래 값이 innerHTML 템플릿에 삽입되므로 전부 이스케이프 (XSS 방지)
+			titleText = escapeHTML(titleText);
 			const itemsHtml = optionItems.map(item => {
-				const elementId = `${optionName}_${item.value}`;
-				const itemLabel = item.label;
-				const toggleLabel = item.label_toggle || '';
-				const additionalClass = item.addClass || '';
+				const elementId = escapeHTML(`${optionName}_${item.value}`);
+				const itemLabel = escapeHTML(item.label);
+				const toggleLabel = escapeHTML(item.label_toggle || '');
+				const additionalClass = escapeHTML(item.addClass || '');
 				const checkedAttr = item.checked ? 'checked' : '';
-				const selectedClass = item.selected ? Constants.CSS_CLASSES.UI_SELECTED : '';
+				const selectedClass = item.selected ? Constants.CSS_CLASSES.SELECTED : '';
 				const disabledAttr = item.disabled ? 'disabled' : '';
-				const itemStyle = item.style || '';
-				const labelTitleEsc = itemLabel != null ? String(itemLabel).replace(/"/g, '&quot;') : '';
-				const labelTitleAttr = labelTitleEsc ? ` title="${labelTitleEsc}"` : '';
+				const itemStyle = escapeHTML(item.style || '');
+				const itemValue = escapeHTML(item.value);
+				const itemSrc = escapeHTML(item.src || '');
+				const labelTitleAttr = itemLabel ? ` title="${itemLabel}"` : '';
 				let htmlString = `
 					<li class='opt_item wat-item-li'>
-						<input type="${itemType}" class="wat-items wat-item-type-radio" id="wat-${itemType}-${elementId}" name="${optionName}" title="${titleText} ${itemLabel}" value="${item.value}" ${checkedAttr} ${disabledAttr}><label for="wat-${itemType}-${elementId}"${labelTitleAttr}>${itemLabel}</label>
+						<input type="${itemType}" class="wat-items wat-item-type-radio" id="wat-${itemType}-${elementId}" name="${optionName}" title="${titleText} ${itemLabel}" value="${itemValue}" ${checkedAttr} ${disabledAttr}><label for="wat-${itemType}-${elementId}"${labelTitleAttr}>${itemLabel}</label>
 					</li>
 					`;
 				if (itemType === 'select') {
 					htmlString = `
 						<li class='opt_item'>
-							<option class="wat-items wat-item-type-option" value="${item.value}" ${selectedClass} ${disabledAttr}>${itemLabel}</option>
+							<option class="wat-items wat-item-type-option" value="${itemValue}" ${selectedClass} ${disabledAttr}>${itemLabel}</option>
 						</li>
 						`;
 				} else if (itemType === 'button') {
@@ -2895,31 +2973,31 @@ export class WAT {
 					}
 					htmlString = `
 						<li class='opt_item' style="${itemStyle}">
-							<button type="button" class="wat-items wat-item-type-button btn_basic ${additionalClass}" id="wat-${itemType}-${elementId}" name="${optionName}" value="${item.value}" ${disabledAttr} ${toggleAttr} title="${titleText} ${itemLabel}">${itemLabel}</button>
+							<button type="button" class="wat-items wat-item-type-button btn_basic ${additionalClass}" id="wat-${itemType}-${elementId}" name="${optionName}" value="${itemValue}" ${disabledAttr} ${toggleAttr} title="${titleText} ${itemLabel}">${itemLabel}</button>
 						</li>
 						`;
 				} else if (itemType === 'buttonMix') {
 					htmlString = `
 						<li class='opt_item'>
-							<button type="button" class="wat-items wat-item-type-button" id="wat-${itemType}-${elementId}" name="${optionName}" value="${item.value}" ${disabledAttr}>${itemLabel}</button>
+							<button type="button" class="wat-items wat-item-type-button" id="wat-${itemType}-${elementId}" name="${optionName}" value="${itemValue}" ${disabledAttr}>${itemLabel}</button>
 						</li>
 						`;
 				} else if (itemType === 'buttonImg') {
 					htmlString = `
 						<li class='opt_item'>
-							<button type="button" class="wat-items wat-item-type-button btn_buttonImg ${additionalClass}" id="wat-${itemType}-${elementId}" name="${optionName}" value="${item.value}" ${disabledAttr}><img src="${item.src}" alt="${itemLabel}"></button>
+							<button type="button" class="wat-items wat-item-type-button btn_buttonImg ${additionalClass}" id="wat-${itemType}-${elementId}" name="${optionName}" value="${itemValue}" ${disabledAttr}><img src="${itemSrc}" alt="${itemLabel}"></button>
 						</li>
 						`;
 				} else if (itemType === 'buttonImgSVG') {
 					htmlString = `
 						<li class='opt_item'>
-							<button type="button" class="wat-items wat-item-type-button btn_buttonImgSVG ${additionalClass}" id="wat-${itemType}-${elementId}" name="${optionName}" value="${item.value}" ${disabledAttr} title="${titleText} ${itemLabel}"><span class="icon-svg"></span></button>
+							<button type="button" class="wat-items wat-item-type-button btn_buttonImgSVG ${additionalClass}" id="wat-${itemType}-${elementId}" name="${optionName}" value="${itemValue}" ${disabledAttr} title="${titleText} ${itemLabel}"><span class="icon-svg"></span></button>
 						</li>
 						`;
 				} else if (itemType === 'checkbox') {
 					htmlString = `
 						<li class='opt_item'>
-							<input type="${itemType}" class="wat-items wat-item-type-checkbox switch" id="wat-${itemType}-${optionName}" name="${optionName}" value="${item.value}" title="${titleText} ${itemLabel}" role="switch" aria-checked="false" ${checkedAttr} ${disabledAttr}><label for="wat-${itemType}-${elementId}" class="switch-label">${itemLabel}</label>
+							<input type="${itemType}" class="wat-items wat-item-type-checkbox switch" id="wat-${itemType}-${optionName}" name="${optionName}" value="${itemValue}" title="${titleText} ${itemLabel}" role="switch" aria-checked="${item.checked ? 'true' : 'false'}" ${checkedAttr} ${disabledAttr}><label for="wat-${itemType}-${optionName}" class="switch-label">${itemLabel}</label>
 							<span class="switch-state" data-stateText-on="${itemLabel}" data-stateText-off="${toggleLabel}">${itemLabel}</span>
 						</li>
 						`;
@@ -3161,8 +3239,8 @@ export class WAT {
 
 			// 병합된 폰트 목록을 순회하며 옵션 생성
 			for (const [fontName, fontConfig] of Object.entries(mergedFontOptions)) {
-				// false로 명시적으로 설정된 폰트는 제외
-				if (fontConfig === false || (typeof fontConfig === 'object' && !fontConfig.enabled)) continue;
+				// 명시적으로 비활성화(false)된 폰트만 제외 — enabled 생략은 활성으로 취급
+				if (fontConfig === false || (typeof fontConfig === 'object' && fontConfig.enabled === false)) continue;
 
 				// 웹폰트 URL이 있는 경우 동적으로 로드
 				if (typeof fontConfig === 'object' && fontConfig.url) {
@@ -3172,7 +3250,8 @@ export class WAT {
 				const optionItem = {
 					value: fontName,
 					label: this.getLocalizedText(`panel.personal.options.fontFamily.options.${fontName}`) || fontConfig.label || fontName,
-					checked: fontConfig === true || (typeof fontConfig === 'object' && fontConfig.enabled === true)
+					// enabled(표시 여부)와 checked(선택 여부)는 별개 — 기본 선택은 'initial'만
+					checked: fontName === 'initial'
 				};
 
 				option_items.push(optionItem);
@@ -3482,11 +3561,16 @@ export class WAT {
 		 * this.applyProfileSettings('lowVision');
 		 */
 		applyProfileSettings(profileName) {
-			const profileData = Defaults.PROFILES[profileName];
-			if (!profileData) {
+			const profileDefault = Defaults.PROFILES[profileName];
+			if (!profileDefault) {
 				console.warn(this.getLocalizedText('msg.warning.profileNotFound', { profileName: profileName }));
 				return;
 			}
+			// 정적 기본값(Defaults.PROFILES)을 UI 상태로 직접 변이하면 세션 내내 기본값이 오염되므로 복사본 사용
+			const profileData = {
+				settings: { ...profileDefault.settings },
+				enabled: { ...profileDefault.enabled }
+			};
 			
 			// Reset accessibility settings to default when switching profiles, maintain view mode/position (프로필 전환 시 접근성 설정들을 기본값으로 초기화하고 보기모드/위치는 유지)
 			const currentSettings = {
@@ -3514,21 +3598,32 @@ export class WAT {
 			if (checkedCheckbox.length === 0) {
 				const profileToggle = document.querySelector(`.watSet-profile-item-container[data-profile="${profileName}"] .profileToggle`);
 				alert(this.getLocalizedText('msg.warning.noSettingsChecked'));
-				profileCheckboxs[0].focus();
-				profileCheckboxs[0].classList.add('force-focus');
-				
-				const handleFocusOut = () => {
-					this._setTimeout(() => {
-						if (document.activeElement !== profileCheckboxs[0]) {
-							profileCheckboxs[0].classList.remove('force-focus');
-							profileCheckboxs[0].removeEventListener('focusout', handleFocusOut);
-						}
-					}, 100);
-				};
-				
-				profileCheckboxs[0].addEventListener('focusout', handleFocusOut);
-				profileToggle.textContent = this.getLocalizedText('tags.button.text.on');
-				profileToggle.setAttribute('aria-pressed', 'false');
+				// 체크박스가 하나도 렌더링되지 않은 경우(옵션 전체 비활성화) 크래시 방지
+				if (profileCheckboxs.length > 0) {
+					profileCheckboxs[0].focus();
+					profileCheckboxs[0].classList.add('force-focus');
+
+					const handleFocusOut = () => {
+						this._setTimeout(() => {
+							if (document.activeElement !== profileCheckboxs[0]) {
+								profileCheckboxs[0].classList.remove('force-focus');
+								profileCheckboxs[0].removeEventListener('focusout', handleFocusOut);
+							}
+						}, 100);
+					};
+
+					profileCheckboxs[0].addEventListener('focusout', handleFocusOut);
+				}
+				if (profileToggle) {
+					// textContent 직접 설정 시 내부 .watSet-button-label span이 파괴되어 이후 토글이 고장남
+					const toggleLabel = profileToggle.querySelector('.watSet-button-label');
+					if (toggleLabel) {
+						toggleLabel.textContent = this.getLocalizedText('tags.button.text.on');
+					} else {
+						profileToggle.textContent = this.getLocalizedText('tags.button.text.on');
+					}
+					profileToggle.setAttribute('aria-pressed', 'false');
+				}
 				return;
 			}
 			// ************************* Checkboxes Validation .End   *************************
@@ -3724,7 +3819,7 @@ export class WAT {
 			const resetSettings = {};
 			
 			switch (profileId) {
-				case 'visualImpairment':
+				case 'lowVision': // 실제 프로필 키(Defaults.PROFILES)와 일치시킴 — 구 명칭 'visualImpairment'
 					this.changeFontSize('initial');
 					this.changeFontFamily('initial');
 					this.toggleImgTextConversion(false);
@@ -3733,7 +3828,7 @@ export class WAT {
 					resetSettings.fontFamily = 'initial';
 					break;
 				case 'colorBlindness':
-					this.changeSaturation('');
+					this.changeSaturation('initial');
 					this.toggleDataAttribute('stopAni', false);
 					this.tts_toggleFocusDetection(false);
 					resetSettings.saturation = 'initial';
@@ -3816,7 +3911,7 @@ export class WAT {
 		 */
 		loadPreferences() {
 			const savedSettings = localStorage.getItem(Constants.STORAGE_KEYS.SETTINGS);
-			const loadedSettings = savedSettings ? JSON.parse(savedSettings) : {};
+			const loadedSettings = safeParseJSON(savedSettings, {});
 			const defaultSettings = Defaults.SETTINGS;
 		
 			// 초기값 설정
@@ -4428,6 +4523,10 @@ export class WAT {
 		 */
 		getRadioTargetIndex(targetWrap, direction) {
 			const radios = targetWrap.querySelectorAll('.setCont input[type="radio"]');
+			// 라디오가 없으면 % 0 연산으로 NaN이 반환되므로 조기 반환
+			if (radios.length === 0) {
+				return 0;
+			}
 			let currentIndex = -1;
 
 			if (WAT_DEBUG_ENABLED) {
@@ -4609,7 +4708,17 @@ export class WAT {
 				if (!this._observers) {
 					this._observers = new Map();
 				}
-				
+
+				// 같은 타입을 재생성할 때 이전 옵저버가 disconnect 없이 유실되어 계속 동작하는 누수 방지
+				const existingObserver = this._observers.get(type);
+				if (existingObserver) {
+					try {
+						existingObserver.disconnect();
+					} catch (e) {
+						// disconnect 실패는 무시
+					}
+				}
+
 				this._observers.set(type, observer);
 				
 				if (WAT_DEBUG_ENABLED) {
@@ -4783,36 +4892,57 @@ export class WAT {
 			
 			if (WAT_DEBUG_ENABLED) console.log('Dynamic styling selector:', selector);
 
-			function getPxValue(el, prop) {
-				const val = window.getComputedStyle(el).getPropertyValue(prop);
+			// computed 스타일 객체를 재사용해 요소당 getComputedStyle 호출을 1회로 축소 (성능)
+			function getPxValue(el, prop, computed) {
+				const val = computed.getPropertyValue(prop);
 				if (!val) return '';
 				if (prop === 'line-height' && val === 'normal') return '';
 				if (val.endsWith('px')) return parseFloat(val);
-				if (val.endsWith('em') || val.endsWith('rem')) {
-					const base = parseFloat(window.getComputedStyle(el).fontSize);
+				if (val.endsWith('rem')) {
+					// rem은 요소가 아닌 문서 루트 폰트 크기 기준
+					const rootBase = parseFloat(window.getComputedStyle(el.ownerDocument.documentElement).fontSize) || 16;
+					return parseFloat(val) * rootBase;
+				}
+				if (val.endsWith('em')) {
+					const base = parseFloat(computed.fontSize);
 					return parseFloat(val) * base;
 				}
 				return parseFloat(val) || '';
 			}
 
-			document.querySelectorAll(selector).forEach(el => {
+			// 사용자 config 유래 excludeSelector가 유효하지 않은 CSS면 SyntaxError로
+			// 동적 스타일링 전체가 죽으므로 try/catch로 방어
+			let targetElements;
+			try {
+				targetElements = document.querySelectorAll(selector);
+			} catch (e) {
+				console.error('[WAT] excludeSelector 설정이 유효한 CSS 선택자가 아닙니다. 제외 없이 진행합니다:', e.message);
+				try {
+					targetElements = document.querySelectorAll(`${rootSelector} *`);
+				} catch (e2) {
+					console.error('[WAT] rootSelector도 유효하지 않아 동적 스타일 마킹을 건너뜁니다:', e2.message);
+					return;
+				}
+			}
+
+			targetElements.forEach(el => {
 				// 추가 검증: 제외 대상인지 다시 한 번 확인
 				if (this.shouldExcludeElement(el)) {
 					return;
 				}
-				
+
 				if (!el.textContent.trim()) return;
 
 				let hasDynamic = false;
 				const origStyles = {};
+				const computed = window.getComputedStyle(el);
 
 				styleProps.forEach(({ css, className, px }) => {
-					const computed = window.getComputedStyle(el);
 					const elVal = computed.getPropertyValue(css);
 
 					let value = elVal;
 					if (px && value) {
-						const pxValue = getPxValue(el, css);
+						const pxValue = getPxValue(el, css, computed);
 						if (pxValue) value = pxValue;
 					}
 					origStyles[css] = value;
@@ -5032,7 +5162,13 @@ export class WAT {
 						if (WAT_DEBUG_ENABLED) {
 							console.log(`CSS already loaded: ${path}`);
 						}
-						resolve(true);
+						// 링크가 존재해도 아직 로딩 중일 수 있음 — sheet가 준비된 경우에만 즉시 성공 처리
+						if (existingLink.sheet) {
+							resolve(true);
+						} else {
+							existingLink.addEventListener('load', () => resolve(true), { once: true });
+							existingLink.addEventListener('error', () => resolve(false), { once: true });
+						}
 						return;
 					}
 					
@@ -5481,19 +5617,9 @@ export class WAT {
 							}
 						});
 						
-						// 추가로 모든 요소에서 !important font-family 제거
-						const allElements = document.querySelectorAll('*');
-						let removedCount = 0;
-						allElements.forEach(el => {
-							if (el.style.fontFamily && el.style.fontFamily.includes('!important')) {
-								el.style.removeProperty('font-family');
-								removedCount++;
-							}
-						});
-						
-						if (WAT_DEBUG_ENABLED) {
-							console.log(`Removed font-family from ${removedCount} elements with !important`);
-						}
+						// (제거됨) el.style.fontFamily는 priority(!important)를 포함하지 않으므로
+						// includes('!important')가 항상 false인 죽은 코드였음 — 전체 DOM 풀스캔 비용만 유발.
+						// 실제 !important 인라인 제거는 위의 removeProperty 루프가 담당함.
 					}
 					
 					if (WAT_DEBUG_ENABLED) {
@@ -5567,8 +5693,9 @@ export class WAT {
 			
 			if (font === 'initial') {
 				elements.forEach(el => {
-					// initial 폰트의 경우 font-family 속성을 완전히 제거
-					el.style.removeProperty('font-family');
+					// initial도 배치 큐를 경유해 제거 — 즉시 제거하면 큐에 남은 이전 폰트 적용 배치가
+					// 다음 프레임에 리셋을 되돌리는 경합이 발생함 (null 값은 removeProperty로 처리됨)
+					this.styleBatchProcessor.queueStyleUpdate(el, 'font-family', null);
 					el.classList.remove('wat-dyn-fontfamily');
 				});
 			} else {
@@ -5617,11 +5744,21 @@ export class WAT {
 		 * this.loadWebFont('https://fonts.googleapis.com/css2?family=Noto+Sans+KR&display=swap');
 		 */
 		loadWebFont(url) {
-			if (!document.querySelector(`link[href="${url}"]`)) {
-				const link = document.createElement('link');
-				link.rel = 'stylesheet';
-				link.href = url;
-				document.head.appendChild(link);
+			// config 유래 URL — 스킴 검증(https/http만) 및 셀렉터 보간 시 이스케이프 (따옴표 포함 URL로 인한 SyntaxError 방지)
+			if (!isSafeHttpUrl(url)) {
+				console.warn('[WAT] 유효하지 않은 웹폰트 URL을 건너뜁니다:', url);
+				return;
+			}
+			try {
+				const escapedUrl = typeof CSS !== 'undefined' && CSS.escape ? url.replace(/"/g, '\\"') : url;
+				if (!document.querySelector(`link[href="${escapedUrl}"]`)) {
+					const link = document.createElement('link');
+					link.rel = 'stylesheet';
+					link.href = url;
+					document.head.appendChild(link);
+				}
+			} catch (e) {
+				console.warn('[WAT] 웹폰트 로드 실패:', e.message);
 			}
 		}
 
@@ -5663,6 +5800,8 @@ export class WAT {
 		changeScreenScale(scale) {
 			const ratio = this.screenScaleRatios[scale] || 1;
 			this.currentScreenScale = ratio; // 현재 확대 비율 저장
+			// convertScaledCoordinates 등이 state에서 읽으므로 두 저장소를 동기화 (마스크 좌표 어긋남 방지)
+			this.state.set('plugin.currentScreenScale', ratio);
 			
 			if (this.styleMode === 'manual') {
 				document.documentElement.dataset.screenScale = scale;
@@ -5690,6 +5829,7 @@ export class WAT {
 		applyDynamicScreenScale(scale) {
 			const ratio = this.screenScaleRatios[scale] || 1;
 			this.currentScreenScale = ratio; // 현재 확대 비율 저장
+			this.state.set('plugin.currentScreenScale', ratio); // state 소비처와 동기화
 			
 			if (scale === 'initial') {
 				document.documentElement.style.removeProperty('zoom');
@@ -5822,8 +5962,9 @@ export class WAT {
 			
 			masks.forEach(mask => {
 				if (scale !== 1) {
-					// 확대된 경우 마스크 요소에 역방향 스케일 적용
-					mask.style.transform = `scale(${scale})`;
+					// 확대된 경우 마스크 요소에 역방향(1/scale) 스케일 적용
+					// (정방향이면 documentElement zoom과 중첩되어 이중 확대됨)
+					mask.style.transform = `scale(${1 / scale})`;
 					mask.style.transformOrigin = 'top left';
 				} else {
 					// 기본 배율일 때는 변형 제거
@@ -6116,9 +6257,10 @@ export class WAT {
 		 */
 		changeColorTheme(theme) {
 			document.documentElement.dataset.colorTheme = theme;
-			//localStorage.setItem('colorTheme', theme);
 			this.updatePersonalSettingsUI('radio', 'colorTheme', theme);
 			this.savePreferences();
+			// 다른 change* 계열과 동일하게 iframe에도 동기화 (누락 시 iframe만 원래 색 유지)
+			this.syncStyleToIframes('colorTheme', theme);
 		}
 
 		/**
@@ -6139,9 +6281,10 @@ export class WAT {
 		 */
 		changeSaturation(level) {
 			document.documentElement.dataset.saturation = level;
-			//localStorage.setItem('saturation', level);
 			this.updatePersonalSettingsUI('radio', 'saturation', level);
 			this.savePreferences();
+			// 다른 change* 계열과 동일하게 iframe에도 동기화
+			this.syncStyleToIframes('saturation', level);
 		}
 
 		// ========== UI Update           ==========
@@ -6225,9 +6368,9 @@ export class WAT {
 						const label = input.closest('label');
 						if (label) {
 							if (input.value === value) {
-								label.classList.add(Constants.CSS_CLASSES.UI_SELECTED);
+								label.classList.add(Constants.CSS_CLASSES.SELECTED);
 							} else {
-								label.classList.remove(Constants.CSS_CLASSES.UI_SELECTED);
+								label.classList.remove(Constants.CSS_CLASSES.SELECTED);
 							}
 						}
 					});
@@ -6287,7 +6430,7 @@ export class WAT {
 		 * @private
 		 */
 		saveMinimizeState(wasMinimized) {
-			const settings = JSON.parse(localStorage.getItem(Constants.STORAGE_KEYS.SETTINGS) || '{}');
+			const settings = safeParseJSON(localStorage.getItem(Constants.STORAGE_KEYS.SETTINGS), {});
 			settings.isMinimized = !wasMinimized;
 			localStorage.setItem(Constants.STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
 		}
@@ -6297,10 +6440,10 @@ export class WAT {
 		 * @private
 		 */
 		restoreMinimizeState() {
-			const settings = JSON.parse(localStorage.getItem(Constants.STORAGE_KEYS.SETTINGS) || '{}');
+			const settings = safeParseJSON(localStorage.getItem(Constants.STORAGE_KEYS.SETTINGS), {});
 			if (settings.isMinimized) {
-				// DOM이 준비된 후 실행
-				setTimeout(() => {
+				// DOM이 준비된 후 실행 (추적형 타이머 사용 — destroy 후 발화 방지)
+				this._setTimeout(() => {
 				this.toggleMinimize();
 				}, 100);
 			}
@@ -6413,8 +6556,9 @@ export class WAT {
 				viewportHeight = window.innerHeight;
 			}
 			
-			const topMask = document.querySelector('.reading-mask-top');
-			const bottomMask = document.querySelector('.reading-mask-bottom');
+			// 호스트 페이지의 동명 클래스와 충돌하지 않도록 플러그인 클래스로 스코프 제한
+			const topMask = document.querySelector('.wat-reading-guide.reading-mask-top');
+			const bottomMask = document.querySelector('.wat-reading-guide.reading-mask-bottom');
 
 			if (topMask && bottomMask) {
 				// 원본 좌표계 기준으로 마스크 높이 계산
@@ -6569,7 +6713,13 @@ export class WAT {
 		toggleImgTextConversion(isEnabled) {
 			const images = document.querySelectorAll('img');
 			images.forEach(img => {
+				// 플러그인이 생성한 placeholder 아이콘 이미지는 변환 대상에서 제외
+				if (img.classList.contains('wat-image-placeholder-dsp')) return;
 				if (isEnabled) {
+					// 중복 호출 시 placeholder가 누적되지 않도록 기존 것이 있으면 건너뜀
+					if (img.nextElementSibling && img.nextElementSibling.classList.contains('wat-image-placeholder')) {
+						return;
+					}
 					const altText = img.getAttribute('alt');
 					const titleText = img.getAttribute('title');
 					let replacementText;
@@ -6587,44 +6737,36 @@ export class WAT {
 					const blindElement = img.nextElementSibling;
 					if (blindElement && blindElement.classList.contains('blind') && !blindElement.classList.contains('skipConversion') ) {
 						replacementText = '[' + replacementText + ' - 상세설명' + ']';
-						const blindText = blindElement.innerHTML;
-						/*
-						const blindText = blindElement.innerHTML
-							.replace(/<[^>]*>/g, '') // 모든 HTML 태그 제거
-							.replace(/\n/g, '.') // 줄바꿈을 '.'로 대체
-							.replace(/^\./, '') // 제일 앞에 붙는 '.' 제거
-							.replace(/\.(\s*\.)+/g, '.') // '.'과 '.' 사이의 공백 제거 및 여러 '.'을 하나로 대체
-							.replace(/\.{2,}/g, '.') // '..' 이상을 '.'로 대체
-							.trim();
-						*/
+						// textContent 사용 — innerHTML을 이어붙이면 페이지 콘텐츠 유래 마크업이 활성화됨(주입 위험)
+						const blindText = blindElement.textContent.trim();
 						replacementText += ' ' + blindText;
 					}
 
-					// 이미지를 텍스트로 교체
+					// 이미지를 텍스트로 교체 — alt 속성 문자열이 HTML로 파싱되지 않도록 textContent 사용
 					const placeholder = document.createElement('div');
-					//placeholder.textContent = replacementText;
-					placeholder.innerHTML = replacementText;
+					placeholder.textContent = replacementText;
 					placeholder.classList.add('wat-image-placeholder');
 
 					const imgDsp = document.createElement('img');
-					imgDsp.src = './images/icon_image.png';
-					imgDsp.alt = '텍스트로 변환된 이미지';
+					// 호스트 페이지 상대경로가 아닌 플러그인 배포 경로 기준으로 아이콘 로드
+					imgDsp.src = basePath ? `${basePath}assets/images/icon_image.png` : './images/icon_image.png';
+					imgDsp.alt = this.getLocalizedText('panel.personal.options.imgTextConvert.title') || '텍스트로 변환된 이미지';
 					imgDsp.classList.add('wat-image-placeholder-dsp');
-					//placeholder.appendChild(imgDsp);
 					placeholder.prepend(imgDsp);
 
 					img.style.display = 'none';
 					img.insertAdjacentElement('afterend', placeholder);
-					this.toggleDataAttribute('hideImg', true);
 				} else {
 					const placeholder = img.nextElementSibling;
 					if (placeholder && placeholder.classList.contains('wat-image-placeholder')) {
 						placeholder.remove();
 						img.style.display = 'inline';
 					}
-					this.toggleDataAttribute('hideImg', false);
 				}
 			});
+			// 저장은 이미지 개수만큼 반복하지 않고 루프 밖에서 1회만 수행
+			// (또한 별개 기능인 hideImg 속성을 여기서 토글하지 않음 — 기능 간 상태 얽힘 방지)
+			this.savePreferences();
 		}
 
 		/**
@@ -6644,6 +6786,8 @@ export class WAT {
 			if (isEnabled) {
 				const contents = document.querySelectorAll('.blind, .displayNone');
 				contents.forEach(content => {
+					// 원래 어떤 클래스였는지 기록해 복원 시 정확히 되돌림 (.displayNone → .blind 오염 방지)
+					content.dataset.watHiddenClass = content.classList.contains('displayNone') ? 'displayNone' : 'blind';
 					content.classList.remove('blind', 'displayNone');
 					content.classList.add('wat-wasBlind');
 				});
@@ -6651,7 +6795,8 @@ export class WAT {
 				const contents = document.querySelectorAll('.wat-wasBlind');
 				contents.forEach(content => {
 					content.classList.remove('wat-wasBlind');
-					content.classList.add('blind');
+					content.classList.add(content.dataset.watHiddenClass || 'blind');
+					delete content.dataset.watHiddenClass;
 				});
 			}
 		}
@@ -6687,13 +6832,16 @@ export class WAT {
 				if (mode === 'hide') {
 					img.style.display = 'none'; // 이미지를 숨김
 				} else if (mode === 'convert') {
-					const altText = img.getAttribute('alt') || this.getLocalizedText('panel.personal.options.imgTextConvert.msg.noAlt');
+					// alt → title → "설명 없음" 순서로 폴백 (기존 || 결합은 title 분기를 데드 코드로 만들었음)
+					const altText = img.getAttribute('alt');
 					const titleText = img.getAttribute('title') || '';
-					let replacementText = altText;
-
-					// `alt` 텍스트가 없고 `title` 텍스트가 있으면 `title` 텍스트를 사용
-					if (!altText && titleText) {
+					let replacementText;
+					if (altText) {
+						replacementText = altText;
+					} else if (titleText) {
 						replacementText = titleText;
+					} else {
+						replacementText = this.getLocalizedText('panel.personal.options.imgTextConvert.msg.noAlt');
 					}
 
 					// `.blind` 클래스의 텍스트를 추가적으로 처리
@@ -6710,13 +6858,15 @@ export class WAT {
 						replacementText += ` [${blindText}]`;
 					}
 
-					// 이미지를 텍스트로 교체
+					// 이미지를 텍스트로 교체 — alt 문자열이 HTML로 파싱되지 않도록 DOM API로 구성
 					const newPlaceholder = document.createElement('div');
 					newPlaceholder.classList.add('wat-image-placeholder');
-					newPlaceholder.innerHTML = `
-				<img class="wat-image-placeholder-dsp" src="./images/icon_image.png" alt="">
-				${replacementText}
-				`;
+					const placeholderIcon = document.createElement('img');
+					placeholderIcon.classList.add('wat-image-placeholder-dsp');
+					placeholderIcon.src = basePath ? `${basePath}assets/images/icon_image.png` : './images/icon_image.png';
+					placeholderIcon.alt = '';
+					newPlaceholder.appendChild(placeholderIcon);
+					newPlaceholder.appendChild(document.createTextNode(replacementText));
 					img.style.display = 'none';
 					img.insertAdjacentElement('afterend', newPlaceholder);
 				} else {
@@ -6845,8 +6995,8 @@ export class WAT {
 					if (window.innerHeight + window.scrollY >= document.body.offsetHeight) {
 						this._cancelAnimationFrame(this.scrollInterval);
 						this.scrollInterval = null;
-						//elm_toggle_btn.classList.remove('playing');
-						//elm_toggle_btn.setAttribute('aria-pressed', 'false');
+						// 자연 종료 시 버튼 상태(aria-pressed)도 복원 — 라벨과 상태 불일치 방지
+						elm_toggle_btn.setAttribute('aria-pressed', 'false');
 						elm_toggle_btn.textContent = this.getLocalizedText('panel.personal.options.pageScroll.options.start');
 						elm_toggle_btn.focus();
 					} else {
@@ -6925,16 +7075,21 @@ export class WAT {
 		 * this.stopPageScroll();
 		 */
 		stopPageScroll() {
-			document.getElementById('wat-button-pageScroll_toggle').setAttribute('aria-pressed', 'false');
-			const scrollInterval = this.state.get('plugin.scrollInterval');
+			const toggleBtn = document.getElementById('wat-button-pageScroll_toggle');
+			if (toggleBtn) toggleBtn.setAttribute('aria-pressed', 'false');
+			// 시작 측이 this.scrollInterval에 저장하므로 동일한 위치에서 읽어야 정지가 동작함
+			const scrollInterval = this.scrollInterval || this.state.get('plugin.scrollInterval');
 			if (scrollInterval) {
 				this._cancelAnimationFrame(scrollInterval);
+				this.scrollInterval = null;
 				this.state.set('plugin.scrollInterval', null);
-				//document.getElementById('wat-button-pageScroll_start').style.display = 'inline';
-				//document.getElementById('wat-button-pageScroll_stop').style.display = 'none';
-				document.getElementById('wat-button-pageScroll_start').disabled = false;
-				document.getElementById('wat-button-pageScroll_stop').disabled = true;
-				document.getElementById('wat-button-pageScroll_start').focus();
+				const startBtn = document.getElementById('wat-button-pageScroll_start');
+				const stopBtn = document.getElementById('wat-button-pageScroll_stop');
+				if (startBtn) {
+					startBtn.disabled = false;
+					startBtn.focus();
+				}
+				if (stopBtn) stopBtn.disabled = true;
 			}
 		}
 
@@ -6989,7 +7144,14 @@ export class WAT {
 				}
 				
 				const loadedConfig = await response.json();
-				
+
+				// 타임아웃 폴백이 이미 발동한 뒤 늦게 도착한 응답이 사용 중인 config를
+				// 도중에 교체하지 않도록 무시 (비결정적 동작 방지)
+				if (this._configLoaded) {
+					console.warn('⚠️ 타임아웃 이후 도착한 config 응답을 무시합니다:', this._configPath);
+					return;
+				}
+
 				// Merge with fallback configuration
 				this._config = this._mergeConfigurations(this._getFallbackConfig(), loadedConfig);
 				this._configLoaded = true;
@@ -7080,6 +7242,10 @@ export class WAT {
 				const result = { ...target };
 				
 			for (const key of Object.keys(source)) {
+				// 프로토타입 오염 방지 — 외부 config의 위험 키는 병합하지 않음
+				if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+					continue;
+				}
 				if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
 					result[key] = merge(target[key] || {}, source[key]);
 				} else {
@@ -7173,21 +7339,19 @@ export class WAT {
 		 * @private
 		 */
 		_applyConfigResources() {
-			// 폰트 URL 오버라이드
-			const nanumUrl = this.getConfigValue('resources.fonts.nanumMyeongjo', null);
-			if (nanumUrl && WAT.FONT_FAMILY_OPTIONS['nanum-myeongjo']) {
-				WAT.FONT_FAMILY_OPTIONS['nanum-myeongjo'].url = nanumUrl;
-			}
-
-			const notoUrl = this.getConfigValue('resources.fonts.notoSerifKR', null);
-			if (notoUrl && WAT.FONT_FAMILY_OPTIONS['noto-serif-kr']) {
-				WAT.FONT_FAMILY_OPTIONS['noto-serif-kr'].url = notoUrl;
-			}
-
-			const koddiUrl = this.getConfigValue('resources.fonts.koddiUdonGothic', null);
-			if (koddiUrl && WAT.FONT_FAMILY_OPTIONS['koddi-udon-gothic']) {
-				WAT.FONT_FAMILY_OPTIONS['koddi-udon-gothic'].url = koddiUrl;
-			}
+			// 폰트 URL 오버라이드 — config 유래 URL은 https/http 스킴만 허용
+			const applyFontUrl = (configKey, fontKey) => {
+				const url = this.getConfigValue(configKey, null);
+				if (!url || !WAT.FONT_FAMILY_OPTIONS[fontKey]) return;
+				if (!isSafeHttpUrl(url)) {
+					console.warn(`[WAT] ${configKey}의 폰트 URL 스킴이 유효하지 않아 무시합니다:`, url);
+					return;
+				}
+				WAT.FONT_FAMILY_OPTIONS[fontKey].url = url;
+			};
+			applyFontUrl('resources.fonts.nanumMyeongjo', 'nanum-myeongjo');
+			applyFontUrl('resources.fonts.notoSerifKR', 'noto-serif-kr');
+			applyFontUrl('resources.fonts.koddiUdonGothic', 'koddi-udon-gothic');
 		}
 
 		/**
@@ -7482,8 +7646,9 @@ export class WAT {
 			this.removeAllDictionLayers();
 
 			// Get UI settings from configuration
-			const modalWidth = this.getConfigValue('ui.modalWidth', 600);
-			const showPronunciation = this.getConfigValue('ui.showPronunciation', true);
+			// config 실제 구조는 settings.ui.* — 잘못된 경로면 config 값이 항상 무시됨
+			const modalWidth = this.getConfigValue('settings.ui.modalWidth', 600);
+			const showPronunciation = this.getConfigValue('settings.ui.showPronunciation', true);
 
 			// 새로운 레이어 생성
 			const layer = document.createElement('div');
@@ -7495,30 +7660,35 @@ export class WAT {
 			// Apply configured width
 			layer.style.maxWidth = `${modalWidth}px`;
 
-			// 레이어 내용 구성
+			// 레이어 내용 구성 — 외부 API 응답은 textContent로만 삽입 (XSS 방지)
 			const titleElement = document.createElement('h3');
 			titleElement.id = 'diction-result-title';
-			titleElement.innerHTML = item.title;
+			titleElement.textContent = item.title;
 			layer.appendChild(titleElement);
 
 			const descriptionElement = document.createElement('p');
-			descriptionElement.innerHTML = item.description;
+			descriptionElement.textContent = item.description;
 			layer.appendChild(descriptionElement);
 
 			// Show pronunciation if enabled and available
 			if (showPronunciation && item.pronunciation) {
 				const pronunciationElement = document.createElement('div');
 				pronunciationElement.className = 'wat-diction-pronunciation';
-				pronunciationElement.innerHTML = `<strong>${this.getLocalizedText('dictionary.pronunciation')}:</strong> ${item.pronunciation}`;
+				const pronunciationLabel = document.createElement('strong');
+				pronunciationLabel.textContent = `${this.getLocalizedText('dictionary.pronunciation')}:`;
+				pronunciationElement.appendChild(pronunciationLabel);
+				pronunciationElement.appendChild(document.createTextNode(` ${item.pronunciation}`));
 				layer.appendChild(pronunciationElement);
 			}
 
-			if (item.link) {
+			// 링크는 http(s) 스킴만 허용 (javascript: URL 차단)
+			if (item.link && isSafeHttpUrl(item.link)) {
 				const linkIcon = document.createElement('span');
-				linkIcon.innerHTML = '🔗';
+				linkIcon.textContent = '🔗';
 				const linkElement = document.createElement('a');
 				linkElement.href = item.link;
 				linkElement.target = '_blank';
+				linkElement.rel = 'noopener noreferrer';
 				linkElement.appendChild(linkIcon);
 				titleElement.appendChild(linkElement);
 			}
@@ -7799,9 +7969,9 @@ export class WAT {
 			const body = document.body;
 			body.classList.add('overlay-active');
 		
-			// 오버레이 생성 및 추가
+			// 오버레이 생성 및 추가 — 호스트 페이지의 .overlay와 구분되도록 플러그인 클래스 병기
 			const overlay = document.createElement('div');
-			overlay.classList.add('overlay');
+			overlay.classList.add('overlay', 'wat-overlay');
 			fragment.appendChild(overlay);
 		
 			// 모달 레이어 생성
@@ -8048,7 +8218,16 @@ export class WAT {
 					li.classList.add('pgStruct_item', 'link');
 				
 					const tag_a = document.createElement('a');
-					tag_a.textContent = decodeURI(link.textContent || link.href).trim();
+					// decodeURI는 '%' 포함 일반 텍스트에서 URIError를 던지므로 href에만 시도하고 실패 시 원문 사용
+				let linkLabel = (link.textContent || '').trim();
+				if (!linkLabel) {
+					try {
+						linkLabel = decodeURI(link.href);
+					} catch (e) {
+						linkLabel = link.href;
+					}
+				}
+				tag_a.textContent = linkLabel;
 					tag_a.href = link.href;
 					tag_a.target = '_blank';
 					tag_a.title = link.title || this.getLocalizedText('text.newWindow');
@@ -8110,6 +8289,8 @@ export class WAT {
 				} else if (e.key === 'Escape') {
 					layer.remove();
 					overlay.remove();
+					// 닫기 버튼 경로와 동일하게 body 상태 클래스도 정리 (스크롤 잠금 잔존 방지)
+					document.body.classList.remove('overlay-active');
 					if (previousFocusedElement) {
 						previousFocusedElement.focus();
 					} else {
@@ -8117,7 +8298,7 @@ export class WAT {
 					}
 				}
 			}
-		
+
 			layer.addEventListener('keydown', handleTab);
 		}
 
@@ -8132,7 +8313,8 @@ export class WAT {
 		 */
 		closePageStructure() {
 			const layer = document.getElementById('pgStructure_layer');
-			const overlay = document.querySelector('.overlay');
+			// 플러그인이 만든 오버레이만 제거 (호스트 페이지의 .overlay 오삭제 방지)
+			const overlay = document.querySelector('.overlay.wat-overlay');
 			const body = document.body;
 			if (layer) {
 				layer.classList.add('hidden');
@@ -8176,9 +8358,10 @@ export class WAT {
 			];
 		
 			// 모든 포커스 가능한 요소들을 검색하고 배열로 변환
-			//const focusableNodes = Array.from(document.querySelectorAll(focusableElements.join(',')));
+			// 전달받은 element를 검색 루트로 사용 (기존에는 인자를 무시하고 항상 document 전체를 검색했음)
+			const searchRoot = element || document;
 			const combinedSelector = focusableElements.join(', ');
-			const focusableNodes = Array.from(document.querySelectorAll(combinedSelector)).filter(el => el.offsetWidth > 0 && el.offsetHeight > 0);
+			const focusableNodes = Array.from(searchRoot.querySelectorAll(combinedSelector)).filter(el => el.offsetWidth > 0 && el.offsetHeight > 0);
 			//console.log(focusableNodes);
 			const extractClassNodes = Array.from(document.querySelectorAll(extractClassElements.join(',')));
 		
@@ -8222,7 +8405,8 @@ export class WAT {
 			this.tts_updateHighlight(index);
 		
 			const utterance = new SpeechSynthesisUtterance(ttsElements[index].innerText);
-			const ttsSpeed = 2;
+			// 사용자가 설정한 읽기 속도 반영 (하드코딩 시 속도 설정이 무시됨)
+			const ttsSpeed = this.state.get('plugin.readingSpeed') || 1;
 			const language = this.language;
 			utterance.rate = parseFloat(ttsSpeed);
 			utterance.lang = language; // 사용자가 선택한 언어 설정
@@ -8259,11 +8443,17 @@ export class WAT {
 				const currentEl = ttsElements[index];
 				currentEl.classList.add('wat-tts_highlight');
 				currentEl.focus();
-		
+
+				// 같은 요소가 재하이라이트될 때마다 리스너가 누적되어 Enter 한 번에 click이 다중 실행되는 것을 방지
+				if (currentEl._watTtsKeydownHandler) {
+					currentEl.removeEventListener('keydown', currentEl._watTtsKeydownHandler);
+				}
 				// 키다운 이벤트 리스너를 추가하여 스페이스바나 엔터키가 눌리면 TTS를 중지하고, 해당 요소를 실행하도록 함
-				currentEl.addEventListener('keydown', (e) => {
+				const keydownHandler = (e) => {
 					if (e.key === ' ' || e.key === 'Enter') {
 						e.preventDefault();
+						currentEl.removeEventListener('keydown', keydownHandler);
+						currentEl._watTtsKeydownHandler = null;
 						this.speechSynthesis.cancel();
 						// 만약 링크나 버튼과 같이 클릭이 가능한 요소라면 클릭 이벤트를 발생시킴
 						const tag = currentEl.tagName.toLowerCase();
@@ -8273,7 +8463,9 @@ export class WAT {
 						this.tts_stopReading();
 						this.toggleStartbtn_ttsStops(false); // 정지 상태로 버튼 토글
 					}
-				}, { once: true });
+				};
+				currentEl._watTtsKeydownHandler = keydownHandler;
+				currentEl.addEventListener('keydown', keydownHandler);
 			}
 		}
 
@@ -8336,8 +8528,9 @@ export class WAT {
 			notification.classList.add('wat-notification'); // 스타일 적용을 위해 클래스 추가
 			document.body.appendChild(notification);
 
-			setTimeout(() => {
-				document.body.removeChild(notification);
+			// 추적형 타이머 + remove() — 선제거 시 NotFoundError 방지, destroy 시 해제
+			this._setTimeout(() => {
+				notification.remove();
 			}, 3000);
 		}
 
@@ -8395,7 +8588,7 @@ export class WAT {
 						}
 
 						const utterance = new SpeechSynthesisUtterance(textToRead);
-						utterance.rate = 2;
+						utterance.rate = this.state.get('plugin.readingSpeed') || 1;
 						utterance.lang = this.language;
 
 						// TTS 시작 시 포커스 감지 상태 확인
@@ -8615,14 +8808,21 @@ export class WAT {
 		 */
 		_fallbackHighlight(range) {
 			// 선택된 영역에 CSS 클래스를 추가하여 시각적 하이라이트만 제공
-			const selection = window.getSelection();
-			const rangeParent = range.commonAncestorContainer;
-			
-			if (rangeParent.nodeType === Node.ELEMENT_NODE) {
+			let rangeParent = range.commonAncestorContainer;
+			// 텍스트 노드면 부모 요소로 승격해 하이라이트가 적용되도록 함
+			if (rangeParent.nodeType === Node.TEXT_NODE) {
+				rangeParent = rangeParent.parentElement;
+			}
+
+			if (rangeParent && rangeParent.nodeType === Node.ELEMENT_NODE) {
+				// 공통 조상이 body/html이면 페이지 전체가 하이라이트되므로 생략
+				if (rangeParent === document.body || rangeParent === document.documentElement) {
+					return;
+				}
 				rangeParent.classList.add('wat-tts_highlight-fallback');
-				
-				// 일정 시간 후 클래스 제거
-				setTimeout(() => {
+
+				// 일정 시간 후 클래스 제거 (추적형 타이머 — destroy 후 발화 방지)
+				this._setTimeout(() => {
 					rangeParent.classList.remove('wat-tts_highlight-fallback');
 				}, 3000);
 			}
@@ -8663,7 +8863,7 @@ export class WAT {
 		 */
 		_speakTextOnly(text) {
 			const utterance = new SpeechSynthesisUtterance(text);
-			utterance.rate = 2;
+			utterance.rate = this.state.get('plugin.readingSpeed') || 1;
 			utterance.lang = this.language;
 
 			this.speechSynthesis.cancel();
@@ -8678,8 +8878,7 @@ export class WAT {
 		 */
 		_executeTTS(selectedText, highlightSpan) {
 			const utterance = new SpeechSynthesisUtterance(selectedText);
-			console.log('TTS Speaking:', selectedText);
-			utterance.rate = 2;
+			utterance.rate = this.state.get('plugin.readingSpeed') || 1;
 			utterance.lang = this.language;
 
 			// 상태 업데이트
@@ -8777,6 +8976,10 @@ export class WAT {
 					// 다른 TTS가 시작되었거나 상태가 변경된 경우 정리
 					console.debug('[TTS] Speech canceled due to state change');
 					this._cleanupTTSHighlight(highlightSpan);
+					// 발화되지 않은 utterance가 상태에 잔류해 hasCurrentUtterance가 영구 true가 되는 것을 방지
+					if (this.state.get('plugin.currentUtterance') === utterance) {
+						this.state.set('plugin.currentUtterance', null);
+					}
 				}
 			}, cancelDelay);
 		}
@@ -8835,7 +9038,13 @@ export class WAT {
 				
 				// 포커스 이벤트 리스너 제거
 				this._removeGlobalEventListener('focusin');
-				
+
+				// 포커스 TTS가 클릭 시 부여했던 tabindex를 원복 (호스트 페이지 탭 순서 영구 변형 방지)
+				document.querySelectorAll('[data-wat-tabindex-added]').forEach(el => {
+					el.removeAttribute('tabindex');
+					delete el.dataset.watTabindexAdded;
+				});
+
 				// UI 업데이트
 				const btn = document.getElementById('wat-button-tts_focus_toggle');
 				if (btn) {
@@ -9048,13 +9257,14 @@ export class WAT {
 		 * this.toggleStartbtn_ttsStops(false);
 		 */
 		toggleStartbtn_ttsStops(flag_ttsStarting) {
-				//document.getElementById('wat-button-tts_start').disabled = flag_ttsStarting;
-				//document.getElementById('wat-button-tts_stop').disabled = !flag_ttsStarting;
+				// 패널 미렌더/제거 상태에서 호출돼도 크래시 없이 이벤트 디스패치까지 진행되도록 null 가드
+				const ttsToggleBtn = document.getElementById('wat-button-tts_toggle');
+				const ttsNextBtn = document.getElementById('wat-button-tts_next');
+				const ttsPrevBtn = document.getElementById('wat-button-tts_prev');
 
-				document.getElementById('wat-button-tts_toggle').setAttribute('aria-pressed', flag_ttsStarting ? 'true' : 'false');
-
-				document.getElementById('wat-button-tts_next').disabled = !flag_ttsStarting;
-				document.getElementById('wat-button-tts_prev').disabled = !flag_ttsStarting;
+				if (ttsToggleBtn) ttsToggleBtn.setAttribute('aria-pressed', flag_ttsStarting ? 'true' : 'false');
+				if (ttsNextBtn) ttsNextBtn.disabled = !flag_ttsStarting;
+				if (ttsPrevBtn) ttsPrevBtn.disabled = !flag_ttsStarting;
 				
 				// Dispatch TTS state change event
 				this._dispatchStateEvent('tts:stateChanged', {
@@ -9424,16 +9634,19 @@ export class WAT {
 		generateTableText(element, lang) {
 			const caption = element.querySelector('caption');
 			const rows = element.querySelectorAll('tr').length;
-			const cols = element.querySelectorAll('th, td').length / rows;
-			
+			// 행이 0개인 빈 테이블에서 0으로 나눠 NaN이 발화되는 것을 방지
+			const cols = rows > 0 ? element.querySelectorAll('th, td').length / rows : 0;
+
 			let text = this.getLocalizedText('tts.table.label') + ' ';
-			
+
 			if (caption) {
 				text += caption.textContent + ' ';
 			}
-			
-			text += this.getLocalizedText('tts.table.size', { rows: rows, cols: Math.round(cols) });
-			
+
+			if (rows > 0) {
+				text += this.getLocalizedText('tts.table.size', { rows: rows, cols: Math.round(cols) });
+			}
+
 			return text.trim();
 		}
 
@@ -9448,11 +9661,16 @@ export class WAT {
 		 * const label = this.findLabelForElement(inputElement);
 		 */
 		findLabelForElement(element) {
-			// 1. label[for] 속성으로 연결된 경우
+			// 1. label[for] 속성으로 연결된 경우 — 호스트 페이지 id에 특수문자가 있어도 안전하도록 이스케이프
 			if (element.id) {
-				const label = document.querySelector(`label[for="${element.id}"]`);
-				if (label) {
-					return label.textContent.trim();
+				try {
+					const escapedId = typeof CSS !== 'undefined' && CSS.escape ? CSS.escape(element.id) : element.id;
+					const label = document.querySelector(`label[for="${escapedId}"]`);
+					if (label) {
+						return label.textContent.trim();
+					}
+				} catch (e) {
+					// 셀렉터 오류 시 다음 탐색 방법으로 진행
 				}
 			}
 			
@@ -9470,9 +9688,16 @@ export class WAT {
 			
 			const ariaLabelledBy = element.getAttribute('aria-labelledby');
 			if (ariaLabelledBy) {
-				const labelElement = document.getElementById(ariaLabelledBy);
-				if (labelElement) {
-					return labelElement.textContent.trim();
+				// aria-labelledby는 공백으로 구분된 여러 ID를 가질 수 있음
+				const labelText = ariaLabelledBy.split(/\s+/)
+					.map(id => {
+						const labelElement = document.getElementById(id);
+						return labelElement ? labelElement.textContent.trim() : '';
+					})
+					.filter(Boolean)
+					.join(' ');
+				if (labelText) {
+					return labelText;
 				}
 			}
 			
@@ -9758,21 +9983,29 @@ export class WAT {
 				const notSelector = excludeSelectors.length > 0 ? `:not(${excludeSelectors.join('):not(')})` : '';
 				
 				const selector = `*${notSelector}`;
-				const elements = iframeDoc.querySelectorAll(selector);
-				
+				// 사용자 excludeSelector가 잘못된 CSS면 전체가 죽지 않도록 방어 (메인 문서 버전과 동일)
+				let elements;
+				try {
+					elements = iframeDoc.querySelectorAll(selector);
+				} catch (e) {
+					console.warn(`[WAT] iframe excludeSelector가 유효하지 않아 제외 없이 진행합니다: ${iframeId}`, e.message);
+					elements = iframeDoc.querySelectorAll('*');
+				}
+
 				elements.forEach(el => {
 					// iframe 내부에서도 제외 검증
 					if (this.shouldExcludeElementInIframe(el, iframeDoc)) {
 						return;
 					}
-					
+
 					if (!el.textContent.trim()) return;
 
 					let hasDynamic = false;
 					const origStyles = {};
+					// 요소당 getComputedStyle 1회로 축소 (성능 — 대형 iframe 프리즈 방지)
+					const computed = el.ownerDocument.defaultView.getComputedStyle(el);
 
 					styleProps.forEach(({ css, className, px }) => {
-						const computed = el.ownerDocument.defaultView.getComputedStyle(el);
 						const elVal = computed.getPropertyValue(css);
 
 						let value = elVal;
@@ -10017,8 +10250,9 @@ export class WAT {
 			const ratio = this.lineHeightRatios[height] || 1;
 			
 			elements.forEach(el => {
+				// fontSize 버전과 동일하게 null 가드 — 원본 맵 미등록 요소에서 TypeError로 전체 중단 방지
 				const orig = this._originalStyleMap.get(el);
-				const origPx = parseFloat(orig['line-height']);
+				const origPx = orig && parseFloat(orig['line-height']);
 				if (origPx) {
 					el.style.setProperty('line-height', (origPx * ratio) + 'px', 'important');
 				}
@@ -10173,14 +10407,21 @@ export class WAT {
 				return;
 			}
 			
-			// iframe 로드 완료 대기
-			if (iframe.complete || iframe.readyState === 'complete') {
-				// 이미 로드된 경우 바로 처리
-				setTimeout(() => this.processNewIframe(iframe), 100);
+			// iframe 로드 완료 대기 — HTMLIFrameElement에는 complete/readyState가 없으므로 contentDocument로 판정
+			let alreadyLoaded = false;
+			try {
+				alreadyLoaded = !!(iframe.contentDocument && iframe.contentDocument.readyState === 'complete');
+			} catch (e) {
+				// cross-origin — load 이벤트 대기로 폴백
+			}
+			if (alreadyLoaded) {
+				// 이미 로드된 경우 바로 처리 (추적형 타이머 — destroy 후 재주입 방지)
+				this._setTimeout(() => this.processNewIframe(iframe), 100);
 			} else {
-				// 로드 완료 대기
+				// 로드 완료 대기 (cleanup 이후 발화 시 재주입 방지 가드 포함)
 				iframe.addEventListener('load', () => {
-					setTimeout(() => this.processNewIframe(iframe), 100);
+					if (this._destroyed) return;
+					this._setTimeout(() => this.processNewIframe(iframe), 100);
 				}, { once: true });
 			}
 		}
@@ -10274,8 +10515,9 @@ export class WAT {
 			notification.textContent = message;
 			notification.classList.add('wat-notification');
 			document.body.appendChild(notification);
-			setTimeout(() => {
-				document.body.removeChild(notification);
+			// 추적형 타이머 + remove() 사용 — 다른 경로가 먼저 제거해도 예외 없이 멱등 처리
+			this._setTimeout(() => {
+				notification.remove();
 			}, duration);
 		}
 
@@ -10313,8 +10555,24 @@ export class WAT {
 			this.closePageStructure();
 			this.removeReadingGuide();
 			
-			// 생성된 스타일 요소들 제거
+			// 포커스 TTS가 부여한 tabindex 원복
+			document.querySelectorAll('[data-wat-tabindex-added]').forEach(el => {
+				el.removeAttribute('tabindex');
+				delete el.dataset.watTabindexAdded;
+			});
+
+			// 생성된 스타일 요소들 제거 — TTS 래퍼는 호스트 페이지의 원본 텍스트를 감싸고 있으므로
+			// 통째로 제거하지 않고 unwrap(자식을 부모로 이동 후 래퍼만 제거)해야 함
 			document.querySelectorAll(Constants.DOM_SELECTORS.NOTIFICATION_AND_TTS).forEach(el => {
+				if (el.classList.contains('wat-tts_wrapper')) {
+					const parent = el.parentNode;
+					if (parent) {
+						while (el.firstChild) {
+							parent.insertBefore(el.firstChild, el);
+						}
+						parent.normalize();
+					}
+				}
 				el.remove();
 			});
 		}

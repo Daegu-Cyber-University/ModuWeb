@@ -33,25 +33,6 @@ export class StyleBatchProcessor {
 		this.scheduleUpdate();
 	}
 
-	queueBulkStyles(elementStyleMap) {
-		for (const [element, styles] of elementStyleMap.entries()) {
-			this.queueMultipleStyles(element, styles);
-		}
-	}
-
-	queueStylesBySelector(selector, styleMap) {
-		const elements = document.querySelectorAll(selector);
-		elements.forEach(element => {
-			this.queueMultipleStyles(element, styleMap);
-		});
-	}
-
-	queueConditionalStyle(element, property, value, condition) {
-		if (condition(element)) {
-			this.queueStyleUpdate(element, property, value);
-		}
-	}
-
 	scheduleUpdate() {
 		if (!this.isScheduled) {
 			this.isScheduled = true;
@@ -118,7 +99,10 @@ export class StyleBatchProcessor {
 
 	cancelPendingUpdates() {
 		if (this.frameId) {
-			if (typeof cancelAnimationFrame !== 'undefined') {
+			// scheduleUpdate()와 동일한 분기 순서 - plugin의 rAF로 만든 frameId는 plugin의 cancel로 취소
+			if (this.plugin && this.plugin._requestAnimationFrame && typeof this.plugin._cancelAnimationFrame === 'function') {
+				this.plugin._cancelAnimationFrame(this.frameId);
+			} else if (typeof cancelAnimationFrame !== 'undefined') {
 				cancelAnimationFrame(this.frameId);
 			} else {
 				clearTimeout(this.frameId);

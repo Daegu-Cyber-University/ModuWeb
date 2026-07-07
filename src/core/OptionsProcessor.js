@@ -19,9 +19,19 @@ export class OptionsProcessor {
 			if (config === false) {
 				delete result[key];
 			} else if (typeof config === 'number') {
-				result[key] = config;
-			} else if (typeof config === 'object' && config.ratio) {
-				result[key] = config.ratio;
+				// 유한한 양수만 허용 - NaN/Infinity/0 이하 값은 건너뜀
+				if (Number.isFinite(config) && config > 0) {
+					result[key] = config;
+				} else {
+					console.warn(`[WAT:OptionsProcessor] 유효하지 않은 ratio 값을 건너뜁니다: ${key} = ${config}`);
+				}
+			} else if (config !== null && typeof config === 'object') {
+				// null 가드 - typeof null === 'object' 이므로 반드시 확인
+				if (typeof config.ratio === 'number' && Number.isFinite(config.ratio) && config.ratio > 0) {
+					result[key] = config.ratio;
+				} else {
+					console.warn(`[WAT:OptionsProcessor] 유효하지 않은 ratio 설정을 건너뜁니다: ${key} = ${JSON.stringify(config)}`);
+				}
 			}
 		}
 		return result;
@@ -35,6 +45,11 @@ export class OptionsProcessor {
 	 * @returns {Object} Processed language configuration
 	 */
 	static processLanguageOptions(inputLang, supportedLanguages, selectedLang = 'ko') {
+		// localStorage 유래 selectedLang 검증 - 지원 언어 목록에 없으면 'ko'로 폴백
+		if (typeof selectedLang !== 'string' || !Localization.SUPPORTED_LANGUAGES.includes(selectedLang)) {
+			selectedLang = 'ko';
+		}
+
 		if (inputLang && typeof inputLang === 'object' && !Array.isArray(inputLang)) {
 			const { languages, autoDetect = false, showSelector = true, defaultLanguage = 'ko' } = inputLang;
 

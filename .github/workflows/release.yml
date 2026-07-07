@@ -23,17 +23,18 @@ jobs:
 
       - name: Extract changelog for this version
         id: changelog
+        env:
+          VERSION: ${{ steps.version.outputs.VERSION }}
         run: |
-          VERSION="${{ steps.version.outputs.VERSION }}"
-          # CHANGELOG.md에서 해당 버전 섹션 추출
-          awk "/^## \[$VERSION\]/,/^## \[/" CHANGELOG.md \
-            | head -n -1 \
-            | tail -n +2 > release_notes.txt
+          # CHANGELOG.md에서 해당 버전 섹션 추출 (마지막 섹션이어도 내용 유지)
+          awk -v ver="$VERSION" '$0 ~ "^## \\[" ver "\\]" {found=1; next} found && /^## \[/ {exit} found {print}' CHANGELOG.md > release_notes.txt
           echo "NOTES<<EOF" >> $GITHUB_OUTPUT
           cat release_notes.txt >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Create release archive
+        env:
+          VERSION: ${{ steps.version.outputs.VERSION }}
         run: |
           mkdir -p release-package
           cp -r dist release-package/
@@ -42,12 +43,12 @@ jobs:
           cp CHANGELOG.md release-package/
           cp LICENSE release-package/
           cd release-package
-          zip -r ../moduweb-v${{ steps.version.outputs.VERSION }}.zip .
+          zip -r "../moduweb-v$VERSION.zip" .
           cd ..
-          tar -czf moduweb-v${{ steps.version.outputs.VERSION }}.tar.gz -C release-package .
+          tar -czf "moduweb-v$VERSION.tar.gz" -C release-package .
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
         with:
           name: "ModuWeb v${{ steps.version.outputs.VERSION }}"
           body: ${{ steps.changelog.outputs.NOTES }}

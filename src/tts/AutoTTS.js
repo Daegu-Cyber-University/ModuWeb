@@ -11,6 +11,7 @@ export class AutoTTS {
 		this.currentIndex = -1;
 		this.autoAdvanceTimer = null;
 		this.currentUtterance = null;
+		this.keepAliveTimer = null;
 	}
 
 	start() {
@@ -30,6 +31,14 @@ export class AutoTTS {
 		this._clearAutoAdvanceTimer();
 		this._removeAllHighlights();
 		this.currentIndex = -1;
+		this.elements = [];
+	}
+
+	/**
+	 * 자동 읽기를 완전히 정리합니다. (발화, 타이머, 하이라이트, 요소 목록)
+	 */
+	destroy() {
+		this.stop();
 	}
 
 	moveToPrevious() {
@@ -215,9 +224,66 @@ export class AutoTTS {
 
 		this.currentUtterance = new SpeechSynthesisUtterance(text);
 		this.currentUtterance.rate = this.ttsManager.config.speechRate;
-		this.currentUtterance.onend = onEnd;
+
+		const speechLang = this._getSpeechLang();
+		if (speechLang) {
+			this.currentUtterance.lang = speechLang;
+		}
+
+		this.currentUtterance.onend = () => {
+			this._stopKeepAlive();
+			this.currentUtterance = null;
+			if (typeof onEnd === 'function') onEnd();
+		};
+
+		this.currentUtterance.onerror = (event) => {
+			this._stopKeepAlive();
+			this.currentUtterance = null;
+			// 사용자 조작에 의한 중단/취소는 조용히 무시합니다.
+			if (event && (event.error === 'interrupted' || event.error === 'canceled')) {
+				return;
+			}
+			// 그 외 에러는 다음 요소로 진행해 자동 진행 체인을 유지합니다.
+			if (typeof onEnd === 'function') onEnd();
+		};
 
 		window.speechSynthesis.speak(this.currentUtterance);
+		this._startKeepAlive();
+	}
+
+	/**
+	 * 플러그인 언어 설정을 음성 합성용 BCP-47 언어 코드로 변환합니다.
+	 * @returns {string} 언어 코드 (설정이 없으면 빈 문자열)
+	 */
+	_getSpeechLang() {
+		const lang = this.plugin && this.plugin.language;
+		if (!lang) return '';
+		const langMap = { ko: 'ko-KR', ja: 'ja-JP', zh: 'zh-CN', de: 'de-DE' };
+		return langMap[lang] || lang;
+	}
+
+	/**
+	 * Chrome 의 장문 발화 시 약 15초 후 무음 정지되는 버그를 우회하기 위해
+	 * 발화 중 주기적으로 pause/resume 을 호출하는 킵얼라이브 타이머를 시작합니다.
+	 */
+	_startKeepAlive() {
+		this._stopKeepAlive();
+		this.keepAliveTimer = setInterval(() => {
+			if (window.speechSynthesis && window.speechSynthesis.speaking) {
+				window.speechSynthesis.pause();
+				window.speechSynthesis.resume();
+			}
+		}, 10000);
+	}
+
+	/**
+	 * 킵얼라이브 타이머를 해제합니다.
+	 */
+	_stopKeepAlive() {
+		if (this.keepAliveTimer) {
+			clearInterval(this.keepAliveTimer);
+			this.keepAliveTimer = null;
+		}
 	}
 
 	_scheduleAutoAdvance() {
@@ -254,10 +320,16 @@ export class AutoTTS {
 	}
 
 	_stopCurrentSpeech() {
+		this._stopKeepAlive();
+		// cancel() 호출 전에 핸들러를 해제해 정지한 자동 읽기가 저절로 재시작되는 것을 방지합니다.
+		if (this.currentUtterance) {
+			this.currentUtterance.onend = null;
+			this.currentUtterance.onerror = null;
+			this.currentUtterance = null;
+		}
 		if (window.speechSynthesis) {
 			window.speechSynthesis.cancel();
 		}
-		this.currentUtterance = null;
 	}
 
 	_clearAutoAdvanceTimer() {

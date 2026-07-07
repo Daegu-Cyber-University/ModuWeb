@@ -120,6 +120,32 @@ export class TTSManager {
 		}
 	}
 
+	/**
+	 * TTS 매니저를 완전히 정리합니다.
+	 * 플러그인 cleanup(destroy) 시 호출해 리스너, 타이머, 진행 중인 발화를 모두 해제합니다.
+	 */
+	destroy() {
+		try {
+			if (this.autoTTS) this.autoTTS.destroy();
+		} catch (error) {
+			console.warn('Failed to destroy AutoTTS:', error);
+		}
+		try {
+			if (this.focusTTS) this.focusTTS.destroy();
+		} catch (error) {
+			console.warn('Failed to destroy FocusTTS:', error);
+		}
+		try {
+			if (this.keyboardTTS) this.keyboardTTS.destroy();
+		} catch (error) {
+			console.warn('Failed to destroy KeyboardTTS:', error);
+		}
+		if (window.speechSynthesis) {
+			window.speechSynthesis.cancel();
+		}
+		this.currentState = this.states.INACTIVE;
+	}
+
 	_updateUI() {
 		this._updateAutoTTSButton();
 		this._updateFocusTTSButton();

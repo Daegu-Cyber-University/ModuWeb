@@ -316,6 +316,12 @@
 					}
 				}
 			}
+		},
+		"tts": {
+			"start": "Auto Read",
+			"stop": "Stop Auto Read",
+			"focusStart": "Focus Read",
+			"focusStop": "Stop Focus Read"
 		}
 	},
 	"command": {
@@ -555,12 +561,44 @@
 			"rowspan": "Row Span"
 		}
 	},
+	"tts": {
+		"input": {
+			"states": {
+				"checked": "checked",
+				"unchecked": "not checked",
+				"selected": "selected",
+				"unselected": "not selected"
+			},
+			"types": {
+				"button": "Button"
+			}
+		},
+		"link": {
+			"newWindow": "opens in new window"
+		},
+		"button": {
+			"unlabeled": "Unlabelled button"
+		},
+		"image": {
+			"label": "Image",
+			"noDescription": "no description"
+		},
+		"progress": {
+			"label": "Progress",
+			"percent": " per cent"
+		},
+		"table": {
+			"label": "Table",
+			"size": "{rows} rows, {cols} columns"
+		}
+	},
 	"msg": {
 		"success": {
 			"save": "Saved successfully."
 		},
 		"error": {
 			"default": "An error has occurred.",
+			"general": "An error occurred. Please try again.",
 			"save": "An error occurred while saving.",
 			"load": "An error occurred while loading.",
 			"selectorNotFound": "Element \"{selector}\" not found.",
@@ -580,8 +618,15 @@
 			"noChange": "No changes made.",
 			"optionNotNode": "Option \"{option}\" is not a Node and will be skipped.",
 			"noSettingsChecked": "No settings checked.",
-			"languageNotFound": "Language not supported."
+			"languageNotFound": "Language not supported.",
+			"profileNotFound": "Profile \"{profileName}\" not found."
+		},
+		"info": {
+			"dictionaryNotFound": "No results found for \"{word}\"."
 		}
+	},
+	"dictionary": {
+		"pronunciation": "Pronunciation"
 	},
 	"text": {
 		"fileSelected": "Selected file",
@@ -603,6 +648,6 @@
 		"newWindow": "New Window",
 		"empty": "Empty",
 		"strong": "Strong",
-		"emphasise": "Emphasise"
+		"emphasize": "Emphasise"
 	}
 }

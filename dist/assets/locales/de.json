@@ -316,6 +316,12 @@
 					}
 				}
 			}
+		},
+		"tts": {
+			"start": "Automatisches Vorlesen",
+			"stop": "Automatisches Vorlesen stoppen",
+			"focusStart": "Fokus-Vorlesen",
+			"focusStop": "Fokus-Vorlesen stoppen"
 		}
 	},
 	"command": {
@@ -555,12 +561,44 @@
 			"rowspan": "Zeilenzusammenführung"
 		}
 	},
+	"tts": {
+		"input": {
+			"states": {
+				"checked": "aktiviert",
+				"unchecked": "nicht aktiviert",
+				"selected": "ausgewählt",
+				"unselected": "nicht ausgewählt"
+			},
+			"types": {
+				"button": "Schaltfläche"
+			}
+		},
+		"link": {
+			"newWindow": "wird in neuem Fenster geöffnet"
+		},
+		"button": {
+			"unlabeled": "Schaltfläche ohne Beschriftung"
+		},
+		"image": {
+			"label": "Bild",
+			"noDescription": "keine Beschreibung"
+		},
+		"progress": {
+			"label": "Fortschritt",
+			"percent": " Prozent"
+		},
+		"table": {
+			"label": "Tabelle",
+			"size": "{rows} Zeilen, {cols} Spalten"
+		}
+	},
 	"msg": {
 		"success": {
 			"save": "Erfolgreich gespeichert."
 		},
 		"error": {
 			"default": "Ein Fehler ist aufgetreten.",
+			"general": "Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.",
 			"save": "Beim Speichern ist ein Fehler aufgetreten.",
 			"load": "Beim Laden ist ein Fehler aufgetreten.",
 			"selectorNotFound": "Element \"{selector}\" wurde nicht gefunden.",
@@ -580,8 +618,15 @@
 			"noChange": "Keine Änderungen vorgenommen.",
 			"optionNotNode": "Option \"{option}\" ist kein Node und wird übersprungen.",
 			"noSettingsChecked": "Keine Einstellungen ausgewählt.",
-			"languageNotFound": "Sprache nicht gefunden"
+			"languageNotFound": "Sprache nicht gefunden",
+			"profileNotFound": "Profil \"{profileName}\" wurde nicht gefunden."
+		},
+		"info": {
+			"dictionaryNotFound": "Keine Ergebnisse für \"{word}\" gefunden."
 		}
+	},
+	"dictionary": {
+		"pronunciation": "Aussprache"
 	},
 	"text": {
 		"fileSelected": "Ausgewählte Datei",

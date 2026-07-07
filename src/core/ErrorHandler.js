@@ -26,7 +26,8 @@ export class ErrorHandler {
 		MEMORY_MANAGEMENT: 'memory_management',
 		VALIDATION: 'validation',
 		NETWORK: 'network',
-		USER_INPUT: 'user_input'
+		USER_INPUT: 'user_input',
+		UNKNOWN: 'unknown'
 	};
 
 	// Error recovery strategies
@@ -58,13 +59,68 @@ export class ErrorHandler {
 		};
 	}
 
+	/**
+	 * handle()의 별칭 - 자유형 category/severity 문자열을 내부 enum으로 정규화하여 위임
+	 * @param {Error|string} error - Error object or error message
+	 * @param {Object} context - Error context information (자유형 문자열 허용)
+	 * @returns {Object} Error handling result
+	 */
+	static handleError(error, context = {}) {
+		return this.handle(error, {
+			...context,
+			category: this._normalizeCategory(context.category),
+			severity: this._normalizeSeverity(context.severity)
+		});
+	}
+
+	/**
+	 * 자유형 category 문자열을 CATEGORIES enum 값으로 정규화
+	 * @private
+	 */
+	static _normalizeCategory(category) {
+		if (typeof category !== 'string' || !category) return this.CATEGORIES.UNKNOWN;
+		const normalized = category.toLowerCase().replace(/[\s-]+/g, '_');
+		if (Object.values(this.CATEGORIES).includes(normalized)) return normalized;
+		// 자주 쓰이는 자유형 표현 매핑
+		const aliases = {
+			'configuration': this.CATEGORIES.INITIALIZATION,
+			'config': this.CATEGORIES.INITIALIZATION,
+			'init': this.CATEGORIES.INITIALIZATION,
+			'dom': this.CATEGORIES.DOM_OPERATION,
+			'style': this.CATEGORIES.STYLE_APPLICATION,
+			'cache': this.CATEGORIES.CACHE_OPERATION,
+			'event': this.CATEGORIES.EVENT_HANDLING,
+			'state': this.CATEGORIES.STATE_MANAGEMENT
+		};
+		return aliases[normalized] || this.CATEGORIES.UNKNOWN;
+	}
+
+	/**
+	 * 자유형 severity 문자열을 SEVERITY enum 값으로 정규화
+	 * @private
+	 */
+	static _normalizeSeverity(severity) {
+		if (typeof severity !== 'string' || !severity) return this.SEVERITY.ERROR;
+		const normalized = severity.toLowerCase();
+		if (Object.values(this.SEVERITY).includes(normalized)) return normalized;
+		// 자주 쓰이는 자유형 표현 매핑
+		const aliases = {
+			'fatal': this.SEVERITY.CRITICAL,
+			'high': this.SEVERITY.ERROR,
+			'medium': this.SEVERITY.WARNING,
+			'low': this.SEVERITY.INFO,
+			'notice': this.SEVERITY.INFO
+		};
+		return aliases[normalized] || this.SEVERITY.ERROR;
+	}
+
 	static _createErrorInfo(error, context) {
 		const isErrorObject = error instanceof Error;
 		return {
 			message: isErrorObject ? error.message : String(error),
 			stack: isErrorObject ? error.stack : new Error().stack,
 			name: isErrorObject ? error.name : 'WAT_Error',
-			category: context.category || this.CATEGORIES.ERROR,
+			category: context.category || this.CATEGORIES.UNKNOWN,
 			severity: context.severity || this.SEVERITY.ERROR,
 			method: context.method || 'unknown',
 			component: context.component || 'WAT',
@@ -193,11 +249,30 @@ export class ErrorHandler {
 		}
 	}
 
+	// sessionStorage 기반 디버그 플래그 캐시 (null = 아직 미확인)
+	static _sessionDebugFlag = null;
+
+	/**
+	 * sessionStorage의 WAT_DEBUG 플래그 확인 (1회 캐시)
+	 * 쿠키 차단/샌드박스 iframe에서는 sessionStorage 접근 자체가 throw 하므로 try/catch로 보호
+	 * @private
+	 */
+	static _checkSessionDebugFlag() {
+		if (this._sessionDebugFlag === null) {
+			try {
+				this._sessionDebugFlag = sessionStorage.getItem('WAT_DEBUG') === 'true';
+			} catch (storageError) {
+				this._sessionDebugFlag = false;
+			}
+		}
+		return this._sessionDebugFlag;
+	}
+
 	/**
 	 * Debug logging utility
 	 */
 	static debugLog(message, data = null, level = 'log') {
-		if (typeof window !== 'undefined' && (window.WAT_DEBUG_MODE || sessionStorage.getItem('WAT_DEBUG') === 'true')) {
+		if (typeof window !== 'undefined' && (window.WAT_DEBUG_MODE || this._checkSessionDebugFlag())) {
 			const timestamp = new Date().toISOString();
 			const logMessage = `[WAT Debug ${timestamp}] ${message}`;
 			if (data !== null) {

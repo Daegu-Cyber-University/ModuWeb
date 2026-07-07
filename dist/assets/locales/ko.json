@@ -198,7 +198,7 @@
 						"hide": "숨기기",
 						"convert": "텍스트 변환"
 					}
-				},	
+				},
 				"mediaControl": {
 					"title": "미디어 제어",
 					"desc": "미디어의 재생 상태를 제어할 수 있습니다.",
@@ -316,6 +316,12 @@
 					}
 				}
 			}
+		},
+		"tts": {
+			"start": "자동 읽기",
+			"stop": "자동 읽기 중지",
+			"focusStart": "포커스 읽기",
+			"focusStop": "포커스 읽기 중지"
 		}
 	},
 	"command": {
@@ -555,12 +561,44 @@
 			"rowspan": "행 병합"
 		}
 	},
+	"tts": {
+		"input": {
+			"states": {
+				"checked": "선택됨",
+				"unchecked": "선택 안됨",
+				"selected": "선택됨",
+				"unselected": "선택 안됨"
+			},
+			"types": {
+				"button": "버튼"
+			}
+		},
+		"link": {
+			"newWindow": "새 창에서 열림"
+		},
+		"button": {
+			"unlabeled": "레이블 없는 버튼"
+		},
+		"image": {
+			"label": "이미지",
+			"noDescription": "설명 없음"
+		},
+		"progress": {
+			"label": "진행률",
+			"percent": "퍼센트"
+		},
+		"table": {
+			"label": "테이블",
+			"size": "{rows}행 {cols}열"
+		}
+	},
 	"msg": {
 		"success": {
 			"save": "저장되었습니다."
 		},
 		"error": {
 			"default": "오류가 발생했습니다.",
+			"general": "오류가 발생했습니다. 다시 시도해 주세요.",
 			"save": "저장 중 오류가 발생했습니다.",
 			"load": "불러오기 중 오류가 발생했습니다.",
 			"selectorNotFound": "\"{selector}\" 요소를 찾을 수 없습니다.",
@@ -580,8 +618,15 @@
 			"noChange": "변경된 내용이 없습니다.",
 			"optionNotNode": "옵션 \"{option}\"이(가) Node가 아니므로 건너뜁니다.",
 			"noSettingsChecked": "선택된 설정이 없습니다.",
-			"languageNotFound": "지원 언어를 찾을 수 없습니다."
+			"languageNotFound": "지원 언어를 찾을 수 없습니다.",
+			"profileNotFound": "프로필 \"{profileName}\"을(를) 찾을 수 없습니다."
+		},
+		"info": {
+			"dictionaryNotFound": "\"{word}\"에 대한 검색 결과를 찾을 수 없습니다."
 		}
+	},
+	"dictionary": {
+		"pronunciation": "발음"
 	},
 	"text": {
 		"fileSelected": "선택된 파일",
