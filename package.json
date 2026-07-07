@@ -48,6 +48,7 @@
 		"test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
 		"test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage",
 		"lint": "eslint src",
+		"lint:css": "node scripts/check-css-selectors.mjs",
 		"validate": "node --check src/index.js",
 		"start": "echo 'Open examples/index.html in a browser to test'",
 		"preversion": "npm test",
