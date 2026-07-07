@@ -84,6 +84,9 @@ export class WAT {
 		 * @param {string} [options.containerSelector='body'] - CSS selector for the container element (컨테이너 요소의 CSS 선택자)
 		 * @param {string} [options.language='ko'] - Default language for the plugin ('ko' or 'en') (플러그인의 기본 언어)
 		 * @param {string} [options.styleCssPath] - Custom path for the style CSS file (스타일 CSS 파일의 커스텀 경로)
+		 * @param {Object} [options.config] - Inline configuration object, takes precedence over configPath (인라인 설정 객체 — configPath보다 우선, fetch 없이 동기 확정)
+		 * @param {string} [options.configPath] - Path to config.json to fetch (config.json 경로)
+		 * @param {boolean} [options.injectCss=true] - Auto-inject stylesheet when no manual link exists (수동 link 부재 시 CSS 자동 주입 여부)
 		 * @param {boolean} [options.enableCache=true] - Whether to enable element caching (요소 캐싱 사용 여부)
 		 * @param {number} [options.cacheMaxAge=30000] - Maximum age for cached elements in milliseconds (캐시된 요소의 최대 유지 시간, 밀리초)
 		 * @param {string} [options.styleMode='dynamic'] - Style application mode ('dynamic' or 'static') (스타일 적용 모드)
@@ -504,6 +507,9 @@ export class WAT {
 		 */
 		async init() {
 			try {
+				// CSS 자동 주입 — 호스트가 <link>를 직접 추가하지 않았으면 스크립트 위치 기준으로 로드 ("1줄 설치" 지원)
+				this._ensureStylesheet();
+
 				// 설정 로딩이 완료될 때까지 대기
 				await this._waitForConfigurationLoad();
 				
@@ -7165,6 +7171,16 @@ export class WAT {
 		 * @private
 		 */
 		async _loadConfiguration() {
+			// 인라인 config 객체 지원 — fetch 없이 동기 확정 (서버/설정 파일 없이 사용 가능).
+			// options.config가 있으면 configPath보다 우선한다
+			if (this.options && this.options.config && typeof this.options.config === 'object') {
+				this._config = this._mergeConfigurations(this._getFallbackConfig(), this.options.config);
+				this._configLoaded = true;
+				this._validateDictionaryConfiguration();
+				this._applyConfigResources();
+				return;
+			}
+
 			// config.json 파일이 없거나 configPath가 없을 때 기본 설정으로 실행
 			if (!this._configPath) {
 				console.log('ℹ️ No config path provided, using default configuration');
@@ -7232,6 +7248,30 @@ export class WAT {
 				// fallback config 리소스 적용
 				this._applyConfigResources();
 			}
+		}
+
+		/**
+		 * 스타일시트가 없으면 자동 주입합니다 ("1줄 설치" 지원)
+		 * @private
+		 * @description 호스트가 직접 추가한 <link>(webAccTools*.css)나 standalone 인라인
+		 *              스타일(#wat-inline-style)이 있으면 중복 주입하지 않는다.
+		 *              스크립트 위치(basePath) 기준으로 dist/assets 구조를 가정한다.
+		 *              options.injectCss === false 로 완전히 끌 수 있다 (커스텀 CSS 사용자용).
+		 *              (styleCssPath 옵션은 manual 모드의 사이트 커스텀 CSS 용도라 여기서 사용하지 않음)
+		 */
+		_ensureStylesheet() {
+			if (this.options && this.options.injectCss === false) return;
+			if (document.querySelector('link[href*="webAccTools.css"], link[href*="webAccTools.min.css"], #wat-inline-style')) {
+				return; // 이미 로드됨 — 기존 수동 <link> 사용자와의 충돌 방지
+			}
+			if (!basePath) return; // 스크립트 출처를 알 수 없으면 주입하지 않음 (기존 동작 유지)
+			const href = `${basePath}assets/css/webAccTools.css`;
+
+			const link = document.createElement('link');
+			link.id = 'wat-style-link';
+			link.rel = 'stylesheet';
+			link.href = href;
+			document.head.appendChild(link);
 		}
 
 		/**

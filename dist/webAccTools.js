@@ -3039,6 +3039,9 @@ var WATPlugin = (function (exports) {
 			 * @param {string} [options.containerSelector='body'] - CSS selector for the container element (컨테이너 요소의 CSS 선택자)
 			 * @param {string} [options.language='ko'] - Default language for the plugin ('ko' or 'en') (플러그인의 기본 언어)
 			 * @param {string} [options.styleCssPath] - Custom path for the style CSS file (스타일 CSS 파일의 커스텀 경로)
+			 * @param {Object} [options.config] - Inline configuration object, takes precedence over configPath (인라인 설정 객체 — configPath보다 우선, fetch 없이 동기 확정)
+			 * @param {string} [options.configPath] - Path to config.json to fetch (config.json 경로)
+			 * @param {boolean} [options.injectCss=true] - Auto-inject stylesheet when no manual link exists (수동 link 부재 시 CSS 자동 주입 여부)
 			 * @param {boolean} [options.enableCache=true] - Whether to enable element caching (요소 캐싱 사용 여부)
 			 * @param {number} [options.cacheMaxAge=30000] - Maximum age for cached elements in milliseconds (캐시된 요소의 최대 유지 시간, 밀리초)
 			 * @param {string} [options.styleMode='dynamic'] - Style application mode ('dynamic' or 'static') (스타일 적용 모드)
@@ -3459,6 +3462,9 @@ var WATPlugin = (function (exports) {
 			 */
 			async init() {
 				try {
+					// CSS 자동 주입 — 호스트가 <link>를 직접 추가하지 않았으면 스크립트 위치 기준으로 로드 ("1줄 설치" 지원)
+					this._ensureStylesheet();
+
 					// 설정 로딩이 완료될 때까지 대기
 					await this._waitForConfigurationLoad();
 					
@@ -9929,6 +9935,16 @@ var WATPlugin = (function (exports) {
 			 * @private
 			 */
 			async _loadConfiguration() {
+				// 인라인 config 객체 지원 — fetch 없이 동기 확정 (서버/설정 파일 없이 사용 가능).
+				// options.config가 있으면 configPath보다 우선한다
+				if (this.options && this.options.config && typeof this.options.config === 'object') {
+					this._config = this._mergeConfigurations(this._getFallbackConfig(), this.options.config);
+					this._configLoaded = true;
+					this._validateDictionaryConfiguration();
+					this._applyConfigResources();
+					return;
+				}
+
 				// config.json 파일이 없거나 configPath가 없을 때 기본 설정으로 실행
 				if (!this._configPath) {
 					console.log('ℹ️ No config path provided, using default configuration');
@@ -9996,6 +10012,30 @@ var WATPlugin = (function (exports) {
 					// fallback config 리소스 적용
 					this._applyConfigResources();
 				}
+			}
+
+			/**
+			 * 스타일시트가 없으면 자동 주입합니다 ("1줄 설치" 지원)
+			 * @private
+			 * @description 호스트가 직접 추가한 <link>(webAccTools*.css)나 standalone 인라인
+			 *              스타일(#wat-inline-style)이 있으면 중복 주입하지 않는다.
+			 *              스크립트 위치(basePath) 기준으로 dist/assets 구조를 가정한다.
+			 *              options.injectCss === false 로 완전히 끌 수 있다 (커스텀 CSS 사용자용).
+			 *              (styleCssPath 옵션은 manual 모드의 사이트 커스텀 CSS 용도라 여기서 사용하지 않음)
+			 */
+			_ensureStylesheet() {
+				if (this.options && this.options.injectCss === false) return;
+				if (document.querySelector('link[href*="webAccTools.css"], link[href*="webAccTools.min.css"], #wat-inline-style')) {
+					return; // 이미 로드됨 — 기존 수동 <link> 사용자와의 충돌 방지
+				}
+				if (!basePath) return; // 스크립트 출처를 알 수 없으면 주입하지 않음 (기존 동작 유지)
+				const href = `${basePath}assets/css/webAccTools.css`;
+
+				const link = document.createElement('link');
+				link.id = 'wat-style-link';
+				link.rel = 'stylesheet';
+				link.href = href;
+				document.head.appendChild(link);
 			}
 
 			/**
@@ -13632,6 +13672,102 @@ var WATPlugin = (function (exports) {
 	}
 
 	/**
+	 * @fileoverview script 태그 data-속성 기반 자동 초기화 — "1줄 설치" 지원
+	 * @module src/core/autoInit
+	 * @description
+	 *   <script src=".../webAccTools.js" data-wat-auto></script> 한 줄만으로
+	 *   초기화 코드 없이 도구를 삽입할 수 있게 한다. 속성이 없으면 아무 동작도 하지
+	 *   않으므로 기존 수동 초기화(new WAT(...)) 사용자는 영향받지 않는다 (opt-in).
+	 *
+	 *   지원 속성:
+	 *   - data-wat-auto              자동 초기화 활성화 (필수 스위치)
+	 *   - data-wat-config="..."      config.json 경로(스크립트 위치 기준) 또는 인라인 JSON('{'로 시작)
+	 *   - data-wat-language="ko"     기본 언어
+	 *   - data-wat-container="#id"   컨테이너 셀렉터
+	 *   - data-wat-inject-css="false" CSS 자동 주입 끄기
+	 */
+
+	/**
+	 * script 태그의 data-wat-* 속성을 WAT 생성자 옵션으로 변환합니다
+	 * @param {HTMLScriptElement} script - 속성을 읽을 script 요소
+	 * @returns {Object} WAT 생성자 옵션 객체
+	 */
+	function parseAutoInitOptions(script) {
+		const options = {};
+
+		const rawConfig = script.getAttribute('data-wat-config');
+		if (rawConfig) {
+			const trimmed = rawConfig.trim();
+			if (trimmed.startsWith('{')) {
+				// 인라인 JSON — 서버에 config.json을 두지 않고도 설정 가능
+				try {
+					options.config = JSON.parse(trimmed);
+				} catch (error) {
+					console.warn('[WAT] data-wat-config 인라인 JSON 파싱 실패 — 기본 설정으로 진행합니다:', error.message);
+				}
+			} else {
+				// 경로는 스크립트 위치 기준으로 해석 — 하위 페이지에서의 상대 경로 404 방지 (watInit.js와 동일)
+				try {
+					options.configPath = new URL(trimmed, script.src || document.baseURI).href;
+				} catch (error) {
+					options.configPath = trimmed;
+				}
+			}
+		}
+
+		const language = script.getAttribute('data-wat-language');
+		if (language) {
+			options.language = language;
+		}
+
+		const container = script.getAttribute('data-wat-container');
+		if (container) {
+			options.containerSelector = container;
+		}
+
+		if (script.getAttribute('data-wat-inject-css') === 'false') {
+			options.injectCss = false;
+		}
+
+		return options;
+	}
+
+	/**
+	 * script에 data-wat-auto 속성이 있으면 DOM 준비 후 WAT를 자동 초기화합니다
+	 * @param {HTMLScriptElement|null} script - document.currentScript (모듈 로드 시점에 캡처)
+	 * @param {Function} WATClass - WAT 생성자
+	 * @returns {boolean} 자동 초기화가 예약/실행되었으면 true
+	 */
+	function maybeAutoInit(script, WATClass) {
+		if (typeof window === 'undefined' || typeof document === 'undefined') return false;
+		if (!script || typeof script.hasAttribute !== 'function' || !script.hasAttribute('data-wat-auto')) {
+			return false;
+		}
+
+		const start = () => {
+			// watInit.js 등 다른 경로로 이미 초기화됐으면 중복 인스턴스를 만들지 않음
+			if (window.watPlugin) {
+				console.warn('[WAT] 이미 초기화된 인스턴스(window.watPlugin)가 있어 자동 초기화를 건너뜁니다.');
+				return;
+			}
+			try {
+				const instance = new WATClass(parseAutoInitOptions(script));
+				window.watPlugin = instance; // watInit.js와 동일한 전역 핸들
+				instance.init();
+			} catch (error) {
+				console.error('[WAT] 자동 초기화에 실패했습니다:', error);
+			}
+		};
+
+		if (document.readyState === 'loading') {
+			document.addEventListener('DOMContentLoaded', start, { once: true });
+		} else {
+			start();
+		}
+		return true;
+	}
+
+	/**
 	 * @fileoverview WAT (Web Accessibility Tool) 진입점
 	 * @version 2.0.1
 	 */
@@ -13647,6 +13783,12 @@ var WATPlugin = (function (exports) {
 				console.error('Failed to register WAT globally:', error);
 			}
 		}
+	}
+
+	// "1줄 설치" — <script src=".../webAccTools.js" data-wat-auto></script>
+	// IIFE 번들은 동기 실행되므로 이 시점의 document.currentScript가 로드한 script 태그다
+	if (typeof document !== 'undefined') {
+		maybeAutoInit(document.currentScript, WAT);
 	}
 
 	exports.ErrorHandler = ErrorHandler;

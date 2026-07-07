@@ -72,18 +72,65 @@
 
 ## 빠른 시작
 
-### GitHub에서 직접 다운로드
+빌드 도구나 서버 설정 없이 아래 세 가지 방법 중 하나로 바로 사용할 수 있습니다.
 
-1. [릴리스 페이지](https://github.com/Daegu-Cyber-University/ModuWeb/releases)에서 최신 버전 다운로드
-2. `/dist` 폴더의 파일들을 프로젝트에 복사
-3. HTML에서 파일 로드
+### 방법 1 — CDN 한 줄 설치 (가장 간단)
+
+HTML에 script 태그 한 줄만 추가하면 됩니다. CSS·아이콘·언어 파일이 자동으로 로드됩니다.
+
+```html
+<script src="https://cdn.jsdelivr.net/gh/Daegu-Cyber-University/ModuWeb@main/dist/webAccTools.js" data-wat-auto></script>
+```
+
+특정 버전으로 고정하려면 `@main` 대신 릴리스 태그(예: `@v2.1.0`)를 사용하세요.
+
+`data-wat-*` 속성으로 초기화 코드 없이 설정할 수 있습니다.
+
+```html
+<script src=".../dist/webAccTools.js" data-wat-auto
+	data-wat-language="ko"
+	data-wat-config='{"branding": {"copyrightUrl": "https://example.com"}}'></script>
+```
+
+| 속성 | 설명 |
+|---|---|
+| `data-wat-auto` | 자동 초기화 활성화 (필수 스위치) |
+| `data-wat-config` | config.json 경로(스크립트 위치 기준) 또는 인라인 JSON(`{`로 시작) |
+| `data-wat-language` | 기본 언어 (`ko`, `en-US`, `en-GB`, `ja`, `zh`, `de`) |
+| `data-wat-container` | 컨테이너 CSS 셀렉터 |
+| `data-wat-inject-css` | `"false"`면 CSS 자동 주입 끄기 (직접 `<link>` 관리 시) |
+
+### 방법 2 — 파일 다운로드 (자체 서버에 두고 사용)
+
+1. [릴리스 페이지](https://github.com/Daegu-Cyber-University/ModuWeb/releases)에서 zip 다운로드
+2. `dist/` 폴더를 **구조 그대로** 웹 서버에 복사 (JS가 `assets/` 하위의 CSS·아이콘·언어 파일을 상대 경로로 찾습니다)
+3. HTML에 한 줄 추가
+
+```html
+<script src="/path/to/dist/webAccTools.js" data-wat-auto></script>
+```
+
+> 빌드는 필요 없습니다 — `dist/`에 빌드된 파일이 이미 포함되어 있습니다.
+
+### 방법 3 — 직접 초기화 (세밀한 제어가 필요할 때)
 
 ```html
 <link rel="stylesheet" href="path/to/dist/assets/css/webAccTools.css">
 <script src="path/to/dist/webAccTools.js"></script>
+<script>
+	document.addEventListener('DOMContentLoaded', () => {
+		const wat = new WAT({
+			configPath: './config.json',   // 또는 config: { ... } 인라인 객체
+		});
+		window.watPlugin = wat;
+		wat.init();
+	});
+</script>
 ```
 
-### Git Clone
+`config` 옵션에 객체를 직접 넘기면 config.json 파일 없이도 동작합니다. 사전 검색 기능만 별도 서버 설정([설정 옵션](#설정-옵션) 참고)이 필요하고, 나머지 기능은 설정 없이 모두 동작합니다.
+
+### Git Clone (개발 참여용)
 
 ```bash
 git clone https://github.com/Daegu-Cyber-University/ModuWeb.git

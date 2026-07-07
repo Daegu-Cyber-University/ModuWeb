@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import resolve from '@rollup/plugin-node-resolve';
+import terser from '@rollup/plugin-terser';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
@@ -41,7 +42,7 @@ export default [
 			banner,
 		},
 	},
-	// 프로덕션 빌드 (minify 없이, 가독성 유지)
+	// 프로덕션 빌드 (terser로 실제 minify — 이전에는 이름만 min이었음)
 	{
 		input: 'src/index.js',
 		plugins,
@@ -51,6 +52,7 @@ export default [
 			name: 'WATPlugin',
 			sourcemap: false,
 			banner,
+			plugins: [terser({ format: { comments: /@license|@version/ } })],
 		},
 	},
 ];

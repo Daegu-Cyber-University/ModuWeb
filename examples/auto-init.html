@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>WAT 자동 초기화 예제 (1줄 설치)</title>
+	<link rel="stylesheet" href="./assets/css/example.css">
+	<!--
+		"1줄 설치" — 초기화 코드 없이 data-wat-auto 속성만으로 도구가 삽입됩니다.
+		CSS도 스크립트 위치 기준으로 자동 주입되므로 <link> 태그가 필요 없습니다.
+
+		지원 속성:
+		- data-wat-auto               자동 초기화 (필수)
+		- data-wat-config="경로"       config.json 경로 (스크립트 위치 기준) 또는 인라인 JSON
+		- data-wat-language="ko"      기본 언어 (ko, en-US, en-GB, ja, zh, de)
+		- data-wat-container="#id"    컨테이너 셀렉터
+		- data-wat-inject-css="false" CSS 자동 주입 끄기 (직접 <link>를 관리할 때)
+	-->
+	<script src="../dist/webAccTools.js" data-wat-auto data-wat-config="../config.json"></script>
+	<style>
+		.content {max-width: 800px; margin: 0 auto;}
+	</style>
+</head>
+
+<body>
+	<div id="mainContent" class="content">
+		<h1>ModuWeb 자동 초기화 예제</h1>
+
+		<main>
+			<section class="sectWrap">
+				<h2>1줄 설치</h2>
+				<p>이 페이지는 초기화 JavaScript 코드 없이 script 태그 한 줄로 도구를 삽입하는 예제입니다.</p>
+				<div class="codeWrap">
+<pre>
+<code class="code-block no-speech">
+&lt;script src="path/to/dist/webAccTools.js" data-wat-auto&gt;&lt;/script&gt;
+</code>
+</pre>
+				</div>
+				<p>config 파일 없이 인라인 JSON으로 설정할 수도 있습니다.</p>
+				<div class="codeWrap">
+<pre>
+<code class="code-block no-speech">
+&lt;script src="path/to/dist/webAccTools.js" data-wat-auto
+	data-wat-config='{"branding": {"copyrightUrl": "https://example.com"}}'&gt;&lt;/script&gt;
+</code>
+</pre>
+				</div>
+			</section>
+
+			<section class="sectWrap">
+				<h2>본문 예시</h2>
+				<p>접근성 도구 패널에서 글꼴, 색상, 화면 배율, 음성 읽기 등을 조절해 보세요.
+				이 문단은 도구가 페이지 콘텐츠에 스타일을 적용하는 것을 확인하기 위한 예시 텍스트입니다.</p>
+			</section>
+		</main>
+	</div>
+
+</body>
+
+</html>

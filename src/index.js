@@ -3,6 +3,7 @@
  * @version __MODUWEB_VERSION__
  */
 import { WAT } from './wat/WAT.js';
+import { maybeAutoInit } from './core/autoInit.js';
 
 // 전역에 등록 (기존 동작 유지)
 if (typeof window !== 'undefined') {
@@ -15,6 +16,12 @@ if (typeof window !== 'undefined') {
 			console.error('Failed to register WAT globally:', error);
 		}
 	}
+}
+
+// "1줄 설치" — <script src=".../webAccTools.js" data-wat-auto></script>
+// IIFE 번들은 동기 실행되므로 이 시점의 document.currentScript가 로드한 script 태그다
+if (typeof document !== 'undefined') {
+	maybeAutoInit(document.currentScript, WAT);
 }
 
 // Public API - ESM 사용자를 위한 named exports
