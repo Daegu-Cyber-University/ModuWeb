@@ -169,7 +169,8 @@ export class AutoTTS {
 		if (focusableTags.includes(tagName) ||
 			(element.hasAttribute('role') && ['button', 'link'].includes(element.getAttribute('role'))) ||
 			(element.hasAttribute('tabindex') && element.getAttribute('tabindex') !== '-1')) {
-			return this.plugin.generateTextToRead(element, tagName);
+			// TextExtractor 직접 사용 — WAT 메서드 역참조 해소 (Phase 6-4)
+			return this.plugin.textExtractor.generateTextToRead(element, tagName);
 		}
 		return this._extractTextWithImages(element);
 	}

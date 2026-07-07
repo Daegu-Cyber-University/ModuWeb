@@ -132,7 +132,8 @@ export class FocusTTS extends BaseTTS {
 			(element.hasAttribute('role') && ['button', 'link'].includes(element.getAttribute('role'))) ||
 			(element.hasAttribute('tabindex') && element.getAttribute('tabindex') !== '-1')) {
 			try {
-				return this.plugin.generateTextToRead(element, tagName);
+				// TextExtractor 직접 사용 — WAT 메서드 역참조 해소 (Phase 6-4)
+				return this.plugin.textExtractor.generateTextToRead(element, tagName);
 			} catch (error) {
 				console.warn('Error using generateTextToRead, falling back to simple text extraction:', error);
 			}
