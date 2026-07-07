@@ -42,10 +42,37 @@ cp config.example.json config.json
 
 `config.json`을 열어 로컬 환경에 맞게 수정하세요. 로컬에서 사전 기능을 테스트하려면 `api.dictionary.serverEndpoint`가 **JSONP 형식**으로 응답하는 주소여야 합니다. `examples/dict_sample.json`은 응답 형식 예시이므로 그대로 `serverEndpoint`로 연결할 수 없을 수 있습니다.
 
-### 3. 개발 서버 실행
+### 3. 의존성 설치
 
-별도 빌드 도구 없이 `dist/` 폴더의 파일을 직접 편집합니다.  
-`examples/` 폴더의 HTML 파일을 브라우저에서 열어 테스트하세요.
+```bash
+npm install
+```
+
+### 4. 소스 편집 및 빌드
+
+**소스 코드는 `dist/`가 아니라 `src/` 폴더에서 편집합니다.** `dist/`의 파일은 Rollup 빌드 산출물이므로 직접 수정하지 마세요 (다음 빌드 시 덮어써집니다).
+
+`src/`는 19개 모듈로 구성됩니다 (`wat/` 2, `core/` 9, `tts/` 5, `stt/` 2, `index.js`). 자세한 구조는 [`ARCHITECTURE.md`](./ARCHITECTURE.md)의 "소스 모듈 레이아웃"을 참고하세요.
+
+```bash
+# 프로덕션 번들 생성 (dist/webAccTools.js 등)
+npm run build
+
+# 파일 변경을 감지해 자동 재빌드
+npm run build:watch
+```
+
+### 5. 테스트 실행
+
+```bash
+npm test
+```
+
+Jest 기반 단위 테스트가 `tests/unit/`에 있습니다. 브라우저 수동 테스트 체크리스트는 [`tests/manual/checklist.md`](./tests/manual/checklist.md)를 참고하세요.
+
+### 6. 브라우저에서 확인
+
+빌드 후 `examples/` 폴더의 HTML 파일을 브라우저에서 열어 실제 동작을 확인합니다.
 
 ---
 
@@ -54,7 +81,7 @@ cp config.example.json config.json
 1. 작업할 이슈를 [Issues](https://github.com/Daegu-Cyber-University/ModuWeb/issues)에서 찾거나 새로 등록하세요.
 2. 이슈 번호에 맞는 브랜치를 생성합니다.  
    예: `feature/123-add-new-font`, `fix/456-tts-crash`
-3. 변경 사항을 구현하고 `examples/` 폴더에서 직접 테스트합니다.
+3. `src/`에서 변경 사항을 구현하고 `npm run build` 후 `npm test` 및 `examples/` 폴더에서 직접 테스트합니다.
 4. 변경 이유를 명확히 담은 커밋 메시지를 작성합니다.
 5. Pull Request를 `main` 브랜치 대상으로 생성합니다.
 
@@ -118,7 +145,8 @@ docs(readme): 로컬 개발 환경 설정 가이드 추가
    - 테스트한 브라우저 목록
    - 관련 이슈 번호 (`Closes #123`)
 3. `config.json`은 PR에 포함하지 마세요 (`.gitignore` 대상).
-4. 변경 사항이 기존 기능을 깨지 않는지 `examples/` 폴더에서 직접 확인하세요.
+4. 변경 사항이 기존 기능을 깨지 않는지 `npm test` 및 `examples/` 폴더에서 직접 확인하세요.
+5. `dist/` 재빌드 산출물의 커밋 포함 여부는 프로젝트 관리자 정책을 따르세요 (소스는 항상 `src/`에서 수정).
 
 ---
 

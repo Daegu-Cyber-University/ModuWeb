@@ -26,8 +26,24 @@ jobs:
       - name: Run tests
         run: npm test
 
+      - name: Lint (ESLint)
+        run: npm run lint
+        continue-on-error: true
+
       - name: Build
         run: npm run build
+
+      - name: Check committed dist is in sync with src (drift gate)
+        run: |
+          git diff --exit-code -- dist || {
+            echo "ERROR: committed dist/ is out of sync with src/. Run 'npm run build' and commit dist/.";
+            exit 1;
+          }
+          echo "dist/ is in sync with src/ - OK"
+
+      - name: Security audit (high severity)
+        run: npm audit --audit-level=high
+        continue-on-error: true
 
       - name: Validate config.example.json is valid JSON
         run: node -e "JSON.parse(require('fs').readFileSync('config.example.json','utf8')); console.log('config.example.json OK')"

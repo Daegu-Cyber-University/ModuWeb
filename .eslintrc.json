@@ -1,0 +1,35 @@
+{
+	"root": true,
+	"env": {
+		"browser": true,
+		"es2021": true,
+		"node": true,
+		"jest": true
+	},
+	"parserOptions": {
+		"ecmaVersion": 2022,
+		"sourceType": "module"
+	},
+	"globals": {
+		"__MODUWEB_VERSION_JSON__": "readonly"
+	},
+	"extends": "eslint:recommended",
+	"rules": {
+		"no-var": "error",
+		"prefer-const": "warn",
+		"no-undef": "error",
+		"no-unused-vars": ["warn", { "args": "none" }],
+		"no-empty": ["warn", { "allowEmptyCatch": true }],
+		"no-restricted-syntax": [
+			"warn",
+			{
+				"selector": "CallExpression[callee.name='setTimeout']",
+				"message": "raw setTimeout 대신 WAT 의 _setTimeout 래퍼를 사용하세요 (타이머 누수 방지)."
+			},
+			{
+				"selector": "CallExpression[callee.name='setInterval']",
+				"message": "raw setInterval 대신 WAT 의 _setInterval 래퍼를 사용하세요 (타이머 누수 방지)."
+			}
+		]
+	}
+}

@@ -109,7 +109,7 @@
 - [x] Phase 2 테스트: ErrorHandler - 17개 테스트 통과
 - [x] Phase 3 테스트: ContainerManager, StyleBatchProcessor, OptionsProcessor, ConfigurationManager - 32개 테스트 통과
 - [x] Phase 4 테스트: StateManager - 19개 테스트 통과
-- [x] 전체 테스트: 94개 테스트 통과 (4개 테스트 스위트)
+- [x] 전체 테스트: 84개 테스트 통과 (4개 테스트 스위트)
 
 ---
 

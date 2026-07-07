@@ -7,6 +7,19 @@
 
 ---
 
+## [Unreleased]
+
+### 문서 (코드-문서 정합성 정정)
+- **README API 문서**: 코드에 존재하지 않던 `show()`, `hide()`, `toggle()`, `setLanguage()`, `setTheme()`, `adjustFontSize()`, `toggleHighContrast()`, `toggleColorInvert()` 메서드 문서를 제거하고, 실제 구현 메서드(`changeFontSize`/`changeFontFamily`/`changeColorTheme`/`changeSaturation`/`changeScreenScale`/`changeReadGuide`/`changeTTSSpeed` 등 `change*` 계열, `togglePanel`/`applyProfileSettings`/`resetWatSettings` 등)와 `ttsManager.toggleAutoTTS()`/`toggleFocusTTS()`, `sttManager.toggleVoiceCommand()` 위임 메서드로 교체
+- **README 생성자 옵션**: 코드가 읽지 않는 `position`/`theme`/`features` 옵션을 제거하고, 실제 소비 옵션(`configPath`, `language`, `containerID`, `containerTargetSelector`, `containerTargetPosition`, `applySelector`, `excludeSelector`, `styleMode`, `styleCssPath`, `fontFamily`, 비율 옵션들)로 교체
+- **README 이벤트**: 실제로 발생하지 않는 `wat:settingsChanged`/`wat:fontSizeChanged`/`wat:stt:stateChanged` 항목 제거 (실제 발생 이벤트는 `wat:initialized` 뿐)
+- **ARCHITECTURE.md**: 로케일 목록을 실제 6개(`ko`, `en-US`, `en-GB`, `ja`, `zh`, `de`)로 정정(`en.json` 없음), 존재하지 않는 `assets/js/` 폴더 언급 제거, `config.json` 설명을 실제 구조(`api.dictionary`/`resources.fonts`/`branding`/`settings.ui`)로 정정, `src/` 19개 모듈 레이아웃 섹션 추가(`WAT.js` 약 10,800줄 단일 파일이며 매니저 구조로 분해 진행 중임을 명시)
+- **CONTRIBUTING.md**: "빌드 도구 없이 `dist/` 직접 편집" 안내를 실제 워크플로(`src/` 편집 → `npm install`/`npm run build`(Rollup)/`npm test`)로 정정
+- **config.example.json**: 코드가 읽지 않는 키(`api.dictionary.retryCount`, `api.dictionary.providers`, `settings.behavior.*`, `settings.accessibility.*`, `settings.ui.autoClose`, `settings.ui.theme`) 제거, `settings.language.supportedLanguages`를 실제 6개 언어로 정정
+- **tests/manual/checklist.md**: 전체 테스트 개수 `94` → `84`로 정정
+
+---
+
 ## [2.0.1] - 2026-03-16
 
 ### 개선
@@ -46,5 +59,6 @@
 
 ---
 
+[Unreleased]: https://github.com/Daegu-Cyber-University/ModuWeb/compare/v2.0.1...HEAD
 [2.0.1]: https://github.com/Daegu-Cyber-University/ModuWeb/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/Daegu-Cyber-University/ModuWeb/releases/tag/v2.0.0

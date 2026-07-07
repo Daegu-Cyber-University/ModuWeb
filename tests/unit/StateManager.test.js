@@ -150,3 +150,63 @@ describe('StateManager - getState()', () => {
 		expect(sm.get('obj.x')).toBe(1);
 	});
 });
+
+describe('StateManager - 계층적 알림 (부모→자식 구독자)', () => {
+	test('부모 경로 set 시 자식 경로 구독자에게 자식 값으로 통지', () => {
+		const sm = new StateManager({ plugin: { isTTSActive: true } });
+		const childCb = jest.fn();
+		sm.subscribe('plugin.isTTSActive', childCb);
+
+		sm.set('plugin', { isTTSActive: false });
+
+		expect(childCb).toHaveBeenCalledWith(false, true, 'plugin.isTTSActive');
+	});
+
+	test('부모 경로 set 시 부모 구독자와 자식 구독자 각각 통지', () => {
+		const sm = new StateManager({ plugin: { isTTSActive: false, isSTTActive: false } });
+		const parentCb = jest.fn();
+		const ttsCb = jest.fn();
+		const sttCb = jest.fn();
+		sm.subscribe('plugin', parentCb);
+		sm.subscribe('plugin.isTTSActive', ttsCb);
+		sm.subscribe('plugin.isSTTActive', sttCb);
+
+		const newValue = { isTTSActive: true, isSTTActive: false };
+		sm.set('plugin', newValue);
+
+		expect(parentCb).toHaveBeenCalledWith(newValue, { isTTSActive: false, isSTTActive: false }, 'plugin');
+		expect(ttsCb).toHaveBeenCalledWith(true, false, 'plugin.isTTSActive');
+		// 값이 실제로 바뀌지 않았어도 계층 통지는 자식 경로 각자의 값으로 호출됨
+		expect(sttCb).toHaveBeenCalledWith(false, false, 'plugin.isSTTActive');
+	});
+
+	test('update() 로 부모 병합 시에도 자식 구독자에게 통지', () => {
+		const sm = new StateManager({ plugin: { isTTSActive: false, volume: 5 } });
+		const childCb = jest.fn();
+		sm.subscribe('plugin.isTTSActive', childCb);
+
+		sm.update('plugin', { isTTSActive: true });
+
+		expect(childCb).toHaveBeenCalledWith(true, false, 'plugin.isTTSActive');
+	});
+
+	test('다단계 중첩 자식 경로에도 각자의 값으로 통지', () => {
+		const sm = new StateManager({ plugin: { tts: { rate: 1 } } });
+		const grandChildCb = jest.fn();
+		sm.subscribe('plugin.tts.rate', grandChildCb);
+
+		sm.set('plugin', { tts: { rate: 2 } });
+
+		expect(grandChildCb).toHaveBeenCalledWith(2, 1, 'plugin.tts.rate');
+	});
+
+	test('형제 경로 구독자는 접두사가 일치하지 않으면 통지받지 않음', () => {
+		const sm = new StateManager({ plugin: { isTTSActive: false }, other: { flag: false } });
+		const otherCb = jest.fn();
+		sm.subscribe('other.flag', otherCb);
+
+		sm.set('plugin', { isTTSActive: true });
+
+		expect(otherCb).not.toHaveBeenCalled();
+	});
+});

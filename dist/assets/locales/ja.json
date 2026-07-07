@@ -337,6 +337,45 @@
 			"navigation": "移動, リンク, クリック",
 			"action": "実行, オン, オフ, 終了",
 			"settings": "設定, オプション, メニュー"
+		},
+		"voice": {
+			"status": {
+				"preparing": "音声コマンドを準備中...",
+				"inactive": "音声コマンド無効",
+				"waiting": "コマンド待機中...",
+				"waitingDetail": "コマンドを話してください",
+				"listening": "音声認識中...",
+				"listeningDetail": "話しています",
+				"processing": "コマンドを分析中...",
+				"processingDetail": "少々お待ちください",
+				"executing": "コマンドを実行中...",
+				"cooldown": "待機中...",
+				"cooldownDetail": "次のコマンドまで少々お待ちください",
+				"executingDetail": "「{command}」を実行中"
+			},
+			"label": {
+				"element": "要素",
+				"button": "ボタン",
+				"input": "入力"
+			},
+			"msg": {
+				"noSupport": "音声認識に対応していないブラウザです。",
+				"timeout": "音声コマンドの待機時間が超過しました。",
+				"lowConfidence": "音声を明確に認識できませんでした。もう一度お試しください。",
+				"notAllowed": "マイクの使用許可が必要です。音声コマンドを終了します。",
+				"audioCapture": "マイクにアクセスできません。許可を確認してください。音声コマンドを終了します。",
+				"retryExceeded": "音声認識の再試行回数を超えたため、音声コマンドを終了します。",
+				"error": "音声認識エラーが発生しました。",
+				"noSpeech": "音声が検出されませんでした。もう一度お試しください。",
+				"network": "ネットワークエラーが発生しました。",
+				"noMatch": "コマンドを認識できませんでした。もう一度お試しください。",
+				"startFailed": "音声認識を開始できません。",
+				"targetNotFound": "「{target}」が見つかりません。",
+				"notUnderstood": "コマンドを理解できませんでした。もう一度お試しください。",
+				"clicked": "「{target}」をクリックしました。",
+				"toggled": "「{target}」を切り替えました。",
+				"executeFailed": "コマンドを実行できません。"
+			}
 		}
 	},
 	"patterns": {
@@ -590,11 +629,16 @@
 		"table": {
 			"label": "テーブル",
 			"size": "{rows}行 {cols}列"
+		},
+		"auto": {
+			"firstElement": "最初の要素です。",
+			"lastElement": "最後の要素です。"
 		}
 	},
 	"msg": {
 		"success": {
-			"save": "保存されました。"
+			"save": "保存されました。",
+			"reset": "設定がリセットされました。"
 		},
 		"error": {
 			"default": "エラーが発生しました。",
@@ -622,7 +666,15 @@
 			"profileNotFound": "プロファイル「{profileName}」が見つかりません。"
 		},
 		"info": {
-			"dictionaryNotFound": "「{word}」の検索結果が見つかりません。"
+			"dictionaryNotFound": "「{word}」の検索結果が見つかりません。",
+			"storageCheck": "保存された設定: {settings}, コンテナ: {container}"
+		},
+		"confirm": {
+			"reset": "アクセシビリティ設定をすべてリセットしますか？"
+		},
+		"state": {
+			"saved": "あり",
+			"notSaved": "なし"
 		}
 	},
 	"dictionary": {

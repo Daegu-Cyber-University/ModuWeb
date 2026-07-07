@@ -337,6 +337,45 @@
 			"navigation": "Navigieren, Link, Klicken",
 			"action": "Ausführen, Ein, Aus, Beenden",
 			"settings": "Einstellungen, Optionen, Menü"
+		},
+		"voice": {
+			"status": {
+				"preparing": "Sprachbefehle werden vorbereitet...",
+				"inactive": "Sprachbefehle inaktiv",
+				"waiting": "Warte auf Befehl...",
+				"waitingDetail": "Bitte sprechen Sie einen Befehl",
+				"listening": "Spracherkennung läuft...",
+				"listeningDetail": "Sie sprechen gerade",
+				"processing": "Befehl wird analysiert...",
+				"processingDetail": "Bitte warten Sie einen Moment",
+				"executing": "Befehl wird ausgeführt...",
+				"cooldown": "Warte...",
+				"cooldownDetail": "Bitte warten Sie kurz bis zum nächsten Befehl",
+				"executingDetail": "Führe \"{command}\" aus"
+			},
+			"label": {
+				"element": "Element",
+				"button": "Schaltfläche",
+				"input": "Eingabe"
+			},
+			"msg": {
+				"noSupport": "Dieser Browser unterstützt keine Spracherkennung.",
+				"timeout": "Die Wartezeit für den Sprachbefehl ist abgelaufen.",
+				"lowConfidence": "Ihre Stimme konnte nicht deutlich erkannt werden. Bitte versuchen Sie es erneut.",
+				"notAllowed": "Mikrofonberechtigung erforderlich. Sprachbefehle werden beendet.",
+				"audioCapture": "Kein Zugriff auf das Mikrofon. Bitte überprüfen Sie die Berechtigungen. Sprachbefehle werden beendet.",
+				"retryExceeded": "Die Anzahl der Wiederholungsversuche für die Spracherkennung wurde überschritten. Sprachbefehle werden beendet.",
+				"error": "Ein Spracherkennungsfehler ist aufgetreten.",
+				"noSpeech": "Es wurde keine Sprache erkannt. Bitte versuchen Sie es erneut.",
+				"network": "Ein Netzwerkfehler ist aufgetreten.",
+				"noMatch": "Der Befehl konnte nicht erkannt werden. Bitte versuchen Sie es erneut.",
+				"startFailed": "Die Spracherkennung konnte nicht gestartet werden.",
+				"targetNotFound": "\"{target}\" wurde nicht gefunden.",
+				"notUnderstood": "Der Befehl konnte nicht verstanden werden. Bitte versuchen Sie es erneut.",
+				"clicked": "\"{target}\" wurde angeklickt.",
+				"toggled": "\"{target}\" wurde umgeschaltet.",
+				"executeFailed": "Der Befehl konnte nicht ausgeführt werden."
+			}
 		}
 	},
 	"patterns": {
@@ -590,11 +629,16 @@
 		"table": {
 			"label": "Tabelle",
 			"size": "{rows} Zeilen, {cols} Spalten"
+		},
+		"auto": {
+			"firstElement": "Dies ist das erste Element.",
+			"lastElement": "Dies ist das letzte Element."
 		}
 	},
 	"msg": {
 		"success": {
-			"save": "Erfolgreich gespeichert."
+			"save": "Erfolgreich gespeichert.",
+			"reset": "Die Einstellungen wurden zurückgesetzt."
 		},
 		"error": {
 			"default": "Ein Fehler ist aufgetreten.",
@@ -622,7 +666,15 @@
 			"profileNotFound": "Profil \"{profileName}\" wurde nicht gefunden."
 		},
 		"info": {
-			"dictionaryNotFound": "Keine Ergebnisse für \"{word}\" gefunden."
+			"dictionaryNotFound": "Keine Ergebnisse für \"{word}\" gefunden.",
+			"storageCheck": "Gespeicherte Einstellungen: {settings}, Container: {container}"
+		},
+		"confirm": {
+			"reset": "Alle Barrierefreiheitseinstellungen zurücksetzen?"
+		},
+		"state": {
+			"saved": "gefunden",
+			"notSaved": "nicht gefunden"
 		}
 	},
 	"dictionary": {

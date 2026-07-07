@@ -1300,7 +1300,7 @@ var WATPlugin = (function (exports) {
 			this._extractReadableElements();
 
 			if (this.elements.length === 0) {
-				this.plugin.showNotification('No readable elements found. (읽을 수 있는 요소가 없습니다.)');
+				this.plugin.showNotification(this.plugin.getLocalizedText('msg.error.noElementsFound'));
 				return;
 			}
 
@@ -1328,7 +1328,7 @@ var WATPlugin = (function (exports) {
 				this.currentIndex--;
 				this._readCurrentElement();
 			} else {
-				this.plugin.showNotification('This is the first element. (첫 번째 요소입니다.)');
+				this.plugin.showNotification(this.plugin.getLocalizedText('tts.auto.firstElement'));
 			}
 		}
 
@@ -1337,7 +1337,7 @@ var WATPlugin = (function (exports) {
 				this.currentIndex++;
 				this._readCurrentElement();
 			} else {
-				this.plugin.showNotification('This is the last element. (마지막 요소입니다.)');
+				this.plugin.showNotification(this.plugin.getLocalizedText('tts.auto.lastElement'));
 				this.ttsManager.toggleAutoTTS();
 			}
 		}
@@ -1500,7 +1500,7 @@ var WATPlugin = (function (exports) {
 
 		_speakText(text, onEnd) {
 			if (!window.speechSynthesis) {
-				this.plugin.showNotification('음성 합성을 지원하지 않는 브라우저입니다.');
+				this.plugin.showNotification(this.plugin.getLocalizedText('panel.personal.options.tts.msg.noSupport'));
 				return;
 			}
 
@@ -2275,7 +2275,7 @@ var WATPlugin = (function (exports) {
 		 */
 		start() {
 			if (!this._checkSupport()) {
-				this.plugin.showNotification('음성 인식을 지원하지 않는 브라우저입니다.');
+				this.plugin.showNotification(this.plugin.getLocalizedText('command.voice.msg.noSupport'));
 				return false;
 			}
 
@@ -2322,7 +2322,7 @@ var WATPlugin = (function (exports) {
 			this.statusDisplay.setAttribute('aria-live', 'polite');
 			this.statusDisplay.innerHTML = `
 			<div class="status-icon">🎤</div>
-			<div class="status-text">음성 명령 준비 중...</div>
+			<div class="status-text">${this.plugin.getLocalizedText('command.voice.status.preparing')}</div>
 			<div class="status-detail"></div>
 			<div class="status-progress"></div>
 		`;
@@ -2372,43 +2372,43 @@ var WATPlugin = (function (exports) {
 			switch (this.currentState) {
 				case this.states.INACTIVE:
 					icon.textContent = '🔇';
-					text.textContent = '음성 명령 비활성';
+					text.textContent = this.plugin.getLocalizedText('command.voice.status.inactive');
 					detail.textContent = '';
 					this.statusDisplay.style.background = 'rgba(128, 128, 128, 0.9)';
 					progress.style.display = 'none';
 					break;
 				case this.states.WAITING:
 					icon.textContent = '🎤';
-					text.textContent = '명령 대기 중...';
-					detail.textContent = '명령을 말씀해주세요';
+					text.textContent = this.plugin.getLocalizedText('command.voice.status.waiting');
+					detail.textContent = this.plugin.getLocalizedText('command.voice.status.waitingDetail');
 					this.statusDisplay.style.background = 'rgba(33, 150, 243, 0.9)';
 					progress.style.display = 'none';
 					break;
 				case this.states.LISTENING:
 					icon.textContent = '🎧';
-					text.textContent = '음성 인식 중...';
-					detail.textContent = '말씀하고 계세요';
+					text.textContent = this.plugin.getLocalizedText('command.voice.status.listening');
+					detail.textContent = this.plugin.getLocalizedText('command.voice.status.listeningDetail');
 					this.statusDisplay.style.background = 'rgba(76, 175, 80, 0.9)';
 					progress.style.display = 'block';
 					progress.innerHTML = '<div style="width: 100%; height: 4px; background: rgba(255,255,255,0.3); border-radius: 2px; overflow: hidden;"><div class="progress-bar" style="width: 0%; height: 100%; background: white; border-radius: 2px; animation: pulse 1s infinite;"></div></div>';
 					break;
 				case this.states.PROCESSING:
 					icon.textContent = '⚙️';
-					text.textContent = '명령 분석 중...';
-					detail.textContent = '잠시만 기다려주세요';
+					text.textContent = this.plugin.getLocalizedText('command.voice.status.processing');
+					detail.textContent = this.plugin.getLocalizedText('command.voice.status.processingDetail');
 					this.statusDisplay.style.background = 'rgba(255, 193, 7, 0.9)';
 					progress.style.display = 'none';
 					break;
 				case this.states.EXECUTING:
 					icon.textContent = '🚀';
-					text.textContent = '명령 실행 중...';
+					text.textContent = this.plugin.getLocalizedText('command.voice.status.executing');
 					this.statusDisplay.style.background = 'rgba(139, 195, 74, 0.9)';
 					progress.style.display = 'none';
 					break;
 				case this.states.COOLDOWN:
 					icon.textContent = '⏱️';
-					text.textContent = '대기 중...';
-					detail.textContent = '다음 명령까지 잠시 기다려주세요';
+					text.textContent = this.plugin.getLocalizedText('command.voice.status.cooldown');
+					detail.textContent = this.plugin.getLocalizedText('command.voice.status.cooldownDetail');
 					this.statusDisplay.style.background = 'rgba(158, 158, 158, 0.9)';
 					progress.style.display = 'none';
 					break;
@@ -2418,7 +2418,7 @@ var WATPlugin = (function (exports) {
 		_updateExecutingStatus(commandText) {
 			if (!this.statusDisplay) return;
 			const detail = this.statusDisplay.querySelector('.status-detail');
-			detail.textContent = `"${commandText}" 실행 중`;
+			detail.textContent = this.plugin.getLocalizedText('command.voice.status.executingDetail', { command: commandText });
 		}
 
 		_startContinuousRecognition() {
@@ -2438,7 +2438,7 @@ var WATPlugin = (function (exports) {
 					if (this.recognition) {
 						this.recognition.abort();
 					}
-					this.plugin.showNotification('음성 명령 대기 시간이 초과되었습니다.');
+					this.plugin.showNotification(this.plugin.getLocalizedText('command.voice.msg.timeout'));
 					this._startCooldown();
 				}
 			}, this.config.commandTimeout);
@@ -2586,7 +2586,7 @@ var WATPlugin = (function (exports) {
 				const confidence = result.confidence;
 
 				if (confidence < 0.6) {
-					this.plugin.showNotification('음성을 명확하게 인식하지 못했습니다. 다시 시도해주세요.');
+					this.plugin.showNotification(this.plugin.getLocalizedText('command.voice.msg.lowConfidence'));
 					this._startCooldown();
 					return;
 				}
@@ -2611,8 +2611,8 @@ var WATPlugin = (function (exports) {
 				// 권한/장치 오류는 재시도해도 해결되지 않으므로 재시도 없이 완전 정지
 				if (event.error === 'not-allowed' || event.error === 'audio-capture') {
 					const fatalMessage = event.error === 'not-allowed'
-						? '마이크 사용 권한이 필요합니다. 음성 명령을 종료합니다.'
-						: '마이크에 접근할 수 없습니다. 권한을 확인해주세요. 음성 명령을 종료합니다.';
+						? this.plugin.getLocalizedText('command.voice.msg.notAllowed')
+						: this.plugin.getLocalizedText('command.voice.msg.audioCapture');
 					this.plugin.showNotification(fatalMessage);
 					this._deactivate();
 					return;
@@ -2621,18 +2621,18 @@ var WATPlugin = (function (exports) {
 				// 일시적인 오류는 최대 재시도 횟수까지만 재시도
 				this.retryCount++;
 				if (this.retryCount > this.config.maxRetries) {
-					this.plugin.showNotification('음성 인식 재시도 횟수를 초과하여 음성 명령을 종료합니다.');
+					this.plugin.showNotification(this.plugin.getLocalizedText('command.voice.msg.retryExceeded'));
 					this._deactivate();
 					return;
 				}
 
-				let errorMessage = '음성 인식 오류가 발생했습니다.';
+				let errorMessage = this.plugin.getLocalizedText('command.voice.msg.error');
 				switch (event.error) {
 					case 'no-speech':
-						errorMessage = '음성이 감지되지 않았습니다. 다시 시도해주세요.';
+						errorMessage = this.plugin.getLocalizedText('command.voice.msg.noSpeech');
 						break;
 					case 'network':
-						errorMessage = '네트워크 오류가 발생했습니다.';
+						errorMessage = this.plugin.getLocalizedText('command.voice.msg.network');
 						break;
 				}
 
@@ -2641,7 +2641,7 @@ var WATPlugin = (function (exports) {
 			};
 
 			this.recognition.onnomatch = () => {
-				this.plugin.showNotification('명령을 인식하지 못했습니다. 다시 시도해주세요.');
+				this.plugin.showNotification(this.plugin.getLocalizedText('command.voice.msg.noMatch'));
 				this._startCooldown();
 			};
 
@@ -2665,7 +2665,7 @@ var WATPlugin = (function (exports) {
 				}
 			} catch (error) {
 				console.error('음성 인식 시작 오류:', error);
-				this.plugin.showNotification('음성 인식을 시작할 수 없습니다.');
+				this.plugin.showNotification(this.plugin.getLocalizedText('command.voice.msg.startFailed'));
 				this._startCooldown();
 			}
 		}
@@ -2722,11 +2722,11 @@ var WATPlugin = (function (exports) {
 						this._startCooldown();
 					}, 1000);
 				} else {
-					this.plugin.showNotification(`"${commandInfo.target}"을(를) 찾을 수 없습니다.`);
+					this.plugin.showNotification(this.plugin.getLocalizedText('command.voice.msg.targetNotFound', { target: commandInfo.target }));
 					this._startCooldown();
 				}
 			} else {
-				this.plugin.showNotification('명령을 이해할 수 없습니다. 다시 시도해주세요.');
+				this.plugin.showNotification(this.plugin.getLocalizedText('command.voice.msg.notUnderstood'));
 				this._startCooldown();
 			}
 		}
@@ -2805,23 +2805,23 @@ var WATPlugin = (function (exports) {
 						element.tagName.toLowerCase() === 'button' ||
 						element.getAttribute('role') === 'button') {
 						element.click();
-						this.plugin.showNotification(`"${element.textContent?.trim() || '요소'}"을(를) 클릭했습니다.`);
+						this.plugin.showNotification(this.plugin.getLocalizedText('command.voice.msg.clicked', { target: element.textContent?.trim() || this.plugin.getLocalizedText('command.voice.label.element') }));
 					} else if (element.tagName.toLowerCase() === 'input' &&
 						(element.type === 'submit' || element.type === 'button')) {
 						element.click();
-						this.plugin.showNotification(`"${element.value || '버튼'}"을(를) 클릭했습니다.`);
+						this.plugin.showNotification(this.plugin.getLocalizedText('command.voice.msg.clicked', { target: element.value || this.plugin.getLocalizedText('command.voice.label.button') }));
 					} else if (element.tagName.toLowerCase() === 'input' &&
 						(element.type === 'radio' || element.type === 'checkbox')) {
 						element.checked = !element.checked;
 						element.dispatchEvent(new Event('change', { bubbles: true }));
-						this.plugin.showNotification(`"${element.getAttribute('name') || '입력'}"을(를) 토글했습니다.`);
+						this.plugin.showNotification(this.plugin.getLocalizedText('command.voice.msg.toggled', { target: element.getAttribute('name') || this.plugin.getLocalizedText('command.voice.label.input') }));
 					}
 				}
 
 				element.scrollIntoView({ behavior: 'smooth', block: 'center' });
 			} catch (error) {
 				console.error('명령 실행 오류:', error);
-				this.plugin.showNotification('명령을 실행할 수 없습니다.');
+				this.plugin.showNotification(this.plugin.getLocalizedText('command.voice.msg.executeFailed'));
 			}
 		}
 	}
@@ -4487,8 +4487,12 @@ var WATPlugin = (function (exports) {
 				}
 				
 				this.toggleDataAttribute(dataAttr, target.checked);
-				
+
 				const isActive = target.checked;
+				// role="switch" 요소의 aria-checked를 상태와 동기화 — 미갱신 시 스크린리더가 항상 "off"로 읽음
+				if (target.getAttribute('role') === 'switch') {
+					target.setAttribute('aria-checked', isActive ? 'true' : 'false');
+				}
 				const elm_state = target.parentElement.querySelector('.switch-state');
 				if (elm_state) {
 					const label = elm_state.getAttribute('data-stateText-' + (isActive ? 'on' : 'off'));
@@ -4956,6 +4960,9 @@ var WATPlugin = (function (exports) {
 					document.documentElement.dataset.watPanel = 'closed';
 					// Save closed state to localStorage
 					localStorage.setItem('watPanelState', 'closed');
+					// 포커스를 열기 버튼으로 이동 — 숨겨진 패널에 포커스가 남아 실종되는 것 방지 (WCAG 2.4.3)
+					const openBtn = document.getElementById('wat_btnOpen');
+					if (openBtn) openBtn.focus();
 				});
 				settingWrapElement.appendChild(closeButtonElement);
 			}
@@ -5198,6 +5205,9 @@ var WATPlugin = (function (exports) {
 					this.container.classList.remove('hide');
 					document.documentElement.dataset.watPanel = 'opened';
 					try { localStorage.setItem('watPanelState', 'opened'); } catch (e) {}
+					// 패널을 열면 내부 첫 포커스 대상(닫기 버튼)으로 포커스 이동 (WCAG 2.4.3)
+					const closeBtn = document.getElementById('wat_btnClose');
+					if (closeBtn) closeBtn.focus();
 				});
 				openButtonWrapElement.appendChild(openButtonElement);
 				
@@ -5730,8 +5740,10 @@ var WATPlugin = (function (exports) {
 						input.onchange = () => {
 							this.language = item.lang;
 							document.documentElement.dataset['watLanguage'] = item.lang;
+							// 스크린리더가 올바른 언어 엔진으로 UI를 읽도록 문서 lang 갱신 (WCAG 3.1.2)
+							document.documentElement.setAttribute('lang', item.lang);
 							this.updateLanguageSetting();
-							
+
 							this.loadLocale(item.lang).then(() => {
 								this.generateHTMLElements();
 								this.setInitialPreferences();
@@ -5777,43 +5789,29 @@ var WATPlugin = (function (exports) {
 					input.addEventListener('click', () => {
 						if (item.id === 'watSet_storage_save') {
 							this.savePreferences();
+							// 저장 성공 피드백 (기존엔 무피드백이라 저장 여부 불확실)
+							this.showNotification(this.getLocalizedText('msg.success.save') || '저장되었습니다.');
 						} else if (item.id === 'watSet_storage_reset') {
+							// 파괴적 동작이므로 확인 절차 추가
+							const confirmMsg = this.getLocalizedText('msg.confirm.reset') || '접근성 설정을 모두 초기화하시겠습니까?';
+							if (!window.confirm(confirmMsg)) {
+								return;
+							}
 							// localStorage.clear()는 호스트 사이트의 전체 데이터를 삭제하므로 WAT 키만 개별 삭제
 							Object.values(Constants.STORAGE_KEYS).forEach(key => localStorage.removeItem(key));
+							// 화면에 즉시 반영되도록 새로고침 (삭제 후 다른 설정 변경 시 savePreferences가 되쓰는 문제도 방지)
+							window.location.reload();
 						} else if (item.id === 'watSet_storage_check') {
-							// Storage check functionality
-							const storageData = {};
+							// WAT 소유 키만 확인 — 호스트 사이트의 전체 localStorage를 덤프하지 않음 (정보 노출 방지)
 							const settings = localStorage.getItem(Constants.STORAGE_KEYS.SETTINGS);
 							const container = localStorage.getItem(Constants.STORAGE_KEYS.CONTAINER);
-
-							storageData.settings = settings ? safeParseJSON(settings, null) : null;
-							storageData.container = container;
-							storageData.totalItems = localStorage.length;
-							storageData.allKeys = Object.keys(localStorage);
-
-							console.group('[WAT] LocalStorage Contents');
-							console.log('Settings Data:', storageData.settings);
-							console.log('Container Data:', storageData.container);
-							console.log('Total localStorage Items:', storageData.totalItems);
-							console.log('All localStorage Keys:', storageData.allKeys);
-							console.log('Raw Settings JSON:', settings);
-							console.log('Raw Container Data:', container);
-
-							// Show all localStorage contents
-							console.log('Complete localStorage dump:');
-							for (let i = 0; i < localStorage.length; i++) {
-								const key = localStorage.key(i);
-								const value = localStorage.getItem(key);
-								console.log(`  ${key}:`, value);
-							}
-							console.groupEnd();
-
-							// Also show in alert for quick viewing
-							alert(`WAT LocalStorage Check:
-						Settings: ${settings ? 'Found' : 'Not found'}
-						Container: ${container ? 'Found' : 'Not found'}
-						Total Items: ${storageData.totalItems}
-						Check console for detailed data.`);
+							const found = this.getLocalizedText('msg.state.saved') || '있음';
+							const notFound = this.getLocalizedText('msg.state.notSaved') || '없음';
+							const summary = this.getLocalizedText('msg.info.storageCheck', {
+								settings: settings ? found : notFound,
+								container: container ? found : notFound
+							}) || `저장된 설정: ${settings ? found : notFound}, 컨테이너: ${container ? found : notFound}`;
+							this.showNotification(summary);
 						}
 					});
 					storageSettingItem.appendChild(input);
@@ -5887,7 +5885,7 @@ var WATPlugin = (function (exports) {
 						</li>
 						`;
 					} else if (itemType === 'button') {
-						var toggleAttr = '';
+						let toggleAttr = '';
 						if (toggleLabel) {
 							toggleAttr = `data-stateText-on="${itemLabel}" data-stateText-off="${toggleLabel}"`;
 						}
@@ -5930,7 +5928,7 @@ var WATPlugin = (function (exports) {
 						const controlLabel = control.label;
 						const controlChecked = control.checked ? 'checked' : '';
 						const controlDisabled = control.disabled ? 'disabled' : '';
-						let controlHtml = `
+						const controlHtml = `
 						<li class='opt_item'>
 							<input type="${itemType}" id="wat-${itemType}-${controlId}" name="${optionName}" value="${control.value}" ${controlChecked} ${controlDisabled}><label for="wat-${itemType}-${controlId}">${controlLabel}</label>
 						</li>
@@ -5939,15 +5937,18 @@ var WATPlugin = (function (exports) {
 					}).join('');
 				}
 				const listItemElement = document.createElement('li');
+				// .setTitle은 클릭 시 옵션을 순환/토글하는 버튼이므로 키보드 포커스 가능하게 tabindex 부여 (WCAG 2.1.1)
 				let listItemInnerHTML = `
 				<div class='setWrap'>
-					<div class='setTitle' role='button'>${titleText}</div>
+					<div class='setTitle' role='button' tabindex='0'>${titleText}</div>
 					<div class='setCont'>
 					`;
 						if (itemType === 'radio') {
 							listItemInnerHTML += `<button class='hidden btn_chgOpt prev' type='button' title="${titleText} ${this.getLocalizedText('tags.button.text.prevOpt')}" aria-label="${titleText} ${this.getLocalizedText('tags.button.text.prevOpt')}">${this.getLocalizedText('tags.button.text.prevOpt')}</button>`;
 						}
-						listItemInnerHTML += `<ul class='opt_lists'>${itemsHtml}</ul>`;
+						// 라디오 묶음에 그룹 시맨틱 부여 — 스크린리더가 그룹명·위치를 안내 (WCAG 1.3.1)
+						const listGroupAttr = itemType === 'radio' ? ` role="radiogroup" aria-label="${titleText}"` : '';
+						listItemInnerHTML += `<ul class='opt_lists'${listGroupAttr}>${itemsHtml}</ul>`;
 						if (itemType === 'radio') {
 							listItemInnerHTML += `<button class='hidden btn_chgOpt next' type='button' title="${titleText} ${this.getLocalizedText('tags.button.text.nextOpt')}" aria-label="${titleText} ${this.getLocalizedText('tags.button.text.nextOpt')}">${this.getLocalizedText('tags.button.text.nextOpt')}</button>`;
 						}
@@ -5960,6 +5961,14 @@ var WATPlugin = (function (exports) {
 				const setWrapElement = listItemElement.querySelector('.setWrap');
 				const titleElement = setWrapElement.querySelector('.setTitle');
 				const labelElement = setWrapElement.querySelector('.switch-label');
+
+				// role="button"인 .setTitle을 키보드로도 활성화 (Enter/Space → 클릭) (WCAG 2.1.1)
+				titleElement.addEventListener('keydown', (e) => {
+					if (e.key === 'Enter' || e.key === ' ') {
+						e.preventDefault();
+						titleElement.click();
+					}
+				});
 
 				if (itemType === 'radio') {
 					setWrapElement.classList.add('radio');
@@ -7768,16 +7777,17 @@ var WATPlugin = (function (exports) {
 				}
 
 				targetElements.forEach(el => {
-					// 추가 검증: 제외 대상인지 다시 한 번 확인
-					if (this.shouldExcludeElement(el)) {
+					// 값싼 검사(빈 텍스트) 먼저 — computed 계산 없이 조기 반환
+					if (!el.textContent.trim()) return;
+
+					// computed를 1회만 계산해 제외 판정과 스타일 수집에 재사용 (요소당 getComputedStyle 2회→1회)
+					const computed = window.getComputedStyle(el);
+					if (this.shouldExcludeElement(el, computed)) {
 						return;
 					}
 
-					if (!el.textContent.trim()) return;
-
 					let hasDynamic = false;
 					const origStyles = {};
-					const computed = window.getComputedStyle(el);
 
 					styleProps.forEach(({ css, className, px }) => {
 						const elVal = computed.getPropertyValue(css);
@@ -7814,7 +7824,7 @@ var WATPlugin = (function (exports) {
 			 *   // Apply styling to element (요소에 스타일링 적용)
 			 * }
 			 */
-			shouldExcludeElement(element) {
+			shouldExcludeElement(element, computedStyle = null) {
 				try {
 					// 입력 검증
 					if (!element || !(element instanceof Element)) {
@@ -7852,9 +7862,9 @@ var WATPlugin = (function (exports) {
 						return true;
 					}
 					
-					// 5. 숨겨진 요소 제외
-					const computedStyle = window.getComputedStyle(element);
-					if (computedStyle.display === 'none' || computedStyle.visibility === 'hidden') {
+					// 5. 숨겨진 요소 제외 (호출자가 계산한 computed 재사용, 없으면 계산)
+					const cs = computedStyle || window.getComputedStyle(element);
+					if (cs.display === 'none' || cs.visibility === 'hidden') {
 						return true;
 					}
 					
@@ -7893,7 +7903,7 @@ var WATPlugin = (function (exports) {
 
 				function getUniqueSelector(el) {
 					if (el.id) return `#${el.id}`;
-					let path = [];
+					const path = [];
 					while (el && el.nodeType === 1 && el !== document.body) {
 						let selector = el.nodeName.toLowerCase();
 						if (el.className) selector += '.' + Array.from(el.classList).join('.');
@@ -10043,8 +10053,8 @@ var WATPlugin = (function (exports) {
 					return;
 				}
 				
-				const hasServerEndpoint = this._config.api.dictionary.serverEndpoint && 
-										 this._config.api.dictionary.serverEndpoint.trim() !== '';
+				const hasServerEndpoint = this._config.api.dictionary.serverEndpoint &&
+					this._config.api.dictionary.serverEndpoint.trim() !== '';
 				
 				if (hasServerEndpoint) {
 					// 서버 엔드포인트가 설정되어 있으면 사전 기능 활성화
@@ -10265,6 +10275,13 @@ var WATPlugin = (function (exports) {
 					this._showDictionaryError(cleanedWord, '사전 검색 서버가 설정되지 않았습니다. 사전 기능을 사용하려면 serverEndpoint를 설정해주세요.');
 					return;
 				}
+
+				// JSONP는 응답을 <script>로 실행하므로 endpoint를 https로 제한 (임의 코드 실행/MITM 방지)
+				if (!isSafeHttpUrl(serverEndpoint) || !/^https:/i.test(serverEndpoint)) {
+					console.error('[WAT] 사전 serverEndpoint는 https URL이어야 합니다:', serverEndpoint);
+					this._showDictionaryError(cleanedWord, '사전 검색 서버 주소가 올바르지 않습니다. (https 필요)');
+					return;
+				}
 				
 				const timeout = this.getConfigValue('api.dictionary.timeout', 10000);
 
@@ -10425,6 +10442,7 @@ var WATPlugin = (function (exports) {
 				const layer = document.createElement('div');
 				layer.classList.add('wat-diction-result-layer');
 				layer.setAttribute('role', 'dialog');
+				layer.setAttribute('aria-modal', 'true'); // 모달임을 명시 (배경과 분리, WCAG 4.1.2)
 				layer.setAttribute('aria-labelledby', 'diction-result-title');
 				layer.setAttribute('tabindex', '-1');
 				
@@ -11293,6 +11311,9 @@ var WATPlugin = (function (exports) {
 				const notification = document.createElement('div');
 				notification.textContent = isLastSection ? this.getLocalizedText('panel.personal.options.tts.msg.endOfReadPage') : this.getLocalizedText('panel.personal.options.tts.msg.endOfReadArea');
 				notification.classList.add('wat-notification'); // 스타일 적용을 위해 클래스 추가
+				// 스크린리더가 읽기 완료 안내를 받도록 라이브 리전 지정 (WCAG 4.1.3)
+				notification.setAttribute('role', 'status');
+				notification.setAttribute('aria-live', 'polite');
 				document.body.appendChild(notification);
 
 				// 추적형 타이머 + remove() — 선제거 시 NotFoundError 방지, destroy 시 해제
@@ -11948,9 +11969,9 @@ var WATPlugin = (function (exports) {
 					
 					// 복구 후 재검사
 					const recoveryStatus = this.getTTSStatus();
-					const isRecovered = !recoveryStatus.isInconsistent && 
-									  !recoveryStatus.isActive && 
-									  !recoveryStatus.isSpeaking;
+					const isRecovered = !recoveryStatus.isInconsistent &&
+						!recoveryStatus.isActive &&
+						!recoveryStatus.isSpeaking;
 					
 					if (isRecovered) {
 						console.info('[TTS] Successfully recovered from inconsistent state');
@@ -12071,7 +12092,7 @@ var WATPlugin = (function (exports) {
 				);
 
 				let node;
-				while (node = walker.nextNode()) {
+				while ((node = walker.nextNode())) {
 					if (node.nodeType === Node.TEXT_NODE) {
 						// 텍스트 노드의 경우 내용 추가
 						const textContent = node.textContent.trim();
@@ -13255,6 +13276,9 @@ var WATPlugin = (function (exports) {
 				const notification = document.createElement('div');
 				notification.textContent = message;
 				notification.classList.add('wat-notification');
+				// 스크린리더가 상태 메시지를 읽도록 라이브 리전 지정 (WCAG 4.1.3)
+				notification.setAttribute('role', 'status');
+				notification.setAttribute('aria-live', 'polite');
 				document.body.appendChild(notification);
 				// 추적형 타이머 + remove() 사용 — 다른 경로가 먼저 제거해도 예외 없이 멱등 처리
 				this._setTimeout(() => {

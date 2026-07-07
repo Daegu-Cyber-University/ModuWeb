@@ -337,6 +337,45 @@
 			"navigation": "이동, 링크, 클릭",
 			"action": "실행, 켜기, 끄기, 종료",
 			"settings": "설정, 옵션, 메뉴"
+		},
+		"voice": {
+			"status": {
+				"preparing": "음성 명령 준비 중...",
+				"inactive": "음성 명령 비활성",
+				"waiting": "명령 대기 중...",
+				"waitingDetail": "명령을 말씀해주세요",
+				"listening": "음성 인식 중...",
+				"listeningDetail": "말씀하고 계세요",
+				"processing": "명령 분석 중...",
+				"processingDetail": "잠시만 기다려주세요",
+				"executing": "명령 실행 중...",
+				"cooldown": "대기 중...",
+				"cooldownDetail": "다음 명령까지 잠시 기다려주세요",
+				"executingDetail": "\"{command}\" 실행 중"
+			},
+			"label": {
+				"element": "요소",
+				"button": "버튼",
+				"input": "입력"
+			},
+			"msg": {
+				"noSupport": "음성 인식을 지원하지 않는 브라우저입니다.",
+				"timeout": "음성 명령 대기 시간이 초과되었습니다.",
+				"lowConfidence": "음성을 명확하게 인식하지 못했습니다. 다시 시도해주세요.",
+				"notAllowed": "마이크 사용 권한이 필요합니다. 음성 명령을 종료합니다.",
+				"audioCapture": "마이크에 접근할 수 없습니다. 권한을 확인해주세요. 음성 명령을 종료합니다.",
+				"retryExceeded": "음성 인식 재시도 횟수를 초과하여 음성 명령을 종료합니다.",
+				"error": "음성 인식 오류가 발생했습니다.",
+				"noSpeech": "음성이 감지되지 않았습니다. 다시 시도해주세요.",
+				"network": "네트워크 오류가 발생했습니다.",
+				"noMatch": "명령을 인식하지 못했습니다. 다시 시도해주세요.",
+				"startFailed": "음성 인식을 시작할 수 없습니다.",
+				"targetNotFound": "\"{target}\"을(를) 찾을 수 없습니다.",
+				"notUnderstood": "명령을 이해할 수 없습니다. 다시 시도해주세요.",
+				"clicked": "\"{target}\"을(를) 클릭했습니다.",
+				"toggled": "\"{target}\"을(를) 토글했습니다.",
+				"executeFailed": "명령을 실행할 수 없습니다."
+			}
 		}
 	},
 	"patterns": {
@@ -590,11 +629,16 @@
 		"table": {
 			"label": "테이블",
 			"size": "{rows}행 {cols}열"
+		},
+		"auto": {
+			"firstElement": "첫 번째 요소입니다.",
+			"lastElement": "마지막 요소입니다."
 		}
 	},
 	"msg": {
 		"success": {
-			"save": "저장되었습니다."
+			"save": "저장되었습니다.",
+			"reset": "설정이 초기화되었습니다."
 		},
 		"error": {
 			"default": "오류가 발생했습니다.",
@@ -622,7 +666,15 @@
 			"profileNotFound": "프로필 \"{profileName}\"을(를) 찾을 수 없습니다."
 		},
 		"info": {
-			"dictionaryNotFound": "\"{word}\"에 대한 검색 결과를 찾을 수 없습니다."
+			"dictionaryNotFound": "\"{word}\"에 대한 검색 결과를 찾을 수 없습니다.",
+			"storageCheck": "저장된 설정: {settings}, 컨테이너: {container}"
+		},
+		"confirm": {
+			"reset": "접근성 설정을 모두 초기화하시겠습니까?"
+		},
+		"state": {
+			"saved": "있음",
+			"notSaved": "없음"
 		}
 	},
 	"dictionary": {

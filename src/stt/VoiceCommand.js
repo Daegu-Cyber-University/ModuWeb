@@ -56,7 +56,7 @@ export class VoiceCommand {
 	 */
 	start() {
 		if (!this._checkSupport()) {
-			this.plugin.showNotification('음성 인식을 지원하지 않는 브라우저입니다.');
+			this.plugin.showNotification(this.plugin.getLocalizedText('command.voice.msg.noSupport'));
 			return false;
 		}
 
@@ -103,7 +103,7 @@ export class VoiceCommand {
 		this.statusDisplay.setAttribute('aria-live', 'polite');
 		this.statusDisplay.innerHTML = `
 			<div class="status-icon">🎤</div>
-			<div class="status-text">음성 명령 준비 중...</div>
+			<div class="status-text">${this.plugin.getLocalizedText('command.voice.status.preparing')}</div>
 			<div class="status-detail"></div>
 			<div class="status-progress"></div>
 		`;
@@ -153,43 +153,43 @@ export class VoiceCommand {
 		switch (this.currentState) {
 			case this.states.INACTIVE:
 				icon.textContent = '🔇';
-				text.textContent = '음성 명령 비활성';
+				text.textContent = this.plugin.getLocalizedText('command.voice.status.inactive');
 				detail.textContent = '';
 				this.statusDisplay.style.background = 'rgba(128, 128, 128, 0.9)';
 				progress.style.display = 'none';
 				break;
 			case this.states.WAITING:
 				icon.textContent = '🎤';
-				text.textContent = '명령 대기 중...';
-				detail.textContent = '명령을 말씀해주세요';
+				text.textContent = this.plugin.getLocalizedText('command.voice.status.waiting');
+				detail.textContent = this.plugin.getLocalizedText('command.voice.status.waitingDetail');
 				this.statusDisplay.style.background = 'rgba(33, 150, 243, 0.9)';
 				progress.style.display = 'none';
 				break;
 			case this.states.LISTENING:
 				icon.textContent = '🎧';
-				text.textContent = '음성 인식 중...';
-				detail.textContent = '말씀하고 계세요';
+				text.textContent = this.plugin.getLocalizedText('command.voice.status.listening');
+				detail.textContent = this.plugin.getLocalizedText('command.voice.status.listeningDetail');
 				this.statusDisplay.style.background = 'rgba(76, 175, 80, 0.9)';
 				progress.style.display = 'block';
 				progress.innerHTML = '<div style="width: 100%; height: 4px; background: rgba(255,255,255,0.3); border-radius: 2px; overflow: hidden;"><div class="progress-bar" style="width: 0%; height: 100%; background: white; border-radius: 2px; animation: pulse 1s infinite;"></div></div>';
 				break;
 			case this.states.PROCESSING:
 				icon.textContent = '⚙️';
-				text.textContent = '명령 분석 중...';
-				detail.textContent = '잠시만 기다려주세요';
+				text.textContent = this.plugin.getLocalizedText('command.voice.status.processing');
+				detail.textContent = this.plugin.getLocalizedText('command.voice.status.processingDetail');
 				this.statusDisplay.style.background = 'rgba(255, 193, 7, 0.9)';
 				progress.style.display = 'none';
 				break;
 			case this.states.EXECUTING:
 				icon.textContent = '🚀';
-				text.textContent = '명령 실행 중...';
+				text.textContent = this.plugin.getLocalizedText('command.voice.status.executing');
 				this.statusDisplay.style.background = 'rgba(139, 195, 74, 0.9)';
 				progress.style.display = 'none';
 				break;
 			case this.states.COOLDOWN:
 				icon.textContent = '⏱️';
-				text.textContent = '대기 중...';
-				detail.textContent = '다음 명령까지 잠시 기다려주세요';
+				text.textContent = this.plugin.getLocalizedText('command.voice.status.cooldown');
+				detail.textContent = this.plugin.getLocalizedText('command.voice.status.cooldownDetail');
 				this.statusDisplay.style.background = 'rgba(158, 158, 158, 0.9)';
 				progress.style.display = 'none';
 				break;
@@ -199,7 +199,7 @@ export class VoiceCommand {
 	_updateExecutingStatus(commandText) {
 		if (!this.statusDisplay) return;
 		const detail = this.statusDisplay.querySelector('.status-detail');
-		detail.textContent = `"${commandText}" 실행 중`;
+		detail.textContent = this.plugin.getLocalizedText('command.voice.status.executingDetail', { command: commandText });
 	}
 
 	_startContinuousRecognition() {
@@ -219,7 +219,7 @@ export class VoiceCommand {
 				if (this.recognition) {
 					this.recognition.abort();
 				}
-				this.plugin.showNotification('음성 명령 대기 시간이 초과되었습니다.');
+				this.plugin.showNotification(this.plugin.getLocalizedText('command.voice.msg.timeout'));
 				this._startCooldown();
 			}
 		}, this.config.commandTimeout);
@@ -367,7 +367,7 @@ export class VoiceCommand {
 			const confidence = result.confidence;
 
 			if (confidence < 0.6) {
-				this.plugin.showNotification('음성을 명확하게 인식하지 못했습니다. 다시 시도해주세요.');
+				this.plugin.showNotification(this.plugin.getLocalizedText('command.voice.msg.lowConfidence'));
 				this._startCooldown();
 				return;
 			}
@@ -392,8 +392,8 @@ export class VoiceCommand {
 			// 권한/장치 오류는 재시도해도 해결되지 않으므로 재시도 없이 완전 정지
 			if (event.error === 'not-allowed' || event.error === 'audio-capture') {
 				const fatalMessage = event.error === 'not-allowed'
-					? '마이크 사용 권한이 필요합니다. 음성 명령을 종료합니다.'
-					: '마이크에 접근할 수 없습니다. 권한을 확인해주세요. 음성 명령을 종료합니다.';
+					? this.plugin.getLocalizedText('command.voice.msg.notAllowed')
+					: this.plugin.getLocalizedText('command.voice.msg.audioCapture');
 				this.plugin.showNotification(fatalMessage);
 				this._deactivate();
 				return;
@@ -402,18 +402,18 @@ export class VoiceCommand {
 			// 일시적인 오류는 최대 재시도 횟수까지만 재시도
 			this.retryCount++;
 			if (this.retryCount > this.config.maxRetries) {
-				this.plugin.showNotification('음성 인식 재시도 횟수를 초과하여 음성 명령을 종료합니다.');
+				this.plugin.showNotification(this.plugin.getLocalizedText('command.voice.msg.retryExceeded'));
 				this._deactivate();
 				return;
 			}
 
-			let errorMessage = '음성 인식 오류가 발생했습니다.';
+			let errorMessage = this.plugin.getLocalizedText('command.voice.msg.error');
 			switch (event.error) {
 				case 'no-speech':
-					errorMessage = '음성이 감지되지 않았습니다. 다시 시도해주세요.';
+					errorMessage = this.plugin.getLocalizedText('command.voice.msg.noSpeech');
 					break;
 				case 'network':
-					errorMessage = '네트워크 오류가 발생했습니다.';
+					errorMessage = this.plugin.getLocalizedText('command.voice.msg.network');
 					break;
 			}
 
@@ -422,7 +422,7 @@ export class VoiceCommand {
 		};
 
 		this.recognition.onnomatch = () => {
-			this.plugin.showNotification('명령을 인식하지 못했습니다. 다시 시도해주세요.');
+			this.plugin.showNotification(this.plugin.getLocalizedText('command.voice.msg.noMatch'));
 			this._startCooldown();
 		};
 
@@ -446,7 +446,7 @@ export class VoiceCommand {
 			}
 		} catch (error) {
 			console.error('음성 인식 시작 오류:', error);
-			this.plugin.showNotification('음성 인식을 시작할 수 없습니다.');
+			this.plugin.showNotification(this.plugin.getLocalizedText('command.voice.msg.startFailed'));
 			this._startCooldown();
 		}
 	}
@@ -503,11 +503,11 @@ export class VoiceCommand {
 					this._startCooldown();
 				}, 1000);
 			} else {
-				this.plugin.showNotification(`"${commandInfo.target}"을(를) 찾을 수 없습니다.`);
+				this.plugin.showNotification(this.plugin.getLocalizedText('command.voice.msg.targetNotFound', { target: commandInfo.target }));
 				this._startCooldown();
 			}
 		} else {
-			this.plugin.showNotification('명령을 이해할 수 없습니다. 다시 시도해주세요.');
+			this.plugin.showNotification(this.plugin.getLocalizedText('command.voice.msg.notUnderstood'));
 			this._startCooldown();
 		}
 	}
@@ -586,23 +586,23 @@ export class VoiceCommand {
 					element.tagName.toLowerCase() === 'button' ||
 					element.getAttribute('role') === 'button') {
 					element.click();
-					this.plugin.showNotification(`"${element.textContent?.trim() || '요소'}"을(를) 클릭했습니다.`);
+					this.plugin.showNotification(this.plugin.getLocalizedText('command.voice.msg.clicked', { target: element.textContent?.trim() || this.plugin.getLocalizedText('command.voice.label.element') }));
 				} else if (element.tagName.toLowerCase() === 'input' &&
 					(element.type === 'submit' || element.type === 'button')) {
 					element.click();
-					this.plugin.showNotification(`"${element.value || '버튼'}"을(를) 클릭했습니다.`);
+					this.plugin.showNotification(this.plugin.getLocalizedText('command.voice.msg.clicked', { target: element.value || this.plugin.getLocalizedText('command.voice.label.button') }));
 				} else if (element.tagName.toLowerCase() === 'input' &&
 					(element.type === 'radio' || element.type === 'checkbox')) {
 					element.checked = !element.checked;
 					element.dispatchEvent(new Event('change', { bubbles: true }));
-					this.plugin.showNotification(`"${element.getAttribute('name') || '입력'}"을(를) 토글했습니다.`);
+					this.plugin.showNotification(this.plugin.getLocalizedText('command.voice.msg.toggled', { target: element.getAttribute('name') || this.plugin.getLocalizedText('command.voice.label.input') }));
 				}
 			}
 
 			element.scrollIntoView({ behavior: 'smooth', block: 'center' });
 		} catch (error) {
 			console.error('명령 실행 오류:', error);
-			this.plugin.showNotification('명령을 실행할 수 없습니다.');
+			this.plugin.showNotification(this.plugin.getLocalizedText('command.voice.msg.executeFailed'));
 		}
 	}
 }

@@ -18,7 +18,7 @@ export class AutoTTS {
 		this._extractReadableElements();
 
 		if (this.elements.length === 0) {
-			this.plugin.showNotification('No readable elements found. (읽을 수 있는 요소가 없습니다.)');
+			this.plugin.showNotification(this.plugin.getLocalizedText('msg.error.noElementsFound'));
 			return;
 		}
 
@@ -46,7 +46,7 @@ export class AutoTTS {
 			this.currentIndex--;
 			this._readCurrentElement();
 		} else {
-			this.plugin.showNotification('This is the first element. (첫 번째 요소입니다.)');
+			this.plugin.showNotification(this.plugin.getLocalizedText('tts.auto.firstElement'));
 		}
 	}
 
@@ -55,7 +55,7 @@ export class AutoTTS {
 			this.currentIndex++;
 			this._readCurrentElement();
 		} else {
-			this.plugin.showNotification('This is the last element. (마지막 요소입니다.)');
+			this.plugin.showNotification(this.plugin.getLocalizedText('tts.auto.lastElement'));
 			this.ttsManager.toggleAutoTTS();
 		}
 	}
@@ -218,7 +218,7 @@ export class AutoTTS {
 
 	_speakText(text, onEnd) {
 		if (!window.speechSynthesis) {
-			this.plugin.showNotification('음성 합성을 지원하지 않는 브라우저입니다.');
+			this.plugin.showNotification(this.plugin.getLocalizedText('panel.personal.options.tts.msg.noSupport'));
 			return;
 		}
 

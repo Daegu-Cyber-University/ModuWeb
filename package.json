@@ -47,6 +47,7 @@
 		"test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
 		"test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
 		"test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage",
+		"lint": "eslint src",
 		"validate": "node --check src/index.js",
 		"start": "echo 'Open examples/index.html in a browser to test'",
 		"preversion": "npm test",
@@ -67,6 +68,7 @@
 	"devDependencies": {
 		"@jest/globals": "^30.3.0",
 		"@rollup/plugin-node-resolve": "^16.0.3",
+		"eslint": "^8.57.1",
 		"jest": "^30.3.0",
 		"jest-environment-jsdom": "^30.3.0",
 		"rollup": "^4.59.0"

@@ -337,6 +337,45 @@
 			"navigation": "go, navigate, link, click",
 			"action": "activate, start, stop, close",
 			"settings": "settings, options, menu"
+		},
+		"voice": {
+			"status": {
+				"preparing": "Preparing voice commands...",
+				"inactive": "Voice commands inactive",
+				"waiting": "Waiting for command...",
+				"waitingDetail": "Please say a command",
+				"listening": "Listening...",
+				"listeningDetail": "Speaking...",
+				"processing": "Analyzing command...",
+				"processingDetail": "Please wait a moment",
+				"executing": "Executing command...",
+				"cooldown": "Waiting...",
+				"cooldownDetail": "Please wait a moment before the next command",
+				"executingDetail": "Executing \"{command}\""
+			},
+			"label": {
+				"element": "element",
+				"button": "button",
+				"input": "input"
+			},
+			"msg": {
+				"noSupport": "This browser does not support speech recognition.",
+				"timeout": "The voice command wait time has expired.",
+				"lowConfidence": "Could not recognize your voice clearly. Please try again.",
+				"notAllowed": "Microphone permission is required. Ending voice commands.",
+				"audioCapture": "Cannot access the microphone. Please check permissions. Ending voice commands.",
+				"retryExceeded": "Exceeded the speech recognition retry limit. Ending voice commands.",
+				"error": "A speech recognition error occurred.",
+				"noSpeech": "No speech was detected. Please try again.",
+				"network": "A network error occurred.",
+				"noMatch": "Could not recognize the command. Please try again.",
+				"startFailed": "Could not start speech recognition.",
+				"targetNotFound": "Could not find \"{target}\".",
+				"notUnderstood": "Could not understand the command. Please try again.",
+				"clicked": "Clicked \"{target}\".",
+				"toggled": "Toggled \"{target}\".",
+				"executeFailed": "Could not execute the command."
+			}
 		}
 	},
 	"patterns": {
@@ -590,11 +629,16 @@
 		"table": {
 			"label": "Table",
 			"size": "{rows} rows, {cols} columns"
+		},
+		"auto": {
+			"firstElement": "This is the first element.",
+			"lastElement": "This is the last element."
 		}
 	},
 	"msg": {
 		"success": {
-			"save": "Saved successfully."
+			"save": "Saved successfully.",
+			"reset": "Settings have been reset."
 		},
 		"error": {
 			"default": "An error has occurred.",
@@ -622,7 +666,15 @@
 			"profileNotFound": "Profile \"{profileName}\" not found."
 		},
 		"info": {
-			"dictionaryNotFound": "No results found for \"{word}\"."
+			"dictionaryNotFound": "No results found for \"{word}\".",
+			"storageCheck": "Saved settings: {settings}, container: {container}"
+		},
+		"confirm": {
+			"reset": "Reset all accessibility settings?"
+		},
+		"state": {
+			"saved": "found",
+			"notSaved": "not found"
 		}
 	},
 	"dictionary": {

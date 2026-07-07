@@ -226,7 +226,6 @@ npm run config:from-env
 document.addEventListener('DOMContentLoaded', () => {
     const watOptions = {
         configPath: '../config.json',
-        colorTheme: false,
         fontFamily: {
             'Koddi Udon Gothic': {
                 enabled: true,
@@ -243,15 +242,36 @@ document.addEventListener('DOMContentLoaded', () => {
 
 ## 설정 옵션
 
+생성자에 전달하는 `options` 객체에서 **실제로 소비되는 키**는 아래와 같습니다.  
+(`ConfigurationManager`, `OptionsProcessor`, `WAT` 생성자가 읽는 값 기준)
+
+| 옵션 | 타입 | 기본값 | 설명 |
+|------|------|--------|------|
+| `configPath` | `string` | `undefined` | `config.json` 경로. 지정하지 않으면 fallback 기본값 사용 |
+| `language` | `string \| string[] \| Object` | `'ko'` | 언어 설정. 문자열, 배열(`["ko","en-US"]`), 또는 `{ languages, autoDetect, showSelector, defaultLanguage }` 객체 |
+| `containerID` | `string` | 내부 기본값 | WAT UI 컨테이너 요소의 ID |
+| `containerTargetSelector` | `string` | `'body'` 계열 | UI를 삽입할 기준 요소의 CSS 선택자 |
+| `containerTargetPosition` | `string` | `'before'` | 기준 요소 대비 삽입 위치 |
+| `applySelector` | `string` | `'body'` | 접근성 스타일을 적용할 대상 선택자 |
+| `excludeSelector` | `string` | `''` | 스타일 적용에서 제외할 선택자 |
+| `styleMode` | `string` | `'dynamic'` | 스타일 적용 모드 (`'dynamic'` / `'manual'`) |
+| `styleCssPath` | `string` | 내부 기본값 | `manual` 모드에서 로드할 커스텀 CSS 경로 |
+| `fontFamily` | `Object` | `FONT_FAMILY_OPTIONS` | 폰트 옵션 병합. `{ '<name>': { enabled, url, label } }` 형태 |
+| `fontSizeRatios` / `fontSizeOptions` | `Object` | 내부 기본값 | 글꼴 크기 단계 비율 및 옵션 |
+| `lineHeightRatios` / `lineHeightOptions` | `Object` | 내부 기본값 | 행간 단계 비율 및 옵션 |
+| `letterSpacingRatios` / `letterSpacingOptions` | `Object` | 내부 기본값 | 자간 단계 비율 및 옵션 |
+| `screenScaleRatios` / `screenScaleOptions` | `Object` | 내부 기본값 | 화면 확대 단계 비율 및 옵션 |
+
+> **참고**: 이전 문서에 있던 `position`, `theme`, `features: { tts, stt, magnifier, colorAdjust, dictionary }` 옵션은 **코드가 읽지 않습니다**. TTS/STT/사전 등 기능은 UI 패널에서 사용자가 켜고 끄며, 사전 기능은 `config.json`의 `api.dictionary` 설정으로 제어합니다.
+
 ### 기본 설정
 
 ```javascript
 const wat = new WAT({
-    position: 'right',        // 'left', 'right', 'top', 'bottom'
-    language: 'ko',          // 'ko', 'en-US', 'en-GB', 'ja', 'zh', 'de'
-    theme: 'light',          // 'light', 'dark', 'auto'
-    configPath: './config.json'  // 설정 파일 경로 (선택사항)
+    configPath: './config.json',   // 설정 파일 경로 (선택)
+    language: 'ko'                 // 'ko', 'en-US', 'en-GB', 'ja', 'zh', 'de'
 });
+wat.init();
 ```
 
 ### 고급 설정
@@ -259,24 +279,20 @@ const wat = new WAT({
 ```javascript
 const wat = new WAT({
     configPath: './config.json',
-    colorTheme: true,
+    language: {
+        languages: ["ko", "en-US", "ja"]
+    },
     fontFamily: {
         'Koddi Udon Gothic': {
             enabled: true,
             url: './assets/fonts/koddi-udon-gothic/koddi-udon-gothic.css'
         }
     },
-    language: { 
-        languages: ["ko", "en-US", "ja"] 
-    },
-    features: {
-        tts: true,           // Text-to-Speech
-        stt: true,           // Speech-to-Text
-        magnifier: true,     // 화면 확대
-        colorAdjust: true,   // 색상 조절
-        dictionary: false    // 사전 기능 (config.json 필요)
-    }
+    styleMode: 'dynamic',
+    applySelector: 'body',
+    excludeSelector: '.no-wat'
 });
+wat.init();
 ```
 
 ### config.json 설정 파일
@@ -290,8 +306,7 @@ const wat = new WAT({
     "dictionary": {
       "enabled": true,
       "serverEndpoint": "https://your-server.example/api/dictionary-jsonp",
-      "timeout": 5000,
-      "retryCount": 2
+      "timeout": 5000
     }
   },
   "resources": {
@@ -306,12 +321,19 @@ const wat = new WAT({
     "copyrightUrl": "https://your-organization.com"
   },
   "settings": {
+    "ui": {
+      "modalWidth": 600,
+      "showPronunciation": true
+    },
     "language": {
-      "defaultLanguage": "ko"
+      "defaultLanguage": "ko",
+      "supportedLanguages": ["ko", "en-US", "en-GB", "ja", "zh", "de"]
     }
   }
 }
 ```
+
+> 코드가 실제로 읽는 `config.json` 키는 `api.dictionary.enabled` / `api.dictionary.serverEndpoint` / `api.dictionary.timeout`, `resources.fonts.*`, `branding.copyrightUrl`, `settings.ui.modalWidth`, `settings.ui.showPronunciation` 입니다. 그 외 키(`api.dictionary.retryCount`, `settings.behavior.*`, `settings.accessibility.*`, `settings.ui.autoClose` 등)는 현재 소비되지 않습니다.
 
 ## API 문서
 
@@ -327,58 +349,51 @@ new WAT(options)
 
 #### 메서드
 
+> 아래 메서드는 `src/wat/WAT.js`에 실제로 구현된 공개 메서드입니다. 대부분 UI 패널이 내부적으로 호출하지만, 프로그래밍 방식으로도 사용할 수 있습니다. 대부분 `'initial'`(초기화) 또는 사전 정의된 단계 키를 인자로 받습니다.
+
 ##### `init()`
-접근성 도구를 초기화합니다.
+접근성 도구를 초기화합니다. 생성자 호출 후 반드시 실행해야 합니다.
 ```javascript
 wat.init();
 ```
 
-##### `show()`
-접근성 도구 패널을 표시합니다.
+##### 글꼴 · 텍스트
+
 ```javascript
-wat.show();
+wat.changeFontSize(size);        // 글꼴 크기 단계 변경 (예: 'initial', 단계 키)
+wat.changeFontFamily(font);      // 글꼴 종류 변경
+wat.changeLineHeight(height);    // 행간 변경
+wat.changeLetterSpacing(spacing);// 자간 변경
+wat.changeTextAlign(align);      // 텍스트 정렬 변경
 ```
 
-##### `hide()`
-접근성 도구 패널을 숨깁니다.
+##### 색상 · 화면
+
 ```javascript
-wat.hide();
+wat.changeColorTheme(theme);     // 색상 테마(고대비 등) 변경
+wat.changeSaturation(level);     // 채도 변경
+wat.changeScreenScale(scale);    // 화면 확대 단계 변경
+wat.changeReadGuide(mode);       // 읽기 가이드 모드 변경
+wat.changeImgDisplayMode(mode);  // 이미지 표시 모드 변경
 ```
 
-##### `toggle()`
-접근성 도구 패널을 토글합니다.
+##### 패널 · 프로필 · 초기화
+
 ```javascript
-wat.toggle();
+wat.togglePanel(actionHidden);          // UI 패널 열기/닫기
+wat.toggleMinimize();                   // 패널 최소화 토글
+wat.applyProfileSettings(profileName);  // 장애 유형별 프로필 일괄 적용
+wat.resetWatSettings();                 // 모든 설정 초기화
 ```
 
-##### `setLanguage(lang)`
-언어를 변경합니다.
-```javascript
-wat.setLanguage('en-US'); // 영어(미국)로 변경
-```
+##### 미디어 · 이미지 제어
 
-##### `setTheme(theme)`
-테마를 변경합니다.
 ```javascript
-wat.setTheme('dark'); // 다크 테마로 변경
-```
-
-##### `adjustFontSize(percentage)`
-글꼴 크기를 조절합니다.
-```javascript
-wat.adjustFontSize(150); // 150%로 확대
-```
-
-##### `toggleHighContrast()`
-고대비 모드를 토글합니다.
-```javascript
-wat.toggleHighContrast();
-```
-
-##### `toggleColorInvert()`
-색상 반전을 토글합니다.
-```javascript
-wat.toggleColorInvert();
+wat.toggleHideImages(isEnabled);          // 이미지 숨김
+wat.toggleImgTextConversion(isEnabled);   // 이미지 대체텍스트 변환
+wat.toggleMediaStop(isStopped);           // 미디어 정지
+wat.toggleMediaMute(isMuted);             // 미디어 음소거
+wat.togglePageScroll();                   // 자동 스크롤 토글
 ```
 
 ##### TTS 자동/포커스 읽기 시작/중지
@@ -391,51 +406,36 @@ wat.ttsManager.toggleAutoTTS();
 
 // 포커스 기반 읽기 토글
 wat.ttsManager.toggleFocusTTS();
+
+// 읽기 속도 조절
+wat.changeTTSSpeed(speed);       // 속도 단계 변경
+wat.setTTSSpeechRate(rate);      // speechSynthesis 발화 속도 직접 설정
 ```
 
 ##### STT 음성 명령 시작/중지
 
-STT는 음성을 명령으로 해석해 웹페이지에서 동작을 수행합니다. 현재는 인식 결과 텍스트를 콜백으로 받지 않고, 상태는 이벤트로 확인합니다.
+STT는 음성을 명령으로 해석해 웹페이지에서 동작을 수행합니다.
 
 ```javascript
-// 음성 명령 토글
+// 음성 명령 토글 (WAT 위임 메서드 또는 sttManager 직접 호출)
+wat.toggleVoiceCommand();
 wat.sttManager.toggleVoiceCommand();
+
+// STT 인식 언어 설정
+wat.setSTTLanguage(language);
 ```
 
 ### 이벤트
 
 #### `wat:initialized`
-도구가 초기화되었을 때 발생합니다.
+도구 초기화가 완료되면 `document`에 발생하는 유일한 커스텀 이벤트입니다.
 ```javascript
 document.addEventListener('wat:initialized', (event) => {
-    console.log('WAT 초기화 완료');
+    console.log('WAT 초기화 완료', event.detail);
 });
 ```
 
-#### `wat:settingsChanged`
-설정이 변경되었을 때 발생합니다.
-```javascript
-document.addEventListener('wat:settingsChanged', (event) => {
-    console.log('설정 변경:', event.detail);
-});
-```
-
-#### `wat:fontSizeChanged`
-글꼴 크기가 변경되었을 때 발생합니다.
-```javascript
-document.addEventListener('wat:fontSizeChanged', (event) => {
-    console.log('글꼴 크기:', event.detail.size);
-});
-```
-
-#### `wat:stt:stateChanged`
-음성 명령 모드의 상태가 바뀔 때 발생합니다.
-
-```javascript
-document.addEventListener('wat:stt:stateChanged', (event) => {
-    console.log('STT 상태 변경:', event.detail);
-});
-```
+> **참고**: 이전 문서에 있던 `wat:settingsChanged`, `wat:fontSizeChanged`, `wat:stt:stateChanged` 이벤트는 현재 코드에서 발생시키지 않습니다. 설정/상태 변화는 `StateManager`의 옵저버로 내부 처리됩니다.
 
 ## 예제
 

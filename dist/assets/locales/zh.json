@@ -337,6 +337,45 @@
 			"navigation": "移动, 链接, 点击",
 			"action": "执行, 打开, 关闭, 停止",
 			"settings": "设置, 选项, 菜单"
+		},
+		"voice": {
+			"status": {
+				"preparing": "正在准备语音命令...",
+				"inactive": "语音命令已停用",
+				"waiting": "正在等待命令...",
+				"waitingDetail": "请说出命令",
+				"listening": "正在识别语音...",
+				"listeningDetail": "正在讲话",
+				"processing": "正在分析命令...",
+				"processingDetail": "请稍候",
+				"executing": "正在执行命令...",
+				"cooldown": "等待中...",
+				"cooldownDetail": "请稍候再发出下一个命令",
+				"executingDetail": "正在执行\"{command}\""
+			},
+			"label": {
+				"element": "元素",
+				"button": "按钮",
+				"input": "输入"
+			},
+			"msg": {
+				"noSupport": "此浏览器不支持语音识别。",
+				"timeout": "语音命令等待超时。",
+				"lowConfidence": "未能清晰识别语音。请重试。",
+				"notAllowed": "需要麦克风使用权限。正在结束语音命令。",
+				"audioCapture": "无法访问麦克风。请检查权限。正在结束语音命令。",
+				"retryExceeded": "语音识别重试次数已超限。正在结束语音命令。",
+				"error": "发生语音识别错误。",
+				"noSpeech": "未检测到语音。请重试。",
+				"network": "发生网络错误。",
+				"noMatch": "无法识别命令。请重试。",
+				"startFailed": "无法启动语音识别。",
+				"targetNotFound": "找不到\"{target}\"。",
+				"notUnderstood": "无法理解命令。请重试。",
+				"clicked": "已点击\"{target}\"。",
+				"toggled": "已切换\"{target}\"。",
+				"executeFailed": "无法执行命令。"
+			}
 		}
 	},
 	"patterns": {
@@ -590,11 +629,16 @@
 		"table": {
 			"label": "表格",
 			"size": "{rows}行 {cols}列"
+		},
+		"auto": {
+			"firstElement": "这是第一个元素。",
+			"lastElement": "这是最后一个元素。"
 		}
 	},
 	"msg": {
 		"success": {
-			"save": "保存成功。"
+			"save": "保存成功。",
+			"reset": "设置已重置。"
 		},
 		"error": {
 			"default": "发生错误。",
@@ -622,7 +666,15 @@
 			"profileNotFound": "找不到配置文件\"{profileName}\"。"
 		},
 		"info": {
-			"dictionaryNotFound": "未找到\"{word}\"的搜索结果。"
+			"dictionaryNotFound": "未找到\"{word}\"的搜索结果。",
+			"storageCheck": "已保存的设置：{settings}，容器：{container}"
+		},
+		"confirm": {
+			"reset": "要重置所有无障碍设置吗？"
+		},
+		"state": {
+			"saved": "有",
+			"notSaved": "无"
 		}
 	},
 	"dictionary": {
