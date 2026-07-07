@@ -72,8 +72,8 @@ describe('showNotification', () => {
 // showUserFeedback — 타입별 피드백 토스트 (.wat-user-feedback)
 // ──────────────────────────────────────────────────
 describe('showUserFeedback', () => {
-	test.each(['success', 'error', 'warning', 'info'])(
-		'%s 타입 클래스와 라이브 리전 속성을 부여한다',
+	test.each(['success', 'warning', 'info'])(
+		'%s 타입은 status 라이브 리전으로 표시된다',
 		(type) => {
 			const stub = makeStub();
 			WAT.prototype.showUserFeedback.call(stub, type, '메시지');
@@ -86,6 +86,15 @@ describe('showUserFeedback', () => {
 		}
 	);
 
+	test('error 타입은 즉시 전달되도록 role=alert를 사용한다 (polite 중복 지정 없음)', () => {
+		const stub = makeStub();
+		WAT.prototype.showUserFeedback.call(stub, 'error', '실패');
+
+		const el = document.querySelector('.wat-user-feedback');
+		expect(el.getAttribute('role')).toBe('alert');
+		expect(el.getAttribute('aria-live')).toBeNull();
+	});
+
 	test('타입별 배경색이 설정된다 (알 수 없는 타입은 info 색상)', () => {
 		const stub = makeStub();
 		WAT.prototype.showUserFeedback.call(stub, 'success', 'ok');
@@ -97,13 +106,22 @@ describe('showUserFeedback', () => {
 		expect(fallback.style.backgroundColor).toBe('rgb(59, 130, 246)'); // #3b82f6 (info)
 	});
 
-	// [특성화] 현재는 타입이 배경색으로만 구분된다 (WCAG 1.4.1 위반 — Phase 1에서
-	// 텍스트 접두/아이콘 추가로 개선 예정. 개선 시 이 테스트의 기대치를 뒤집을 것)
-	test('현재 동작: 메시지 본문은 원문 그대로이며 타입 정보는 색상으로만 전달된다', () => {
+	test('타입별 아이콘으로 형태 구분을 제공한다 (WCAG 1.4.1 — 색상 단독 의존 금지)', () => {
 		const stub = makeStub();
 		WAT.prototype.showUserFeedback.call(stub, 'error', '실패했습니다');
 		const el = document.querySelector('.wat-user-feedback');
-		expect(el.textContent).toBe('실패했습니다');
+
+		const icon = el.querySelector('svg[data-icon="error"]');
+		expect(icon).not.toBeNull();
+		expect(icon.getAttribute('aria-hidden')).toBe('true'); // 장식용 — 메시지가 이미 낭독됨
+		expect(el.textContent).toBe('실패했습니다'); // 아이콘은 텍스트를 오염시키지 않음
+
+		// 타입별로 서로 다른 아이콘 형태가 부여된다
+		WAT.prototype.showUserFeedback.call(stub, 'success', '성공');
+		const successIcon = document.querySelector('.wat-user-feedback svg[data-icon="success"]');
+		expect(successIcon).not.toBeNull();
+		expect(successIcon.querySelector('path').getAttribute('d'))
+			.not.toBe(icon.querySelector('path').getAttribute('d'));
 	});
 
 	test('type 또는 message가 없으면 요소를 생성하지 않는다', () => {
@@ -146,15 +164,17 @@ describe('_showDictionaryMessage', () => {
 		expect(el.textContent).toContain('단어를 찾을 수 없습니다');
 	});
 
-	// [특성화] 현재는 role=alert + aria-live=polite가 동시 지정되어 상충한다
-	// (alert는 assertive를 함의 — Phase 1에서 타입별 role 분리로 개선 예정)
-	test('현재 동작: role=alert와 aria-live=polite가 동시에 지정된다', () => {
+	test('라이브 리전 semantics가 타입별로 분리된다 (error=alert, 그 외=status)', () => {
 		const stub = makeStub();
 		WAT.prototype._showDictionaryMessage.call(stub, '오류', 'error');
+		const errorEl = document.querySelector('.wat-dictionary-notification');
+		expect(errorEl.getAttribute('role')).toBe('alert');
+		expect(errorEl.getAttribute('aria-live')).toBeNull(); // alert는 assertive 함의 — polite 중복 지정 금지
 
-		const el = document.querySelector('.wat-dictionary-notification');
-		expect(el.getAttribute('role')).toBe('alert');
-		expect(el.getAttribute('aria-live')).toBe('polite');
+		WAT.prototype._showDictionaryMessage.call(stub, '안내', 'info');
+		const infoEl = document.querySelector('.wat-dictionary-notification');
+		expect(infoEl.getAttribute('role')).toBe('status');
+		expect(infoEl.getAttribute('aria-live')).toBe('polite');
 	});
 
 	test('닫기 버튼이 로컬라이즈된 aria-label을 갖고 클릭 시 알림이 제거된다', () => {

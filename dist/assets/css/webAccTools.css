@@ -371,6 +371,8 @@ caption.displayNone			{position:static !important; left:auto !important; top:aut
 body.overlay-active				{overflow: hidden; position: fixed; width: 100vw; height: 100vh}
 body.overlay-active .overlay			{display: block}
 .overlay					{position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); display: flex; justify-content: center; align-items: center; z-index: 1000; display: none;}
+/* 사전 결과 모달 오버레이 — body 스크롤 잠금(overlay-active) 없이 표시 (선택 텍스트 위치 유지), 모달(z-index 9999) 바로 아래 */
+.wat-diction-overlay				{display: block; background-color: rgba(0, 0, 0, 0.4); z-index: 9998;}
 /* ************************* Inside Page Class .End   ************************* */
 
 
@@ -521,10 +523,11 @@ html[data-wat-viewmode="icon"] .wat-minimized #wat .setWrap .setTitle {height: 5
 #watWrap .watSet-item-container.profile-container	{background-color: none; border: none; padding: 0}
 #watWrap .watSet-profile-item-container			{position: relative; display: grid; grid-template-columns: 1fr; grid-template-rows: 1fr auto; border: #aaa 1px solid; border-radius: 10px; margin: 5px 0; background-color: #ebf3ff; overflow: hidden}
 #watWrap .watSet-profile-title				{width: 100%; line-height: 2em; font-size:var(--wat-font-size); font-weight: bold; padding: 2px 10px; margin: 0; box-sizing: border-box; background-color: #f4f4f4;}
-#watWrap .watSet-profile-title-label::before		{display: inline-block; content: 'volume_up'; font-family: 'Material Icons'; font-weight: normal; font-style: normal; font-size: 24px; line-height: 1; letter-spacing: normal; text-transform: none; white-space: nowrap; direction: ltr; vertical-align: middle; margin-right: 6px; margin-top: -4px}
-#watWrap .watSet-profile-title-label.lowVision::before		{content: 'zoom_in'}
-#watWrap .watSet-profile-title-label.colorBlindness::before	{content: 'invert_colors'}
-#watWrap .watSet-profile-title-label.dyslexia::before		{content: 'menu_book'}
+/* 프로필 아이콘 — Material Icons CDN 의존 제거: 번들 SVG를 currentColor mask로 표시 (오프라인/폐쇄망 동작) */
+#watWrap .watSet-profile-title-label::before		{display: inline-block; content: ''; width: 24px; height: 24px; background-color: currentColor; -webkit-mask: url('../images/icon_profile_voice.svg') no-repeat center / contain; mask: url('../images/icon_profile_voice.svg') no-repeat center / contain; vertical-align: middle; margin-right: 6px; margin-top: -4px}
+#watWrap .watSet-profile-title-label.lowVision::before		{-webkit-mask-image: url('../images/icon_profile_lowVision.svg'); mask-image: url('../images/icon_profile_lowVision.svg')}
+#watWrap .watSet-profile-title-label.colorBlindness::before	{-webkit-mask-image: url('../images/icon_profile_colorBlindness.svg'); mask-image: url('../images/icon_profile_colorBlindness.svg')}
+#watWrap .watSet-profile-title-label.dyslexia::before		{-webkit-mask-image: url('../images/icon_profile_dyslexia.svg'); mask-image: url('../images/icon_profile_dyslexia.svg')}
 #watWrap .watSet-button.btn-toggleSwitch			{position: absolute; display:flex; align-items:center; justify-content:flex-start; width:100px; height: 2em; padding:0 10px; border:none; border-radius:20px; background:#ccc; cursor:pointer; transition:background 0.3s; top: 5px; right: 10px;}
 #watWrap .watSet-button.btn-toggleSwitch:hover			{box-shadow: 0 0 3px 2px rgba(0, 123, 255, 0.6);}
 #watWrap .watSet-button.btn-toggleSwitch:focus			{box-shadow: 0 0 3px 2px rgba(0, 123, 255, 0.6);}

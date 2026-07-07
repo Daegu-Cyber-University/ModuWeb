@@ -24,7 +24,6 @@ export class Constants {
 
 	static ELEMENT_IDS = {
 		LANGUAGE_SETTING_WRAP: 'watSetWrap_language',
-		MATERIAL_ICONS_LINK: 'material-icons-link',
 		PANEL_SET: 'wat_panel_Set',
 		PANEL_OPT: 'wat_panel_Opt',
 		BTN_SET: 'wat_settingLink',

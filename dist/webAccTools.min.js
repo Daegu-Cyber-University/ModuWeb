@@ -33,7 +33,6 @@ var WATPlugin = (function (exports) {
 
 		static ELEMENT_IDS = {
 			LANGUAGE_SETTING_WRAP: 'watSetWrap_language',
-			MATERIAL_ICONS_LINK: 'material-icons-link',
 			PANEL_SET: 'wat_panel_Set',
 			PANEL_OPT: 'wat_panel_Opt',
 			BTN_SET: 'wat_settingLink',
@@ -4868,21 +4867,11 @@ var WATPlugin = (function (exports) {
 					throw new Error('Container not found');
 				}
 
-				// Load Material Icons if not already loaded
-				if (!document.getElementById(Constants.ELEMENT_IDS.MATERIAL_ICONS_LINK)) {
-					const materialIconsUrl = this.getConfigValue(
-						'resources.fonts.materialIcons',
-						'https://fonts.googleapis.com/icon?family=Material+Icons'
-					);
-					if (isSafeHttpUrl(materialIconsUrl)) {
-						const link = document.createElement('link');
-						link.id = 'material-icons-link';
-						link.rel = 'stylesheet';
-						link.href = materialIconsUrl;
-						document.head.appendChild(link);
-					} else {
-						console.warn('[WAT] materialIcons URL 스킴이 유효하지 않아 무시합니다:', materialIconsUrl);
-					}
+				// Material Icons CDN 주입 제거 — 프로필 아이콘은 번들 SVG(css mask)로 대체됨 (오프라인/폐쇄망 동작).
+				// 기존 config와의 호환: 키가 남아 있으면 안내만 하고 무시한다 (deprecated)
+				const deprecatedMaterialIcons = this.getConfigValue('resources.fonts.materialIcons', null);
+				if (deprecatedMaterialIcons) {
+					console.warn('[WAT] resources.fonts.materialIcons 설정은 더 이상 사용되지 않습니다. 아이콘이 번들에 포함되어 CDN 로드가 필요 없습니다.');
 				}
 
 				// Initialize container — body/documentElement이면 호스트 페이지가 삭제되므로 차단
@@ -8231,15 +8220,47 @@ var WATPlugin = (function (exports) {
 					// 피드백 요소 생성
 					const feedback = document.createElement('div');
 					feedback.className = `wat-user-feedback wat-feedback-${type}`;
-					feedback.setAttribute('role', 'status');
-					feedback.setAttribute('aria-live', 'polite');
-					feedback.textContent = message;
-					
+					// 타입별 role 분리 — error는 즉시 전달(alert, assertive 함의), 나머지는 status(polite 함의)
+					if (type === 'error') {
+						feedback.setAttribute('role', 'alert');
+					} else {
+						feedback.setAttribute('role', 'status');
+						feedback.setAttribute('aria-live', 'polite');
+					}
+
+					// 타입별 아이콘 — 색상만으로 의미를 전달하지 않도록 형태로도 구분 (WCAG 1.4.1)
+					// 장식용이므로 스크린리더에는 숨김 (메시지 텍스트가 이미 낭독됨)
+					const iconPaths = {
+						success: 'M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z',
+						error: 'M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z',
+						warning: 'M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z',
+						info: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z'
+					};
+					const svgNS = 'http://www.w3.org/2000/svg';
+					const icon = document.createElementNS(svgNS, 'svg');
+					icon.setAttribute('viewBox', '0 0 24 24');
+					icon.setAttribute('aria-hidden', 'true');
+					icon.setAttribute('data-icon', iconPaths[type] ? type : 'info');
+					Object.assign(icon.style, { width: '20px', height: '20px', flexShrink: '0' });
+					const iconPath = document.createElementNS(svgNS, 'path');
+					iconPath.setAttribute('d', iconPaths[type] || iconPaths.info);
+					iconPath.setAttribute('fill', 'currentColor');
+					icon.appendChild(iconPath);
+
+					const messageSpan = document.createElement('span');
+					messageSpan.textContent = message;
+
+					feedback.appendChild(icon);
+					feedback.appendChild(messageSpan);
+
 					// 스타일 적용
 					Object.assign(feedback.style, {
 						position: 'fixed',
 						top: '20px',
 						right: '20px',
+						display: 'flex',
+						alignItems: 'center',
+						gap: '8px',
 						padding: '12px 16px',
 						borderRadius: '4px',
 						color: '#fff',
@@ -10164,7 +10185,7 @@ var WATPlugin = (function (exports) {
 					fonts: {
 						nanumMyeongjo: "https://fonts.googleapis.com/css2?family=Nanum+Myeongjo&display=swap",
 						notoSerifKR: "https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700&display=swap",
-						materialIcons: "https://fonts.googleapis.com/icon?family=Material+Icons",
+						// materialIcons는 v2.0.2부터 deprecated — 아이콘이 번들 SVG로 포함됨
 						koddiUdonGothic: null
 					}
 				},
@@ -10438,6 +10459,14 @@ var WATPlugin = (function (exports) {
 				const modalWidth = this.getConfigValue('settings.ui.modalWidth', 600);
 				const showPronunciation = this.getConfigValue('settings.ui.showPronunciation', true);
 
+				// 배경 오버레이 생성 — 모달 뒤 콘텐츠와의 시각적 분리 (WCAG 4.1.2 배경 격리 보강).
+				// 주의: body.overlay-active(position:fixed 스크롤 잠금)는 페이지를 최상단으로 점프시키므로
+				// 본문 중간(선택 텍스트 위치)에서 열리는 사전 모달에는 사용하지 않는다 — CSS의
+				// .wat-diction-overlay 규칙이 body 클래스 없이도 오버레이를 표시한다
+				const overlay = document.createElement('div');
+				overlay.classList.add('overlay', 'wat-overlay', 'wat-diction-overlay');
+				document.body.appendChild(overlay);
+
 				// 새로운 레이어 생성
 				const layer = document.createElement('div');
 				layer.classList.add('wat-diction-result-layer');
@@ -10486,6 +10515,11 @@ var WATPlugin = (function (exports) {
 				closeButton.textContent = this.getLocalizedText('tags.button.text.close');
 				closeButton.addEventListener('click', () => {
 					layer.remove();
+					overlay.remove();
+					// 다른 모달의 오버레이가 없을 때만 스크롤 잠금 해제 (사전 모달 자체는 잠금을 걸지 않음)
+					if (!document.querySelector('.wat-overlay')) {
+						document.body.classList.remove('overlay-active');
+					}
 					if (previousFocusedElement) {
 						previousFocusedElement.focus();
 					} else {
@@ -10503,35 +10537,8 @@ var WATPlugin = (function (exports) {
 				// 레이어가 열리면 포커스를 이동
 				layer.focus();
 
-				// 포커스 트래핑 구현
-				const focusableElements = layer.querySelectorAll('a, button, input, textarea, select, details, [tabindex]:not([tabindex="-1"])');
-				const firstFocusableElement = focusableElements[0];  
-				const lastFocusableElement = focusableElements[focusableElements.length - 1];
-
-				function handleTab(e) {
-					if (e.key === 'Tab') {
-						if (e.shiftKey) { // Shift + Tab
-							if (document.activeElement === firstFocusableElement) {
-								e.preventDefault();
-								lastFocusableElement.focus();
-							}
-						} else { // Tab
-							if (document.activeElement === lastFocusableElement) {
-								e.preventDefault();
-								firstFocusableElement.focus();
-							}
-						}
-					} else if (e.key === 'Escape') { // Escape 키로 다이얼로그 닫기
-						layer.remove();
-						if (previousFocusedElement) {
-							previousFocusedElement.focus(); // 포커스를 이전 요소로 반환
-						} else {
-							document.body.focus(); // 이전 요소가 없으면 본문으로 포커스 이동
-						}
-					}
-				}
-
-				layer.addEventListener('keydown', handleTab);
+				// 포커스 트래핑 — 인라인 복제 대신 공용 trapFocus 재사용 (Tab 순환 + Escape 닫기 + 오버레이 정리)
+				this.trapFocus(layer, previousFocusedElement, overlay);
 			}
 
 			/**
@@ -10570,6 +10577,11 @@ var WATPlugin = (function (exports) {
 			removeAllDictionLayers() {
 				const layers = document.querySelectorAll('.wat-diction-result-layer');
 				layers.forEach(layer => layer.remove());
+				// 사전 모달의 배경 오버레이도 함께 정리 — 다른 모달(페이지 구조)의 오버레이가 남아 있으면 잠금 유지
+				document.querySelectorAll('.wat-diction-overlay').forEach(el => el.remove());
+				if (!document.querySelector('.wat-overlay')) {
+					document.body.classList.remove('overlay-active');
+				}
 			}
 
 		/**
@@ -10606,8 +10618,14 @@ var WATPlugin = (function (exports) {
 				// Create notification element
 				const notification = document.createElement('div');
 				notification.className = `wat-dictionary-notification wat-dictionary-notification--${type}`;
-				notification.setAttribute('role', 'alert');
-				notification.setAttribute('aria-live', 'polite');
+				// role 상충 해소 — alert는 assertive를 함의하므로 polite와 동시 지정하지 않음.
+				// error만 즉시 전달(alert), info/success는 status(polite 함의)
+				if (type === 'error') {
+					notification.setAttribute('role', 'alert');
+				} else {
+					notification.setAttribute('role', 'status');
+					notification.setAttribute('aria-live', 'polite');
+				}
 				notification.textContent = message;
 
 				// Add close button
@@ -11057,9 +11075,14 @@ var WATPlugin = (function (exports) {
 				);
 				const firstFocusableElement = focusableElements[0];
 				const lastFocusableElement = focusableElements[focusableElements.length - 1];
-			
+
 				function handleTab(e) {
 					if (e.key === 'Tab') {
+						// 포커스 가능 요소가 없으면 Tab을 차단해 포커스가 모달 밖으로 새지 않도록 고정
+						if (focusableElements.length === 0) {
+							e.preventDefault();
+							return;
+						}
 						if (e.shiftKey) { // Shift + Tab
 							if (document.activeElement === firstFocusableElement) {
 								e.preventDefault();

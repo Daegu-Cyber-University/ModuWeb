@@ -102,11 +102,7 @@ describe('trapFocus', () => {
 		expect(document.body.contains(layer)).toBe(false);
 	});
 
-	// [특성화] 현재는 포커스 가능 요소가 0개인 레이어에서 Tab을 누르면
-	// firstFocusableElement가 undefined라 가드가 없다 (Phase 1에서 가드 추가 예정).
-	// Tab 위치 조건(activeElement === undefined)이 성립하지 않아 우연히 예외는 없지만,
-	// 포커스가 트랩 밖으로 새는 것을 막지 못한다.
-	test('현재 동작: 포커스 가능 요소가 없으면 Tab에 개입하지 못한다', () => {
+	test('포커스 가능 요소가 없으면 Tab을 차단해 포커스 이탈을 막는다 (빈 배열 가드)', () => {
 		const { previous, overlay } = buildModalFixture();
 		const emptyLayer = document.createElement('div');
 		emptyLayer.setAttribute('tabindex', '-1');
@@ -116,7 +112,12 @@ describe('trapFocus', () => {
 
 		emptyLayer.focus();
 		const event = pressKey(emptyLayer, 'Tab');
-		expect(event.defaultPrevented).toBe(false); // 트랩이 동작하지 않음 — 포커스 이탈 허용
+		expect(event.defaultPrevented).toBe(true); // 트랩 밖으로 새지 않도록 차단
+		expect(document.activeElement).toBe(emptyLayer);
+
+		// Escape로는 여전히 닫힌다
+		expect(() => pressKey(emptyLayer, 'Escape')).not.toThrow();
+		expect(document.body.contains(emptyLayer)).toBe(false);
 	});
 });
 
@@ -126,9 +127,10 @@ describe('trapFocus', () => {
 describe('displayDictionResult', () => {
 	function makeDictionStub() {
 		return {
-			removeAllDictionLayers: jest.fn(() => {
-				document.querySelectorAll('.wat-diction-result-layer').forEach(el => el.remove());
+			removeAllDictionLayers: jest.fn(function () {
+				return WAT.prototype.removeAllDictionLayers.call(this);
 			}),
+			trapFocus: WAT.prototype.trapFocus,
 			getConfigValue: jest.fn((path, fallback) => fallback),
 			getLocalizedText: jest.fn((key) => `[${key}]`),
 			_adjustModalPosition: jest.fn()
@@ -199,12 +201,25 @@ describe('displayDictionResult', () => {
 		expect(document.activeElement).toBe(previous);
 	});
 
-	// [특성화] 현재 사전 모달에는 배경 오버레이가 없다 (Phase 1에서 추가 예정)
-	test('현재 동작: 배경 오버레이 없이 레이어만 생성된다', () => {
+	test('배경 오버레이가 함께 생성되고 닫을 때 같이 제거된다', () => {
 		const stub = makeDictionStub();
 		WAT.prototype.displayDictionResult.call(stub, { title: 't', description: 'd' });
 
-		expect(document.querySelector('.wat-diction-result-layer')).not.toBeNull();
+		const overlay = document.querySelector('.wat-diction-overlay');
+		expect(overlay).not.toBeNull();
+		// 사전 모달은 body 스크롤 잠금(overlay-active)을 걸지 않는다 — 페이지 점프 방지
+		expect(document.body.classList.contains('overlay-active')).toBe(false);
+
+		const layer = document.querySelector('.wat-diction-result-layer');
+		pressKey(layer, 'Escape');
+		expect(document.querySelector('.wat-diction-overlay')).toBeNull();
+	});
+
+	test('닫기 버튼으로도 오버레이가 함께 제거된다', () => {
+		const stub = makeDictionStub();
+		WAT.prototype.displayDictionResult.call(stub, { title: 't', description: 'd' });
+
+		document.querySelector('.wat-diction-result-layer button').click();
 		expect(document.querySelector('.wat-diction-overlay')).toBeNull();
 	});
 });
