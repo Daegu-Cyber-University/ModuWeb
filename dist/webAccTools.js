@@ -2707,6 +2707,707 @@ var WATPlugin = (function (exports) {
 	}
 
 	/**
+	 * @fileoverview HTML 이스케이프 유틸리티
+	 * @module src/core/escapeHTML
+	 */
+
+	/**
+	 * HTML 템플릿 문자열에 삽입되는 외부 유래 값(config 라벨 등)의 이스케이프 — XSS 방지
+	 * @param {*} value - 이스케이프할 값 (null/undefined는 빈 문자열로)
+	 * @returns {string} 이스케이프된 문자열
+	 */
+	function escapeHTML(value) {
+		if (value === null || value === undefined) return '';
+		return String(value)
+			.replace(/&/g, '&amp;')
+			.replace(/</g, '&lt;')
+			.replace(/>/g, '&gt;')
+			.replace(/"/g, '&quot;')
+			.replace(/'/g, '&#39;');
+	}
+
+	/**
+	 * @fileoverview PanelBuilder - 설정 패널 UI 항목 생성 담당
+	 * @module src/wat/PanelBuilder
+	 * @description WAT.js에서 추출된 패널 생성 클러스터 (Phase 6-6).
+	 *              개인 옵션 18종은 개별 createXXXSettings 함수 대신
+	 *              OPTION_DEFS 데이터 테이블 + buildOption 팩토리로 생성한다.
+	 *              메서드명의 snake_case 지역 변수는 추출 과정에서 정규화됨.
+	 */
+
+	/**
+	 * 개인 옵션 로케일 키 헬퍼 — panel.personal.options.<group>.options.<key>
+	 * @param {string} group - 로케일 그룹명 (옵션명과 다를 수 있음: colorTheme→colorMode 등)
+	 * @param {string} key - 옵션 값 키
+	 * @returns {string} 로케일 키
+	 */
+	const optionLocaleKey = (group, key) => `panel.personal.options.${group}.options.${key}`;
+
+	/**
+	 * 개인 옵션 18종 정의 테이블.
+	 * - type: createSettingsItem에 전달되는 입력 타입 (radio | checkbox | button)
+	 * - group: 로케일 그룹명 (생략 시 옵션명과 동일)
+	 * - items: 정적 옵션 목록. labelKey 생략 시 value를 로케일 키로 사용,
+	 *          toggleKey가 있으면 label_toggle(상태 반전 라벨)을 생성
+	 * - ratios: true면 플러그인의 <name>Ratios/<name>Options 설정 기반 동적 목록
+	 *   (ratio가 false인 키 제외, 커스텀 label/checked/disabled 지원, initial 기본 선택)
+	 * fontFamily는 FONT_FAMILY_OPTIONS 병합·웹폰트 로드가 필요해 별도 빌더를 사용한다.
+	 */
+	const OPTION_DEFS = {
+		fontSize: { type: 'radio', ratios: true },
+		fontFamily: { type: 'radio', fontFamily: true },
+		screenScale: { type: 'radio', items: [
+			{ value: 'initial' }, { value: 'scale-1p2x' }, { value: 'scale-1p5x' }, { value: 'scale-2x' }
+		] },
+		txtAlign: { type: 'radio', items: [
+			{ value: 'initial' }, { value: 'left' }, { value: 'center' }, { value: 'right' }
+		] },
+		letterSpacing: { type: 'radio', ratios: true },
+		lineHeight: { type: 'radio', ratios: true },
+		colorTheme: { type: 'radio', group: 'colorMode', items: [
+			{ value: 'initial' }, { value: 'light' }, { value: 'dark', disabled: true }, { value: 'reverse' }
+		] },
+		saturation: { type: 'radio', items: [
+			{ value: 'initial' }, { value: 'low' }, { value: 'high' }, { value: 'monochrome' }
+		] },
+		readGuide: { type: 'radio', items: [
+			{ value: 'unset' }, { value: 'mask' }, { value: 'underline' }, { value: 'bigCursor' }
+		] },
+		imgDisplayMode: { type: 'radio', items: [
+			{ value: 'initial' }, { value: 'hide' }, { value: 'convert' }
+		] },
+		mediaStop: { type: 'checkbox', group: 'mediaControl', items: [
+			{ value: 'stop', toggleKey: 'play' }
+		] },
+		mediaMute: { type: 'checkbox', group: 'soundControl', items: [
+			{ value: 'mute', toggleKey: 'unmute' }
+		] },
+		stopAni: { type: 'checkbox', group: 'animationControl', items: [
+			{ value: 'stop', toggleKey: 'play' }
+		] },
+		pageScroll: { type: 'button', items: [
+			{ value: 'toggle', labelKey: 'start', toggleKey: 'stop', addClass: 'btn_iconSet btn_toggle' },
+			{ value: 'up', addClass: 'btn_iconSet btn_up' },
+			{ value: 'down', addClass: 'btn_iconSet btn_down' }
+		] },
+		tts: { type: 'button', items: [
+			{ value: 'toggle', labelKey: 'start', toggleKey: 'stop', addClass: 'btn_iconSet btn_toggle' },
+			{ value: 'prev', disabled: true, addClass: 'btn_iconSet btn_prev' },
+			{ value: 'next', disabled: true, addClass: 'btn_iconSet btn_next' },
+			{ value: 'focus_toggle', labelKey: 'focus-start', addClass: 'btn_iconSet btn_toggle btn_focus' }
+		] },
+		stt: { type: 'button', items: [
+			{ value: 'start' }
+		] },
+		diction: { type: 'checkbox', items: [
+			{ value: 'on', toggleKey: 'off' }
+		] },
+		pageStructure: { type: 'button', items: [
+			{ value: 'show', toggleKey: 'hide' }
+		] }
+	};
+
+	class PanelBuilder {
+		/**
+		 * @param {Object} plugin - WAT 인스턴스 (로케일·요소 생성·설정 저장 등 서비스 제공자)
+		 */
+		constructor(plugin) {
+			this.plugin = plugin;
+		}
+
+		/**
+		 * 개인 옵션명으로 설정 항목 요소를 생성합니다 (OPTION_DEFS 테이블 기반)
+		 * @param {string} optionName - 옵션명 ('fontSize', 'colorTheme' 등)
+		 * @returns {HTMLLIElement} 설정 항목 리스트 요소
+		 */
+		buildOption(optionName) {
+			const def = OPTION_DEFS[optionName];
+			if (!def) {
+				throw new Error(`[WAT] Unknown personal option: ${optionName}`);
+			}
+			const group = def.group || optionName;
+			const title = this.plugin.getLocalizedText(`panel.personal.options.${group}.title`);
+
+			let optionItems;
+			if (def.ratios) {
+				optionItems = this._buildRatioItems(optionName);
+			} else if (def.fontFamily) {
+				optionItems = this._buildFontFamilyItems();
+			} else {
+				optionItems = def.items.map(item => {
+					const built = {
+						value: item.value,
+						label: this.plugin.getLocalizedText(optionLocaleKey(group, item.labelKey || item.value))
+					};
+					if (item.toggleKey) built.label_toggle = this.plugin.getLocalizedText(optionLocaleKey(group, item.toggleKey));
+					if (item.disabled) built.disabled = true;
+					if (item.addClass) built.addClass = item.addClass;
+					return built;
+				});
+			}
+
+			return this.createSettingsItem(def.type, title, optionName, optionItems);
+		}
+
+		/**
+		 * 비율 설정 기반 옵션 목록 생성 (fontSize/letterSpacing/lineHeight 공통)
+		 * @private
+		 * @param {string} optionName - 옵션명
+		 * @returns {Array<Object>} 옵션 목록
+		 */
+		_buildRatioItems(optionName) {
+			const plugin = this.plugin;
+			const ratios = plugin[`${optionName}Ratios`];
+			const customOptions = plugin.options[`${optionName}Options`];
+			const generateLabel = plugin[`generate${optionName.charAt(0).toUpperCase()}${optionName.slice(1)}Label`].bind(plugin);
+			const optionItems = [];
+
+			for (const [key, ratio] of Object.entries(ratios)) {
+				if (ratio === false) continue;
+
+				const customConfig = customOptions?.[key];
+				let label = plugin.getLocalizedText(optionLocaleKey(optionName, key));
+				let checked = false;
+				let disabled = false;
+
+				if (typeof customConfig === 'object') {
+					label = customConfig.label || label || generateLabel(key, ratio);
+					checked = customConfig.checked === true;
+					disabled = customConfig.disabled === true;
+				} else {
+					label = label || generateLabel(key, ratio);
+				}
+
+				optionItems.push({
+					value: key,
+					label,
+					checked: key === 'initial' ? true : checked,
+					disabled
+				});
+			}
+
+			return optionItems;
+		}
+
+		/**
+		 * 폰트 패밀리 옵션 목록 생성 — 기본 FONT_FAMILY_OPTIONS와 사용자 옵션 병합,
+		 * URL이 있는 웹폰트는 동적 로드
+		 * @private
+		 * @returns {Array<Object>} 옵션 목록
+		 */
+		_buildFontFamilyItems() {
+			const plugin = this.plugin;
+			const mergedFontOptions = {
+				...FONT_FAMILY_OPTIONS,
+				...plugin.options.fontFamily
+			};
+			const optionItems = [];
+
+			for (const [fontName, fontConfig] of Object.entries(mergedFontOptions)) {
+				// 명시적으로 비활성화(false)된 폰트만 제외 — enabled 생략은 활성으로 취급
+				if (fontConfig === false || (typeof fontConfig === 'object' && fontConfig.enabled === false)) continue;
+
+				// 웹폰트 URL이 있는 경우 동적으로 로드
+				if (typeof fontConfig === 'object' && fontConfig.url) {
+					plugin.loadWebFont(fontConfig.url);
+				}
+
+				optionItems.push({
+					value: fontName,
+					label: plugin.getLocalizedText(optionLocaleKey('fontFamily', fontName)) || fontConfig.label || fontName,
+					// enabled(표시 여부)와 checked(선택 여부)는 별개 — 기본 선택은 'initial'만
+					checked: fontName === 'initial'
+				});
+			}
+
+			return optionItems;
+		}
+
+		/**
+		 * 지정된 타입과 옵션으로 일반적인 설정 항목을 생성합니다
+		 * @param {string} itemType - 입력 요소의 타입 ('radio', 'checkbox', 'button' 등)
+		 * @param {string} titleText - 설정 항목의 제목 텍스트
+		 * @param {string} optionName - 폼 요소의 name 속성
+		 * @param {Array<Object>} optionItems - 옵션 설정 배열
+		 * @returns {HTMLLIElement} 설정 UI가 포함된 리스트 아이템 요소
+		 */
+		createSettingsItem(itemType, titleText, optionName, optionItems) {
+			const plugin = this.plugin;
+			// config/로케일 유래 값이 innerHTML 템플릿에 삽입되므로 전부 이스케이프 (XSS 방지)
+			titleText = escapeHTML(titleText);
+			const itemsHtml = optionItems.map(item => {
+				const elementId = escapeHTML(`${optionName}_${item.value}`);
+				const itemLabel = escapeHTML(item.label);
+				const toggleLabel = escapeHTML(item.label_toggle || '');
+				const additionalClass = escapeHTML(item.addClass || '');
+				const checkedAttr = item.checked ? 'checked' : '';
+				const selectedClass = item.selected ? Constants.CSS_CLASSES.SELECTED : '';
+				const disabledAttr = item.disabled ? 'disabled' : '';
+				const itemStyle = escapeHTML(item.style || '');
+				const itemValue = escapeHTML(item.value);
+				const itemSrc = escapeHTML(item.src || '');
+				const labelTitleAttr = itemLabel ? ` title="${itemLabel}"` : '';
+				let htmlString = `
+				<li class='opt_item wat-item-li'>
+					<input type="${itemType}" class="wat-items wat-item-type-radio" id="wat-${itemType}-${elementId}" name="${optionName}" title="${titleText} ${itemLabel}" value="${itemValue}" ${checkedAttr} ${disabledAttr}><label for="wat-${itemType}-${elementId}"${labelTitleAttr}>${itemLabel}</label>
+				</li>
+				`;
+				if (itemType === 'select') {
+					htmlString = `
+					<li class='opt_item'>
+						<option class="wat-items wat-item-type-option" value="${itemValue}" ${selectedClass} ${disabledAttr}>${itemLabel}</option>
+					</li>
+					`;
+				} else if (itemType === 'button') {
+					let toggleAttr = '';
+					if (toggleLabel) {
+						toggleAttr = `data-stateText-on="${itemLabel}" data-stateText-off="${toggleLabel}"`;
+					}
+					htmlString = `
+					<li class='opt_item' style="${itemStyle}">
+						<button type="button" class="wat-items wat-item-type-button btn_basic ${additionalClass}" id="wat-${itemType}-${elementId}" name="${optionName}" value="${itemValue}" ${disabledAttr} ${toggleAttr} title="${titleText} ${itemLabel}">${itemLabel}</button>
+					</li>
+					`;
+				} else if (itemType === 'buttonMix') {
+					htmlString = `
+					<li class='opt_item'>
+						<button type="button" class="wat-items wat-item-type-button" id="wat-${itemType}-${elementId}" name="${optionName}" value="${itemValue}" ${disabledAttr}>${itemLabel}</button>
+					</li>
+					`;
+				} else if (itemType === 'buttonImg') {
+					htmlString = `
+					<li class='opt_item'>
+						<button type="button" class="wat-items wat-item-type-button btn_buttonImg ${additionalClass}" id="wat-${itemType}-${elementId}" name="${optionName}" value="${itemValue}" ${disabledAttr}><img src="${itemSrc}" alt="${itemLabel}"></button>
+					</li>
+					`;
+				} else if (itemType === 'buttonImgSVG') {
+					htmlString = `
+					<li class='opt_item'>
+						<button type="button" class="wat-items wat-item-type-button btn_buttonImgSVG ${additionalClass}" id="wat-${itemType}-${elementId}" name="${optionName}" value="${itemValue}" ${disabledAttr} title="${titleText} ${itemLabel}"><span class="icon-svg"></span></button>
+					</li>
+					`;
+				} else if (itemType === 'checkbox') {
+					htmlString = `
+					<li class='opt_item'>
+						<input type="${itemType}" class="wat-items wat-item-type-checkbox switch" id="wat-${itemType}-${optionName}" name="${optionName}" value="${itemValue}" title="${titleText} ${itemLabel}" role="switch" aria-checked="${item.checked ? 'true' : 'false'}" ${checkedAttr} ${disabledAttr}><label for="wat-${itemType}-${optionName}" class="switch-label">${itemLabel}</label>
+						<span class="switch-state" data-stateText-on="${itemLabel}" data-stateText-off="${toggleLabel}">${itemLabel}</span>
+					</li>
+					`;
+				}
+				return htmlString;
+			}).join('');
+			const listItemElement = document.createElement('li');
+			// .setTitle은 클릭 시 옵션을 순환/토글하는 버튼이므로 키보드 포커스 가능하게 tabindex 부여 (WCAG 2.1.1)
+			let listItemInnerHTML = `
+			<div class='setWrap'>
+				<div class='setTitle' role='button' tabindex='0'>${titleText}</div>
+				<div class='setCont'>
+				`;
+					if (itemType === 'radio') {
+						listItemInnerHTML += `<button class='hidden btn_chgOpt prev' type='button' title="${titleText} ${plugin.getLocalizedText('tags.button.text.prevOpt')}" aria-label="${titleText} ${plugin.getLocalizedText('tags.button.text.prevOpt')}">${plugin.getLocalizedText('tags.button.text.prevOpt')}</button>`;
+					}
+					// 라디오 묶음에 그룹 시맨틱 부여 — 스크린리더가 그룹명·위치를 안내 (WCAG 1.3.1)
+					const listGroupAttr = itemType === 'radio' ? ` role="radiogroup" aria-label="${titleText}"` : '';
+					listItemInnerHTML += `<ul class='opt_lists'${listGroupAttr}>${itemsHtml}</ul>`;
+					if (itemType === 'radio') {
+						listItemInnerHTML += `<button class='hidden btn_chgOpt next' type='button' title="${titleText} ${plugin.getLocalizedText('tags.button.text.nextOpt')}" aria-label="${titleText} ${plugin.getLocalizedText('tags.button.text.nextOpt')}">${plugin.getLocalizedText('tags.button.text.nextOpt')}</button>`;
+					}
+					listItemInnerHTML += `</div>
+			</div>
+			`;
+			listItemElement.innerHTML = listItemInnerHTML;
+
+			// .setTitle 클릭 시 라디오 버튼 순차 선택 및 change 이벤트 트리거
+			const setWrapElement = listItemElement.querySelector('.setWrap');
+			const titleElement = setWrapElement.querySelector('.setTitle');
+			const labelElement = setWrapElement.querySelector('.switch-label');
+
+			// role="button"인 .setTitle을 키보드로도 활성화 (Enter/Space → 클릭) (WCAG 2.1.1)
+			titleElement.addEventListener('keydown', (e) => {
+				if (e.key === 'Enter' || e.key === ' ') {
+					e.preventDefault();
+					titleElement.click();
+				}
+			});
+
+			// 라디오 순환 선택 공통 처리 (제목 클릭/이전·다음 버튼)
+			const cycleRadio = (direction) => {
+				const radioElements = setWrapElement.querySelectorAll('.setCont input[type="radio"]');
+				const targetIndex = plugin.getRadioTargetIndex(setWrapElement, direction);
+				if (radioElements[targetIndex]) {
+					radioElements[targetIndex].checked = true;
+					// change 이벤트를 수동으로 트리거
+					radioElements[targetIndex].dispatchEvent(new Event('change', { bubbles: true }));
+				}
+			};
+
+			if (itemType === 'radio') {
+				setWrapElement.classList.add('radio');
+				titleElement.addEventListener('click', () => cycleRadio('next'));
+				setWrapElement.querySelector('.btn_chgOpt.prev').addEventListener('click', () => cycleRadio('prev'));
+				setWrapElement.querySelector('.btn_chgOpt.next').addEventListener('click', () => cycleRadio('next'));
+			} else if (itemType === 'checkbox') {
+				setWrapElement.classList.add('checkbox');
+				const toggleCheckbox = () => {
+					const checkboxElement = setWrapElement.querySelector('.setCont input[type="checkbox"]');
+					checkboxElement.checked = !checkboxElement.checked;
+					// change 이벤트를 수동으로 트리거
+					checkboxElement.dispatchEvent(new Event('change', { bubbles: true }));
+				};
+				titleElement.addEventListener('click', toggleCheckbox);
+				labelElement.addEventListener('click', toggleCheckbox);
+			} else if (itemType === 'button') {
+				setWrapElement.classList.add('button');
+				titleElement.addEventListener('click', () => {
+					const buttonElements = setWrapElement.querySelectorAll('.setCont button');
+					const inputElements = setWrapElement.querySelectorAll('.setCont input[type="button"], .setCont input[type="image"], .setCont input[type="submit"]');
+
+					// 첫 번째 button이 있으면 선택, 없으면 input[type="button" | "image" | "submit"] 중 첫 번째 요소 선택
+					let targetButtonElement = buttonElements.length > 0 ? buttonElements[0] : (inputElements.length > 0 ? inputElements[0] : null);
+					if (targetButtonElement.disabled || targetButtonElement.classList.contains('disabled') || targetButtonElement.style.display === 'none') {
+						targetButtonElement = buttonElements.length > 1 ? buttonElements[1] : (inputElements.length > 1 ? inputElements[1] : null);
+					}
+					if (targetButtonElement) targetButtonElement.click();
+				});
+			} else if (itemType === 'buttonMix') {
+				setWrapElement.classList.add('button', 'mixCont');
+				titleElement.addEventListener('click', () => {
+					const buttonElements = setWrapElement.querySelectorAll('.setCont button');
+					const inputElements = setWrapElement.querySelectorAll('.setCont input[type="button"], .setCont input[type="image"], .setCont input[type="submit"]');
+
+					// 첫 번째 button이 있으면 선택, 없으면 input[type="button" | "image" | "submit"] 중 첫 번째 요소 선택
+					const targetButtonElement = buttonElements.length > 0 ? buttonElements[0] : (inputElements.length > 0 ? inputElements[0] : null);
+					targetButtonElement.click();
+				});
+			}
+
+			return listItemElement;
+		}
+
+		/**
+		 * 설정 패널에 프로필 설정 섹션을 생성합니다
+		 * @param {HTMLElement} container - 프로필 설정을 추가할 컨테이너 요소
+		 * @returns {void}
+		 * @description 각 접근성 프로필에 대한 토글과 개별 설정 옵션이 있는 프로필 선택 UI를 생성합니다
+		 */
+		createProfileSettings(container) {
+			const plugin = this.plugin;
+			const profileSettingTitleElement = plugin.createElementWithAttrs('h4', { class: 'watSet-group-title' });
+			profileSettingTitleElement.textContent = plugin.getLocalizedText('panel.settings.profile.title');
+			container.appendChild(profileSettingTitleElement);
+
+			// ************************* Profile Lists .Start *************************
+			const profileValues = Defaults.PROFILES;
+			const profileContainerElement = plugin.createElementWithAttrs('div', { id: 'watSetWrap_profile', class: ['watSet-item-container', 'profile-container'] });
+			const profileListElement = plugin.createElementWithAttrs('ul', { class: 'profileLists' });
+
+			for (const profile in profileValues) {
+				const profileItemElement = plugin.createElementWithAttrs('li', { class: 'profileItem' });
+				const profileItemContainerElement = plugin.createElementWithAttrs('fieldset', { class: 'watSet-profile-item-container', 'data-profile': profile });
+				const profileItemTitleElement = plugin.createElementWithAttrs('legend', { class: ['watSet-profile-title', 'profileItemTitle'] });
+				const profileItemTitleLabelElement = plugin.createElementWithAttrs('label', { class: ['watSet-label', 'watSet-profile-title-label', `${profile}`], for: `watSet_profile_button_toggle_${profile}` });
+				const profileTitleText = plugin.getLocalizedText(`panel.settings.profile.options.${profile}.title`);
+				profileItemTitleLabelElement.textContent = profileTitleText;
+				profileItemTitleElement.appendChild(profileItemTitleLabelElement);
+
+				// ***** Button - Profile Options .Start *****
+				const profileOptionsToggleButtonElement = plugin.createElementWithAttrs('button', { class: ['watSet-button', 'watSet-profile-button-accordion', 'btnType_1'], role: 'switch', 'aria-pressed': 'false', title: `${profileTitleText} ${plugin.getLocalizedText('tags.button.attr.type.option')}`, 'aria-labelledby': `watSet_profile_Opts_Label_${profile}` });
+				const profileOptionsToggleLabelElement = plugin.createElementWithAttrs('span', { id: `watSet_profile_Opts_Label_${profile}`, class: 'watSet-button-label' });
+				profileOptionsToggleLabelElement.textContent = plugin.getLocalizedText('tags.button.text.optionsOpen');
+				profileOptionsToggleButtonElement.appendChild(profileOptionsToggleLabelElement);
+				profileOptionsToggleButtonElement.addEventListener('click', (evt) => {
+					const targetToggleElement = evt.target.closest('.watSet-profile-button-accordion');
+					const profile = targetToggleElement.closest('.watSet-profile-item-container').getAttribute('data-profile');
+					const isOn = targetToggleElement.getAttribute('aria-pressed') === 'true';
+					const targetLabelElement = targetToggleElement.querySelector('.watSet-button-label');
+					targetLabelElement.textContent = isOn ? plugin.getLocalizedText('tags.button.text.optionsOpen') : plugin.getLocalizedText('tags.button.text.optionsClose');
+					targetToggleElement.setAttribute('aria-pressed', isOn ? 'false' : 'true');
+					const profileInner = document.getElementById(`watSet_profile_items_wrap_${profile}`);
+					if (isOn) {
+						profileInner.classList.remove(Constants.CSS_CLASSES.ACTIVE);
+						profileInner.setAttribute('aria-hidden', 'true');
+						plugin._setTimeout(() => {
+							targetToggleElement.closest('.watSet-profile-item-container').querySelector('.watSet-profile-button-accordion').focus();
+						}, 100);
+					} else {
+						profileInner.classList.add(Constants.CSS_CLASSES.ACTIVE);
+						profileInner.setAttribute('aria-hidden', 'false');
+						plugin._setTimeout(() => {
+							const focusableElements = profileInner.querySelectorAll('a, button, input, textarea, select, details, [tabindex]:not([tabindex="-1"])');
+							if (focusableElements.length > 0) {
+								focusableElements[0].focus();
+							} else {
+								console.error('No focusable elements found inside profileInner');
+							}
+						}, 100);
+					}
+					targetToggleElement.classList.toggle(Constants.CSS_CLASSES.ACTIVE, !isOn);
+					targetToggleElement.setAttribute('aria-disabled', isOn ? 'false' : 'true');
+				});
+				profileItemTitleElement.appendChild(profileOptionsToggleButtonElement);
+				// ***** Button - Profile Options .End   *****
+
+				profileItemContainerElement.appendChild(profileItemTitleElement);
+
+				// ***** Button - Profile Toggle Switch .Start *****
+				const profileToggle = plugin.createElementWithAttrs('button', {
+					id: `watSet_profile_button_toggle_${profile}`,
+					class: ['watSet-button', 'btn-toggleSwitch', 'profileToggle'],
+					role: 'switch',
+					'aria-pressed': 'false',
+					'data-profile': profile,
+					title: `${profileTitleText} ${plugin.getLocalizedText('tags.button.attr.type.toggle')}`,
+					'aria-labelledby': `watSet_profileToggleLabel_${profile}`
+				});
+				const profileToggleLabel = plugin.createElementWithAttrs('span', {
+					id: `watSet_profileToggleLabel_${profile}`,
+					class: 'watSet-button-label'
+				});
+				profileToggleLabel.textContent = plugin.getLocalizedText('tags.button.text.stateOff');
+				profileToggle.appendChild(profileToggleLabel);
+				profileToggle.addEventListener('click', (evt) => {
+					const targetToggle = evt.target.closest('.profileToggle');
+					const profile = targetToggle.getAttribute('data-profile');
+					plugin.toggleProfile(profile, targetToggle);
+				});
+				profileItemContainerElement.appendChild(profileToggle);
+				// ***** Button - Profile Toggle Switch .End   *****
+
+				// ***** Container - Profile Options .Start *****
+				const profileInner = plugin.createElementWithAttrs('div', { id: `watSet_profile_items_wrap_${profile}`, class: 'watSet-profile-items-wrap' });
+				const profileListInner = plugin.createElementWithAttrs('ul', { class: 'watSet-profile-items-ul' });
+
+				const profileItems = profileValues[profile].settings;
+				for (const item in profileItems) {
+					if (plugin.options[item] === false) continue;
+
+					const profileListItem = plugin.createElementWithAttrs('li', { class: 'watSet-profile-item-li' });
+					const input = plugin.createElementWithAttrs('input', { type: 'checkbox', class: ['watSet-checkbox', 'profileListItemInput'], id: `watSet_checkbox_${profile}_${item}`, name: `${profile}_${item}`, value: profileItems[item], 'data-key': item });
+					input.checked = profileValues[profile].enabled[item];
+					const label = plugin.createElementWithAttrs('label', { class: ['watSet_label', 'watSet-profile-item-label'], for: `watSet_checkbox_${profile}_${item}` });
+					label.textContent = plugin.getLocalizedText(`panel.personal.options.${item}.title`);
+					profileListItem.appendChild(input);
+					profileListItem.appendChild(label);
+					profileListInner.appendChild(profileListItem);
+				}
+				profileInner.appendChild(profileListInner);
+				profileItemContainerElement.appendChild(profileInner);
+				// ***** Container - Profile Options .End   *****
+
+				profileItemElement.appendChild(profileItemContainerElement);
+				profileListElement.appendChild(profileItemElement);
+			}
+			profileContainerElement.appendChild(profileListElement);
+			container.appendChild(profileContainerElement);
+			// ************************* Profile Lists .End   *************************
+		}
+
+		/**
+		 * 위치, 뷰 모드, 언어, 저장 옵션을 포함한 도구 설정 섹션을 생성합니다
+		 * @param {HTMLElement} container - 도구 설정을 추가할 컨테이너 요소
+		 * @returns {void}
+		 */
+		createToolsSettings(container) {
+			const plugin = this.plugin;
+			const manageSettingTitle = plugin.createElementWithAttrs('h4', { class: 'watSet-group-title' });
+			manageSettingTitle.textContent = plugin.getLocalizedText('panel.settings.manage.title');
+			container.appendChild(manageSettingTitle);
+
+			// ************************* Tool Position Setting .Start *************************
+			const toolPositionContainer = plugin.createElementWithAttrs('fieldset', { id: 'watSetWrap_position', class: ['watSet-item-container', 'tool-position-container'] });
+
+			const toolPositionSettingTitle = plugin.createElementWithAttrs('legend', { class: 'watSet-title' });
+			toolPositionSettingTitle.textContent = plugin.getLocalizedText('panel.settings.manage.options.position.title');
+			toolPositionContainer.appendChild(toolPositionSettingTitle);
+
+			const toolPositionInner = plugin.createElementWithAttrs('div', { class: 'watSet-inner' });
+			const toolPositionList = plugin.createElementWithAttrs('ul', { class: 'watSet-list' });
+			const toolPositionItems = [
+				{ id: 'watSet_postion_left', label: plugin.getLocalizedText('panel.settings.manage.options.position.options.left'), value: 'left', checked: false },
+				{ id: 'watSet_postion_right', label: plugin.getLocalizedText('panel.settings.manage.options.position.options.right'), value: 'right', checked: true }
+			];
+			toolPositionItems.forEach(item => {
+				const toolPositionItem = plugin.createElementWithAttrs('li', { class: 'watSet-item' });
+				const input = plugin.createElementWithAttrs('input', { type: 'radio', id: item.id, class: ['wat-set-items', 'wat-set-item-type-radio'], name: 'toolPosition', value: item.value });
+				input.checked = item.checked;
+				input.onchange = () => {
+					document.documentElement.dataset['watPosition'] = item.value;
+					plugin.savePreferences();
+				};
+				const label = plugin.createElementWithAttrs('label', { for: item.id, class: 'wat-set-label' });
+				label.textContent = item.label;
+				toolPositionItem.appendChild(input);
+				toolPositionItem.appendChild(label);
+				toolPositionList.appendChild(toolPositionItem);
+			});
+			toolPositionInner.appendChild(toolPositionList);
+			toolPositionContainer.appendChild(toolPositionInner);
+
+			container.appendChild(toolPositionContainer);
+			// ************************* Tool Position Setting .End   *************************
+
+			// ************************* View Mode Setting .Start *************************
+			const viewModeContainer = plugin.createElementWithAttrs('fieldset', { id: 'watSetWrap_viewMode', class: ['watSet-item-container', 'tool-viewMode-container'] });
+
+			const viewModeSettingTitle = plugin.createElementWithAttrs('legend', { class: 'watSet-title' });
+			viewModeSettingTitle.textContent = plugin.getLocalizedText('panel.settings.manage.options.viewMode.title');
+			viewModeContainer.appendChild(viewModeSettingTitle);
+
+			const viewModeSettingInner = plugin.createElementWithAttrs('div', { class: 'watSet-inner' });
+			const viewModeSettingList = plugin.createElementWithAttrs('ul', { class: 'watSet-list' });
+			const viewModeSettingItems = [
+				{ id: 'watSet_viewMode_icon', label: plugin.getLocalizedText('panel.settings.manage.options.viewMode.iconMode.title'), setMode: 'icon', checked: true },
+				{ id: 'watSet_viewMode_list', label: plugin.getLocalizedText('panel.settings.manage.options.viewMode.listMode.title'), setMode: 'list', checked: false }
+			];
+			const storedSettings = localStorage.getItem(Constants.STORAGE_KEYS.SETTINGS);
+			let viewModeStoredValue = null;
+			if (storedSettings) {
+				try {
+					const settings = JSON.parse(storedSettings);
+					if (settings.viewMode) {
+						viewModeStoredValue = settings.viewMode.toLowerCase();
+					}
+				} catch (e) {
+					// JSON 파싱 에러 처리
+					viewModeStoredValue = null;
+				}
+			}
+			// "icon"과 "list" 외의 값은 무시
+			if (viewModeStoredValue !== 'icon' && viewModeStoredValue !== 'list') {
+				viewModeStoredValue = null;
+			}
+			viewModeSettingItems.forEach(item => {
+				const viewModeSettingItem = plugin.createElementWithAttrs('li', { class: 'watSet-item' });
+				const input = plugin.createElementWithAttrs('input', { type: 'radio', id: item.id, class: ['wat-set-items', 'wat-set-item-type-radio'], name: 'viewMode', value: item.setMode });
+				input.checked = viewModeStoredValue ? (item.setMode === viewModeStoredValue) : item.checked;
+				input.onchange = () => {
+					plugin.updateViewMode(item.setMode);
+				};
+				const label = plugin.createElementWithAttrs('label', { for: item.id, class: 'wat-set-label' });
+				label.textContent = item.label;
+				viewModeSettingItem.appendChild(input);
+				viewModeSettingItem.appendChild(label);
+				viewModeSettingList.appendChild(viewModeSettingItem);
+			});
+			viewModeSettingInner.appendChild(viewModeSettingList);
+			viewModeContainer.appendChild(viewModeSettingInner);
+
+			container.appendChild(viewModeContainer);
+			// ************************* View Mode Setting .End   *************************
+
+			// ************************* Language Setting .Start *************************
+			if (plugin.languageOptions && plugin.languageOptions.length > 1 && plugin.languageConfig?.showSelector !== false) {
+				const languageContainer = plugin.createElementWithAttrs('fieldset', { id: 'watSetWrap_language', class: ['watSet-item-container', 'tool-language-container'] });
+
+				const languageSettingTitle = plugin.createElementWithAttrs('legend', { class: 'watSet-title' });
+				languageSettingTitle.textContent = plugin.getLocalizedText('panel.settings.manage.options.language.title');
+				languageContainer.appendChild(languageSettingTitle);
+
+				const languageSettingInner = plugin.createElementWithAttrs('div', { class: 'watSet-inner' });
+				const languageSettingList = plugin.createElementWithAttrs('ul', { class: 'watSet-list' });
+				const languageSettingItems = plugin.languageOptions.map(lang => {
+					return { id: `watSet_language_${lang}`, label: plugin.getLocalizedText(`panel.settings.manage.options.language.options.${lang}`), lang: lang, checked: plugin.language === lang };
+				});
+				languageSettingItems.forEach(item => {
+					const languageSettingItem = plugin.createElementWithAttrs('li', { class: 'watSet-item' });
+					const input = plugin.createElementWithAttrs('input', { type: 'radio', id: item.id, class: ['wat-set-items', 'wat-set-item-type-radio'], name: 'watSet_language', value: item.lang });
+					input.checked = item.checked;
+					input.onchange = () => {
+						plugin.language = item.lang;
+						document.documentElement.dataset['watLanguage'] = item.lang;
+						// 스크린리더가 올바른 언어 엔진으로 UI를 읽도록 문서 lang 갱신 (WCAG 3.1.2)
+						document.documentElement.setAttribute('lang', item.lang);
+						plugin.updateLanguageSetting();
+
+						plugin.loadLocale(item.lang).then(() => {
+							plugin.generateHTMLElements();
+							plugin.setInitialPreferences();
+
+							plugin.setupTabs();
+							plugin.activateInitialTab();
+							plugin.setEventListeners();
+							plugin.extractFocusableElements(document.body);
+							plugin.updateTextLocalization();
+							plugin.savePreferences();
+						});
+					};
+					const label = plugin.createElementWithAttrs('label', { for: item.id, class: 'wat-set-label' });
+					label.textContent = item.label;
+					languageSettingItem.appendChild(input);
+					languageSettingItem.appendChild(label);
+					languageSettingList.appendChild(languageSettingItem);
+				});
+				languageSettingInner.appendChild(languageSettingList);
+				languageContainer.appendChild(languageSettingInner);
+
+				container.appendChild(languageContainer);
+			}
+			// ************************* Language Setting .End   *************************
+
+			// ************************* Setting value Storage .Start *************************
+			const storageSettingContainer = plugin.createElementWithAttrs('fieldset', { id: 'watSetWrap_storage', class: ['watSet-item-container', 'storage-container'] });
+
+			const storageSettingTitle = plugin.createElementWithAttrs('legend', { class: 'watSet-title' });
+			storageSettingTitle.textContent = plugin.getLocalizedText('panel.settings.manage.options.storage.title');
+
+			const storageSettingInner = plugin.createElementWithAttrs('div', { class: 'watSet-inner' });
+			const storageSettingList = plugin.createElementWithAttrs('ul', { class: ['watSet-list', 'watSet-list-type-button'] });
+			const storageSettingItems = [
+				{ id: 'watSet_storage_save', class: 'watSet_storage_save', label: plugin.getLocalizedText('panel.settings.manage.options.storage.options.save'), type: 'button' },
+				{ id: 'watSet_storage_reset', class: 'watSet_storage_reset', label: plugin.getLocalizedText('panel.settings.manage.options.storage.options.delete'), type: 'button' },
+				{ id: 'watSet_storage_check', class: 'watSet_storage_check', label: plugin.getLocalizedText('panel.settings.manage.options.storage.options.check'), type: 'button' },
+				{ id: 'watSet_storage_export', class: 'watSet_storage_export', label: plugin.getLocalizedText('panel.settings.manage.options.storage.options.export') || '설정 내보내기', type: 'button' },
+				{ id: 'watSet_storage_import', class: 'watSet_storage_import', label: plugin.getLocalizedText('panel.settings.manage.options.storage.options.import') || '설정 가져오기', type: 'button' }
+			];
+			storageSettingItems.forEach(item => {
+				const storageSettingItem = plugin.createElementWithAttrs('li', { class: 'watSet-item' });
+
+				const input = plugin.createElementWithAttrs('input', { type: item.type, id: item.id, class: ['wat-set-items', 'wat-set-item-type-button'], name: 'watSet_storage', value: item.label });
+				input.addEventListener('click', () => {
+					if (item.id === 'watSet_storage_save') {
+						plugin.savePreferences();
+						// 저장 성공 피드백 (기존엔 무피드백이라 저장 여부 불확실)
+						plugin.showNotification(plugin.getLocalizedText('msg.success.save') || '저장되었습니다.');
+					} else if (item.id === 'watSet_storage_reset') {
+						// 파괴적 동작이므로 확인 절차 추가
+						const confirmMsg = plugin.getLocalizedText('msg.confirm.reset') || '접근성 설정을 모두 초기화하시겠습니까?';
+						if (!window.confirm(confirmMsg)) {
+							return;
+						}
+						// localStorage.clear()는 호스트 사이트의 전체 데이터를 삭제하므로 WAT 키만 개별 삭제
+						Object.values(Constants.STORAGE_KEYS).forEach(key => localStorage.removeItem(key));
+						// 화면에 즉시 반영되도록 새로고침 (삭제 후 다른 설정 변경 시 savePreferences가 되쓰는 문제도 방지)
+						window.location.reload();
+					} else if (item.id === 'watSet_storage_export') {
+						plugin.exportSettings();
+					} else if (item.id === 'watSet_storage_import') {
+						plugin._promptImportSettings();
+					} else if (item.id === 'watSet_storage_check') {
+						// WAT 소유 키만 확인 — 호스트 사이트의 전체 localStorage를 덤프하지 않음 (정보 노출 방지)
+						const settings = localStorage.getItem(Constants.STORAGE_KEYS.SETTINGS);
+						const containerValue = localStorage.getItem(Constants.STORAGE_KEYS.CONTAINER);
+						const found = plugin.getLocalizedText('msg.state.saved') || '있음';
+						const notFound = plugin.getLocalizedText('msg.state.notSaved') || '없음';
+						const summary = plugin.getLocalizedText('msg.info.storageCheck', {
+							settings: settings ? found : notFound,
+							container: containerValue ? found : notFound
+						}) || `저장된 설정: ${settings ? found : notFound}, 컨테이너: ${containerValue ? found : notFound}`;
+						plugin.showNotification(summary);
+					}
+				});
+				storageSettingItem.appendChild(input);
+				storageSettingList.appendChild(storageSettingItem);
+			});
+			storageSettingInner.appendChild(storageSettingList);
+			storageSettingContainer.appendChild(storageSettingTitle);
+			storageSettingContainer.appendChild(storageSettingInner);
+
+			container.appendChild(storageSettingContainer);
+			// ************************* Setting value Storage .End   *************************
+		}
+	}
+
+	/**
 	 * @fileoverview AutoTTS - 자동 순차 TTS 기능
 	 * @module src/tts/AutoTTS
 	 */
@@ -4878,16 +5579,7 @@ var WATPlugin = (function (exports) {
 		}
 	}
 
-	// HTML 템플릿 문자열에 삽입되는 외부 유래 값(config 라벨 등)의 이스케이프 — XSS 방지
-	function escapeHTML(value) {
-		if (value === null || value === undefined) return '';
-		return String(value)
-			.replace(/&/g, '&amp;')
-			.replace(/</g, '&lt;')
-			.replace(/>/g, '&gt;')
-			.replace(/"/g, '&quot;')
-			.replace(/'/g, '&#39;');
-	}
+	// escapeHTML은 core/escapeHTML.js로 이동 (PanelBuilder.js에서 사용)
 
 	// isSafeHttpUrl은 core/safeUrl.js로 이동 (Dictionary.js와 공용)
 
@@ -5340,6 +6032,9 @@ var WATPlugin = (function (exports) {
 
 				// Initialize Page Structure (페이지 구조 분석 다이얼로그 담당)
 				this.pageStructure = new PageStructure(this);
+
+				// Initialize Panel Builder (설정 패널 UI 항목 생성 담당)
+				this.panelBuilder = new PanelBuilder(this);
 			}
 
 			/**
@@ -7362,950 +8057,73 @@ var WATPlugin = (function (exports) {
 				this.savePreferences();
 			}
 
-			// ========== UI SETTINGS PANEL  ==========
+			// ========== UI SETTINGS PANEL (PanelBuilder 위임) ==========
+			// 패널 UI 항목 생성 클러스터는 src/wat/PanelBuilder.js로 추출됨 (Phase 6-6).
+			// 개인 옵션 18종의 개별 createXXXSettings는 PanelBuilder.OPTION_DEFS
+			// 데이터 테이블 + buildOption 팩토리로 축약되었고, 아래 래퍼는 공개 API 호환용.
+
 			/**
-			 * Creates profile settings section in the settings panel (설정 패널에 프로필 설정 섹션을 생성합니다)
-			 * @param {HTMLElement} container - Container element to append profile settings (프로필 설정을 추가할 컨테이너 요소)
+			 * PanelBuilder 지연 접근자 — 인스턴스에 아직 없으면 즉석 생성
+			 * (prototype 단독 호출 테스트 패턴에서도 동작)
+			 * @private
+			 * @returns {PanelBuilder} PanelBuilder 인스턴스
+			 */
+			_getPanelBuilder() {
+				if (!this.panelBuilder) {
+					this.panelBuilder = new PanelBuilder(this);
+				}
+				return this.panelBuilder;
+			}
+
+			/**
+			 * 설정 패널에 프로필 설정 섹션을 생성합니다 (PanelBuilder 위임)
+			 * @param {HTMLElement} container - 프로필 설정을 추가할 컨테이너 요소
 			 * @returns {void}
-			 * @description Creates profile selection UI with toggles and individual setting options for each accessibility profile
-			 *              (각 접근성 프로필에 대한 토글과 개별 설정 옵션이 있는 프로필 선택 UI를 생성합니다)
-			 * @example
-			 * // Create profile settings in a container (컨테이너에 프로필 설정 생성)
-			 * this.createProfileSettings(settingsContainer);
 			 */
 			createProfileSettings(container) {
-				const profileSettingTitleElement = this.createElementWithAttrs('h4', { class: 'watSet-group-title' });
-				profileSettingTitleElement.textContent = this.getLocalizedText('panel.settings.profile.title');
-				container.appendChild(profileSettingTitleElement);
-
-				
-				// ************************* Profile Lists .Start *************************
-				const profileValues = Defaults.PROFILES;
-				const profileContainerElement = this.createElementWithAttrs('div', { id: 'watSetWrap_profile', class: ['watSet-item-container', 'profile-container'] });
-				const profileListElement = this.createElementWithAttrs('ul', { class: 'profileLists' });
-
-				for (const profile in profileValues) {
-					const profileItemElement = this.createElementWithAttrs('li', { class: 'profileItem' });
-					const profileItemContainerElement = this.createElementWithAttrs('fieldset', { class: 'watSet-profile-item-container', 'data-profile': profile });
-					const profileItemTitleElement = this.createElementWithAttrs('legend', { class: ['watSet-profile-title', 'profileItemTitle'] });
-					const profileItemTitleLabelElement = this.createElementWithAttrs('label', { class: ['watSet-label', 'watSet-profile-title-label', `${profile}`], for: `watSet_profile_button_toggle_${profile}` });
-					const profileTitleText = this.getLocalizedText(`panel.settings.profile.options.${profile}.title`);
-					profileItemTitleLabelElement.textContent = profileTitleText;
-					profileItemTitleElement.appendChild(profileItemTitleLabelElement);
-
-					// ***** Button - Profile Options .Start *****
-					const profileOptionsToggleButtonElement = this.createElementWithAttrs('button', { class: ['watSet-button', 'watSet-profile-button-accordion', 'btnType_1'], role: 'switch', 'aria-pressed': 'false', title: `${profileTitleText} ${this.getLocalizedText('tags.button.attr.type.option')}`, 'aria-labelledby': `watSet_profile_Opts_Label_${profile}` });
-					const profileOptionsToggleLabelElement = this.createElementWithAttrs('span', { id:`watSet_profile_Opts_Label_${profile}`, class: 'watSet-button-label' });
-					profileOptionsToggleLabelElement.textContent = this.getLocalizedText('tags.button.text.optionsOpen');
-					profileOptionsToggleButtonElement.appendChild(profileOptionsToggleLabelElement);
-					profileOptionsToggleButtonElement.addEventListener('click', (evt) => {
-						const targetToggleElement = evt.target.closest('.watSet-profile-button-accordion');
-						const profile = targetToggleElement.closest('.watSet-profile-item-container').getAttribute('data-profile');
-						const isOn = targetToggleElement.getAttribute('aria-pressed') === 'true';
-						const targetLabelElement = targetToggleElement.querySelector('.watSet-button-label');
-						targetLabelElement.textContent = isOn ? this.getLocalizedText('tags.button.text.optionsOpen') : this.getLocalizedText('tags.button.text.optionsClose');
-						targetToggleElement.setAttribute('aria-pressed', isOn ? 'false' : 'true');
-						const profileInner = document.getElementById(`watSet_profile_items_wrap_${profile}`);
-						if (isOn) {
-							profileInner.classList.remove(Constants.CSS_CLASSES.ACTIVE);
-							profileInner.setAttribute('aria-hidden', 'true');
-							this._setTimeout(() => {
-								targetToggleElement.closest('.watSet-profile-item-container').querySelector('.watSet-profile-button-accordion').focus();
-							}, 100);
-						} else {
-							profileInner.classList.add(Constants.CSS_CLASSES.ACTIVE);
-							profileInner.setAttribute('aria-hidden', 'false');
-							this._setTimeout(() => {
-								const focusableElements = profileInner.querySelectorAll('a, button, input, textarea, select, details, [tabindex]:not([tabindex="-1"])');
-								if (focusableElements.length > 0) {
-									focusableElements[0].focus();
-								} else {
-									console.error("No focusable elements found inside profileInner");
-								}
-							}, 100);
-						}
-						targetToggleElement.classList.toggle(Constants.CSS_CLASSES.ACTIVE, !isOn);
-						targetToggleElement.setAttribute('aria-disabled', isOn ? 'false' : 'true');
-					});
-					profileItemTitleElement.appendChild(profileOptionsToggleButtonElement);
-					// ***** Button - Profile Options .End   *****
-
-					profileItemContainerElement.appendChild(profileItemTitleElement);
-
-					// ***** Button - Profile Toggle Switch .Start *****
-					const profileToggle = this.createElementWithAttrs('button', {
-						id: `watSet_profile_button_toggle_${profile}`,
-						class: ['watSet-button', 'btn-toggleSwitch', 'profileToggle'],
-						role: 'switch',
-						'aria-pressed': 'false',
-						'data-profile': profile,
-						title: `${profileTitleText} ${this.getLocalizedText('tags.button.attr.type.toggle')}`,
-						'aria-labelledby': `watSet_profileToggleLabel_${profile}`
-					});
-					const profileToggleLabel = this.createElementWithAttrs('span', {
-						id: `watSet_profileToggleLabel_${profile}`,
-						class: 'watSet-button-label'
-					});
-					profileToggleLabel.textContent = this.getLocalizedText('tags.button.text.stateOff');
-					profileToggle.appendChild(profileToggleLabel);
-					profileToggle.addEventListener('click', (evt) => {
-						const targetToggle = evt.target.closest('.profileToggle');
-						const profile = targetToggle.getAttribute('data-profile');
-						this.toggleProfile(profile, targetToggle);
-					});
-					profileItemContainerElement.appendChild(profileToggle);
-					// ***** Button - Profile Toggle Switch .End   *****
-
-					// ***** Container - Profile Options .Start *****
-					const profileInner = this.createElementWithAttrs('div', { id: `watSet_profile_items_wrap_${profile}`, class: 'watSet-profile-items-wrap' });
-					const profileListInner = this.createElementWithAttrs('ul', { class: 'watSet-profile-items-ul' });
-
-					const profileItems = profileValues[profile].settings;
-					for (const item in profileItems) {
-						//if (!this.options[item]) continue;
-						if (this.options[item] === false) continue;
-
-						const profileListItem = this.createElementWithAttrs('li', { class: 'watSet-profile-item-li' });
-						const input = this.createElementWithAttrs('input', { type: 'checkbox', class: ['watSet-checkbox', 'profileListItemInput'], id: `watSet_checkbox_${profile}_${item}`, name: `${profile}_${item}`, value: profileItems[item], 'data-key': item });
-						input.checked = profileValues[profile].enabled[item];
-						const label = this.createElementWithAttrs('label', { class: ['watSet_label', 'watSet-profile-item-label'], for: `watSet_checkbox_${profile}_${item}` });
-						label.textContent = this.getLocalizedText(`panel.personal.options.${item}.title`);
-						profileListItem.appendChild(input);
-						profileListItem.appendChild(label);
-						profileListInner.appendChild(profileListItem);
-					}
-					profileInner.appendChild(profileListInner);
-					profileItemContainerElement.appendChild(profileInner);
-					// ***** Container - Profile Options .End   *****
-					
-					profileItemElement.appendChild(profileItemContainerElement);
-					profileListElement.appendChild(profileItemElement);
-				}
-				profileContainerElement.appendChild(profileListElement);
-				container.appendChild(profileContainerElement);
-				// ************************* Profile Lists .End   *************************
-
+				return this._getPanelBuilder().createProfileSettings(container);
 			}
 
 			/**
-			 * Creates tools settings section including position, view mode and language options (위치, 뷰 모드, 언어 옵션을 포함한 도구 설정 섹션을 생성합니다)
-			 * @param {HTMLElement} container - Container element to append tools settings (도구 설정을 추가할 컨테이너 요소)
+			 * 위치·뷰 모드·언어·저장 옵션을 포함한 도구 설정 섹션을 생성합니다 (PanelBuilder 위임)
+			 * @param {HTMLElement} container - 도구 설정을 추가할 컨테이너 요소
 			 * @returns {void}
-			 * @description Creates management settings UI for tool positioning, view modes, language selection, and storage options
-			 *              (도구 위치, 뷰 모드, 언어 선택 및 저장 옵션을 위한 관리 설정 UI를 생성합니다)
-			 * @example
-			 * // Create tools settings in a container (컨테이너에 도구 설정 생성)
-			 * this.createToolsSettings(settingsContainer);
 			 */
 			createToolsSettings(container) {
-				const manageSettingTitle = this.createElementWithAttrs('h4', { class: 'watSet-group-title' });
-				manageSettingTitle.textContent = this.getLocalizedText('panel.settings.manage.title');
-				container.appendChild(manageSettingTitle);
-
-
-				// ************************* Tool Position Setting .Start *************************
-				const toolPositionContainer = this.createElementWithAttrs('fieldset', { id: 'watSetWrap_position', class: ['watSet-item-container', 'tool-position-container'] });
-
-				const toolPositionSettingTitle = this.createElementWithAttrs('legend', { class: 'watSet-title' });
-				toolPositionSettingTitle.textContent = this.getLocalizedText('panel.settings.manage.options.position.title');
-				toolPositionContainer.appendChild(toolPositionSettingTitle);
-
-				const toolPositionInner = this.createElementWithAttrs('div', { class: 'watSet-inner' });
-				const toolPositionList = this.createElementWithAttrs('ul', { class: 'watSet-list' });
-				const toolPositionItems = [
-					{ id: 'watSet_postion_left', label: this.getLocalizedText('panel.settings.manage.options.position.options.left'), value: 'left', checked: false },
-					{ id: 'watSet_postion_right', label: this.getLocalizedText('panel.settings.manage.options.position.options.right'), value: 'right', checked: true }
-				];
-				toolPositionItems.forEach(item => {
-					const toolPositionItem = this.createElementWithAttrs('li', { class: 'watSet-item' });
-					const input = this.createElementWithAttrs('input', { type: 'radio', id: item.id, class: ['wat-set-items', 'wat-set-item-type-radio'], name: 'toolPosition', value: item.value });
-					input.checked = item.checked;
-					input.onchange = () => {
-						//const wat = document.getElementById('wat');
-						//wat.classList.remove('left', 'right');
-						document.documentElement.dataset['watPosition'] = item.value;
-						this.savePreferences();
-					};
-					const label = this.createElementWithAttrs('label', { for: item.id, class: 'wat-set-label' });
-					label.textContent = item.label;
-					toolPositionItem.appendChild(input);
-					toolPositionItem.appendChild(label);
-					toolPositionList.appendChild(toolPositionItem);
-				});
-				toolPositionInner.appendChild(toolPositionList);
-				toolPositionContainer.appendChild(toolPositionInner);
-
-				container.appendChild(toolPositionContainer);
-				// ************************* Tool Position Setting .End   *************************
-
-
-				// ************************* View Mode Setting .Start *************************
-				const viewModeContainer = this.createElementWithAttrs('fieldset', { id: 'watSetWrap_viewMode', class: ['watSet-item-container', 'tool-viewMode-container'] });
-
-				const viewModeSettingTitle = this.createElementWithAttrs('legend', { class: 'watSet-title' });
-				viewModeSettingTitle.textContent = this.getLocalizedText('panel.settings.manage.options.viewMode.title');
-				viewModeContainer.appendChild(viewModeSettingTitle);
-
-				const viewModeSettingInner = this.createElementWithAttrs('div', { class: 'watSet-inner' });
-				const viewModeSettingList = this.createElementWithAttrs('ul', { class: 'watSet-list' });
-				const viewModeSettingItems = [
-					{ id: 'watSet_viewMode_icon', label: this.getLocalizedText('panel.settings.manage.options.viewMode.iconMode.title'), setMode: 'icon', checked: true },
-					{ id: 'watSet_viewMode_list', label: this.getLocalizedText('panel.settings.manage.options.viewMode.listMode.title'), setMode: 'list', checked: false }
-				];
-				const storedSettings = localStorage.getItem(Constants.STORAGE_KEYS.SETTINGS);
-				let viewModeStoredValue = null;
-				if (storedSettings) {
-					try {
-						const settings = JSON.parse(storedSettings);
-						if (settings.viewMode) {
-							viewModeStoredValue = settings.viewMode.toLowerCase();
-						}
-					} catch (e) {
-						// JSON 파싱 에러 처리
-						viewModeStoredValue = null;
-					}
-				}
-				// "icon"과 "list" 외의 값은 무시
-				if (viewModeStoredValue !== 'icon' && viewModeStoredValue !== 'list') {
-					viewModeStoredValue = null;
-				}
-				viewModeSettingItems.forEach(item => {
-					const viewModeSettingItem = this.createElementWithAttrs('li', { class: 'watSet-item' });
-					const input = this.createElementWithAttrs('input', { type: 'radio', id: item.id, class: ['wat-set-items', 'wat-set-item-type-radio'], name: 'viewMode', value: item.setMode });
-					//input.checked = item.checked;
-					input.checked = viewModeStoredValue ? (item.setMode === viewModeStoredValue) : item.checked;
-					input.onchange = () => {
-						//document.documentElement.dataset['viewMode'] = item.setMode;
-						this.updateViewMode(item.setMode);
-					};
-					const label = this.createElementWithAttrs('label', { for: item.id, class: 'wat-set-label' });
-					label.textContent = item.label;
-					viewModeSettingItem.appendChild(input);
-					viewModeSettingItem.appendChild(label);
-					viewModeSettingList.appendChild(viewModeSettingItem);
-				});
-				viewModeSettingInner.appendChild(viewModeSettingList);
-				viewModeContainer.appendChild(viewModeSettingInner);
-
-				container.appendChild(viewModeContainer);
-				//this.updateViewMode('icon');
-				// ************************* View Mode Setting .End   *************************
-				
-				// ************************* Language Setting .Start *************************
-				if (this.languageOptions && this.languageOptions.length > 1 && this.languageConfig?.showSelector !== false) {
-					const languageContainer = this.createElementWithAttrs('fieldset', { id: 'watSetWrap_language', class: ['watSet-item-container', 'tool-language-container'] });
-
-					const languageSettingTitle = this.createElementWithAttrs('legend', { class: 'watSet-title' });
-					languageSettingTitle.textContent = this.getLocalizedText('panel.settings.manage.options.language.title');
-					languageContainer.appendChild(languageSettingTitle);
-
-					const languageSettingInner = this.createElementWithAttrs('div', { class: 'watSet-inner' });
-					const languageSettingList = this.createElementWithAttrs('ul', { class: 'watSet-list' });
-					const languageSettingItems = this.languageOptions.map(lang => {
-						return { id: `watSet_language_${lang}`, label: this.getLocalizedText(`panel.settings.manage.options.language.options.${lang}`), lang: lang, checked: this.language === lang };
-					});
-					languageSettingItems.forEach(item => {
-						const languageSettingItem = this.createElementWithAttrs('li', { class: 'watSet-item' });
-						const input = this.createElementWithAttrs('input', { type: 'radio', id: item.id, class: ['wat-set-items', 'wat-set-item-type-radio'], name: 'watSet_language', value: item.lang });
-						input.checked = item.checked;
-						// Language change handler implementation needed
-						input.onchange = () => {
-							this.language = item.lang;
-							document.documentElement.dataset['watLanguage'] = item.lang;
-							// 스크린리더가 올바른 언어 엔진으로 UI를 읽도록 문서 lang 갱신 (WCAG 3.1.2)
-							document.documentElement.setAttribute('lang', item.lang);
-							this.updateLanguageSetting();
-
-							this.loadLocale(item.lang).then(() => {
-								this.generateHTMLElements();
-								this.setInitialPreferences();
-
-								this.setupTabs();
-								this.activateInitialTab();
-								this.setEventListeners();
-								this.extractFocusableElements(document.body);
-								this.updateTextLocalization();
-								this.savePreferences();
-							});
-						};
-						const label = this.createElementWithAttrs('label', { for: item.id, class: 'wat-set-label' });
-						label.textContent = item.label;
-						languageSettingItem.appendChild(input);
-						languageSettingItem.appendChild(label);
-						languageSettingList.appendChild(languageSettingItem);
-					});
-					languageSettingInner.appendChild(languageSettingList);
-					languageContainer.appendChild(languageSettingInner);
-
-					container.appendChild(languageContainer);
-				}
-				// ************************* Language Setting .End   *************************
-
-				// ************************* Setting value Storage .Start *************************
-				const storageSettingContainer = this.createElementWithAttrs('fieldset', { id: 'watSetWrap_storage', class: ['watSet-item-container', 'storage-container'] });
-
-				const storageSettingTitle = this.createElementWithAttrs('legend', { class: 'watSet-title' });
-				storageSettingTitle.textContent = this.getLocalizedText('panel.settings.manage.options.storage.title');
-
-				const storageSettingInner = this.createElementWithAttrs('div', { class: 'watSet-inner' });
-				const storageSettingList = this.createElementWithAttrs('ul', { class: ['watSet-list', 'watSet-list-type-button'] });
-				const storageSettingItems = [
-					{ id: 'watSet_storage_save', class: 'watSet_storage_save', label: this.getLocalizedText('panel.settings.manage.options.storage.options.save'), type: 'button' },
-					{ id: 'watSet_storage_reset', class: 'watSet_storage_reset', label: this.getLocalizedText('panel.settings.manage.options.storage.options.delete'), type: 'button' },
-					{ id: 'watSet_storage_check', class: 'watSet_storage_check', label: this.getLocalizedText('panel.settings.manage.options.storage.options.check'), type: 'button' },
-					{ id: 'watSet_storage_export', class: 'watSet_storage_export', label: this.getLocalizedText('panel.settings.manage.options.storage.options.export') || '설정 내보내기', type: 'button' },
-					{ id: 'watSet_storage_import', class: 'watSet_storage_import', label: this.getLocalizedText('panel.settings.manage.options.storage.options.import') || '설정 가져오기', type: 'button' }
-				];
-				storageSettingItems.forEach(item => {
-					const storageSettingItem = this.createElementWithAttrs('li', { class: 'watSet-item' });
-
-					const input = this.createElementWithAttrs('input', { type: item.type, id: item.id, class: ['wat-set-items', 'wat-set-item-type-button'], name: 'watSet_storage', value: item.label });
-					input.addEventListener('click', () => {
-						if (item.id === 'watSet_storage_save') {
-							this.savePreferences();
-							// 저장 성공 피드백 (기존엔 무피드백이라 저장 여부 불확실)
-							this.showNotification(this.getLocalizedText('msg.success.save') || '저장되었습니다.');
-						} else if (item.id === 'watSet_storage_reset') {
-							// 파괴적 동작이므로 확인 절차 추가
-							const confirmMsg = this.getLocalizedText('msg.confirm.reset') || '접근성 설정을 모두 초기화하시겠습니까?';
-							if (!window.confirm(confirmMsg)) {
-								return;
-							}
-							// localStorage.clear()는 호스트 사이트의 전체 데이터를 삭제하므로 WAT 키만 개별 삭제
-							Object.values(Constants.STORAGE_KEYS).forEach(key => localStorage.removeItem(key));
-							// 화면에 즉시 반영되도록 새로고침 (삭제 후 다른 설정 변경 시 savePreferences가 되쓰는 문제도 방지)
-							window.location.reload();
-						} else if (item.id === 'watSet_storage_export') {
-							this.exportSettings();
-						} else if (item.id === 'watSet_storage_import') {
-							this._promptImportSettings();
-						} else if (item.id === 'watSet_storage_check') {
-							// WAT 소유 키만 확인 — 호스트 사이트의 전체 localStorage를 덤프하지 않음 (정보 노출 방지)
-							const settings = localStorage.getItem(Constants.STORAGE_KEYS.SETTINGS);
-							const container = localStorage.getItem(Constants.STORAGE_KEYS.CONTAINER);
-							const found = this.getLocalizedText('msg.state.saved') || '있음';
-							const notFound = this.getLocalizedText('msg.state.notSaved') || '없음';
-							const summary = this.getLocalizedText('msg.info.storageCheck', {
-								settings: settings ? found : notFound,
-								container: container ? found : notFound
-							}) || `저장된 설정: ${settings ? found : notFound}, 컨테이너: ${container ? found : notFound}`;
-							this.showNotification(summary);
-						}
-					});
-					storageSettingItem.appendChild(input);
-					storageSettingList.appendChild(storageSettingItem);
-				});
-				storageSettingInner.appendChild(storageSettingList);
-				storageSettingContainer.appendChild(storageSettingTitle);
-				storageSettingContainer.appendChild(storageSettingInner);
-
-				container.appendChild(storageSettingContainer);
-				// ************************* Setting value Storage .End   *************************
-
-
+				return this._getPanelBuilder().createToolsSettings(container);
 			}
 
 			/**
-			 * Creates storage settings section for preference management (환경설정 관리를 위한 저장 설정 섹션을 생성합니다)
-			 * @param {HTMLElement} container - Container element to append storage settings (저장 설정을 추가할 컨테이너 요소)
-			 * @returns {void}
-			 * @description Creates storage management UI for saving, loading, and resetting user preferences
-			 *              (사용자 환경설정의 저장, 로드, 리셋을 위한 저장 관리 UI를 생성합니다)
-			 * @example
-			 * // Create storage settings in a container (컨테이너에 저장 설정 생성)
-			 * this.createStorageSettings(settingsContainer);
+			 * 지정된 타입과 옵션으로 일반적인 설정 항목을 생성합니다 (PanelBuilder 위임)
+			 * @param {string} itemType - 입력 요소의 타입 ('radio', 'checkbox', 'button' 등)
+			 * @param {string} titleText - 설정 항목의 제목 텍스트
+			 * @param {string} optionName - 폼 요소의 name 속성
+			 * @param {Array<Object>} optionItems - 옵션 설정 배열
+			 * @returns {HTMLLIElement} 설정 UI가 포함된 리스트 아이템 요소
 			 */
-			createStorageSettings(container) {
-				// Generate save settings options
+			createSettingsItem(itemType, titleText, optionName, optionItems) {
+				return this._getPanelBuilder().createSettingsItem(itemType, titleText, optionName, optionItems);
 			}
 
-			/**
-			 * Creates a generic settings item with specified type and options (지정된 타입과 옵션으로 일반적인 설정 항목을 생성합니다)
-			 * @param {string} itemType - Type of input element ('radio', 'checkbox', 'button', etc.) (입력 요소의 타입)
-			 * @param {string} titleText - Title text for the settings item (설정 항목의 제목 텍스트)
-			 * @param {string} option_name - Name attribute for the form elements (폼 요소의 name 속성)
-			 * @param {Array<Object>} option_items - Array of option configurations (옵션 설정 배열)
-			 * @param {Array<Object>} [option_controls] - Optional control configurations (선택적 컨트롤 설정)
-			 * @returns {HTMLLIElement} Created list item element with settings UI (설정 UI가 포함된 생성된 리스트 아이템 요소)
-			 * @description Creates a flexible settings item that can handle various input types with consistent styling and behavior
-			 *              (일관된 스타일과 동작으로 다양한 입력 타입을 처리할 수 있는 유연한 설정 항목을 생성합니다)
-			 * @example
-			 * // Create radio button settings item (라디오 버튼 설정 항목 생성)
-			 * const fontSizeItem = this.createSettingsItem('radio', 'Font Size', 'fontSize', [
-			 *   { value: 'small', label: 'Small' },
-			 *   { value: 'medium', label: 'Medium' }
-			 * ]);
-			 */
-			createSettingsItem(itemType, titleText, optionName, optionItems, optionControls) {
-				// config/로케일 유래 값이 innerHTML 템플릿에 삽입되므로 전부 이스케이프 (XSS 방지)
-				titleText = escapeHTML(titleText);
-				const itemsHtml = optionItems.map(item => {
-					const elementId = escapeHTML(`${optionName}_${item.value}`);
-					const itemLabel = escapeHTML(item.label);
-					const toggleLabel = escapeHTML(item.label_toggle || '');
-					const additionalClass = escapeHTML(item.addClass || '');
-					const checkedAttr = item.checked ? 'checked' : '';
-					const selectedClass = item.selected ? Constants.CSS_CLASSES.SELECTED : '';
-					const disabledAttr = item.disabled ? 'disabled' : '';
-					const itemStyle = escapeHTML(item.style || '');
-					const itemValue = escapeHTML(item.value);
-					const itemSrc = escapeHTML(item.src || '');
-					const labelTitleAttr = itemLabel ? ` title="${itemLabel}"` : '';
-					let htmlString = `
-					<li class='opt_item wat-item-li'>
-						<input type="${itemType}" class="wat-items wat-item-type-radio" id="wat-${itemType}-${elementId}" name="${optionName}" title="${titleText} ${itemLabel}" value="${itemValue}" ${checkedAttr} ${disabledAttr}><label for="wat-${itemType}-${elementId}"${labelTitleAttr}>${itemLabel}</label>
-					</li>
-					`;
-					if (itemType === 'select') {
-						htmlString = `
-						<li class='opt_item'>
-							<option class="wat-items wat-item-type-option" value="${itemValue}" ${selectedClass} ${disabledAttr}>${itemLabel}</option>
-						</li>
-						`;
-					} else if (itemType === 'button') {
-						let toggleAttr = '';
-						if (toggleLabel) {
-							toggleAttr = `data-stateText-on="${itemLabel}" data-stateText-off="${toggleLabel}"`;
-						}
-						htmlString = `
-						<li class='opt_item' style="${itemStyle}">
-							<button type="button" class="wat-items wat-item-type-button btn_basic ${additionalClass}" id="wat-${itemType}-${elementId}" name="${optionName}" value="${itemValue}" ${disabledAttr} ${toggleAttr} title="${titleText} ${itemLabel}">${itemLabel}</button>
-						</li>
-						`;
-					} else if (itemType === 'buttonMix') {
-						htmlString = `
-						<li class='opt_item'>
-							<button type="button" class="wat-items wat-item-type-button" id="wat-${itemType}-${elementId}" name="${optionName}" value="${itemValue}" ${disabledAttr}>${itemLabel}</button>
-						</li>
-						`;
-					} else if (itemType === 'buttonImg') {
-						htmlString = `
-						<li class='opt_item'>
-							<button type="button" class="wat-items wat-item-type-button btn_buttonImg ${additionalClass}" id="wat-${itemType}-${elementId}" name="${optionName}" value="${itemValue}" ${disabledAttr}><img src="${itemSrc}" alt="${itemLabel}"></button>
-						</li>
-						`;
-					} else if (itemType === 'buttonImgSVG') {
-						htmlString = `
-						<li class='opt_item'>
-							<button type="button" class="wat-items wat-item-type-button btn_buttonImgSVG ${additionalClass}" id="wat-${itemType}-${elementId}" name="${optionName}" value="${itemValue}" ${disabledAttr} title="${titleText} ${itemLabel}"><span class="icon-svg"></span></button>
-						</li>
-						`;
-					} else if (itemType === 'checkbox') {
-						htmlString = `
-						<li class='opt_item'>
-							<input type="${itemType}" class="wat-items wat-item-type-checkbox switch" id="wat-${itemType}-${optionName}" name="${optionName}" value="${itemValue}" title="${titleText} ${itemLabel}" role="switch" aria-checked="${item.checked ? 'true' : 'false'}" ${checkedAttr} ${disabledAttr}><label for="wat-${itemType}-${optionName}" class="switch-label">${itemLabel}</label>
-							<span class="switch-state" data-stateText-on="${itemLabel}" data-stateText-off="${toggleLabel}">${itemLabel}</span>
-						</li>
-						`;
-					}
-					return htmlString;
-				}).join('');
-				if (optionControls) {
-					optionControls.map(control => {
-						const controlId = `${optionName}_${control.value}`;
-						const controlLabel = control.label;
-						const controlChecked = control.checked ? 'checked' : '';
-						const controlDisabled = control.disabled ? 'disabled' : '';
-						const controlHtml = `
-						<li class='opt_item'>
-							<input type="${itemType}" id="wat-${itemType}-${controlId}" name="${optionName}" value="${control.value}" ${controlChecked} ${controlDisabled}><label for="wat-${itemType}-${controlId}">${controlLabel}</label>
-						</li>
-						`;
-						return controlHtml;
-					}).join('');
-				}
-				const listItemElement = document.createElement('li');
-				// .setTitle은 클릭 시 옵션을 순환/토글하는 버튼이므로 키보드 포커스 가능하게 tabindex 부여 (WCAG 2.1.1)
-				let listItemInnerHTML = `
-				<div class='setWrap'>
-					<div class='setTitle' role='button' tabindex='0'>${titleText}</div>
-					<div class='setCont'>
-					`;
-						if (itemType === 'radio') {
-							listItemInnerHTML += `<button class='hidden btn_chgOpt prev' type='button' title="${titleText} ${this.getLocalizedText('tags.button.text.prevOpt')}" aria-label="${titleText} ${this.getLocalizedText('tags.button.text.prevOpt')}">${this.getLocalizedText('tags.button.text.prevOpt')}</button>`;
-						}
-						// 라디오 묶음에 그룹 시맨틱 부여 — 스크린리더가 그룹명·위치를 안내 (WCAG 1.3.1)
-						const listGroupAttr = itemType === 'radio' ? ` role="radiogroup" aria-label="${titleText}"` : '';
-						listItemInnerHTML += `<ul class='opt_lists'${listGroupAttr}>${itemsHtml}</ul>`;
-						if (itemType === 'radio') {
-							listItemInnerHTML += `<button class='hidden btn_chgOpt next' type='button' title="${titleText} ${this.getLocalizedText('tags.button.text.nextOpt')}" aria-label="${titleText} ${this.getLocalizedText('tags.button.text.nextOpt')}">${this.getLocalizedText('tags.button.text.nextOpt')}</button>`;
-						}
-						listItemInnerHTML += `</div>
-				</div>
-				`;
-				listItemElement.innerHTML = listItemInnerHTML;
-
-				// .setTitle 클릭 시 라디오 버튼 순차 선택 및 change 이벤트 트리거
-				const setWrapElement = listItemElement.querySelector('.setWrap');
-				const titleElement = setWrapElement.querySelector('.setTitle');
-				const labelElement = setWrapElement.querySelector('.switch-label');
-
-				// role="button"인 .setTitle을 키보드로도 활성화 (Enter/Space → 클릭) (WCAG 2.1.1)
-				titleElement.addEventListener('keydown', (e) => {
-					if (e.key === 'Enter' || e.key === ' ') {
-						e.preventDefault();
-						titleElement.click();
-					}
-				});
-
-				if (itemType === 'radio') {
-					setWrapElement.classList.add('radio');
-					const prevButtonElement = setWrapElement.querySelector('.btn_chgOpt.prev');
-					const nextButtonElement = setWrapElement.querySelector('.btn_chgOpt.next');
-					titleElement.addEventListener('click', () => {
-						const radioElements = setWrapElement.querySelectorAll('.setCont input[type="radio"]');
-						const nextIndex = this.getRadioTargetIndex(setWrapElement, 'next');
-
-						radioElements[nextIndex].checked = true;
-			
-						// change 이벤트를 수동으로 트리거
-						const event = new Event('change', { bubbles: true });
-						radioElements[nextIndex].dispatchEvent(event);
-					});
-					prevButtonElement.addEventListener('click', () => {
-						const radioElements = setWrapElement.querySelectorAll('.setCont input[type="radio"]');
-						const prevIndex = this.getRadioTargetIndex(setWrapElement, 'prev');
-
-						radioElements[prevIndex].checked = true;
-			
-						// change 이벤트를 수동으로 트리거
-						const event = new Event('change', { bubbles: true });
-						radioElements[prevIndex].dispatchEvent(event);
-					});
-					nextButtonElement.addEventListener('click', () => {
-						const radioElements = setWrapElement.querySelectorAll('.setCont input[type="radio"]');
-						const nextIndex = this.getRadioTargetIndex(setWrapElement, 'next');
-
-						if (radioElements[nextIndex]) {
-							radioElements[nextIndex].checked = true;
-
-							// change 이벤트를 수동으로 트리거
-							const event = new Event('change', { bubbles: true });
-							radioElements[nextIndex].dispatchEvent(event);
-						}
-					});
-				} else if (itemType === 'checkbox') {
-					setWrapElement.classList.add('checkbox');
-					titleElement.addEventListener('click', () => {
-						const checkboxElement = setWrapElement.querySelector('.setCont input[type="checkbox"]');
-						checkboxElement.checked = !checkboxElement.checked;
-			
-						// change 이벤트를 수동으로 트리거
-						const event = new Event('change', { bubbles: true });
-						checkboxElement.dispatchEvent(event);
-					});
-					labelElement.addEventListener('click', () => {
-						const checkboxElement = setWrapElement.querySelector('.setCont input[type="checkbox"]');
-						checkboxElement.checked = !checkboxElement.checked;
-
-						// change 이벤트를 수동으로 트리거
-						const event = new Event('change', { bubbles: true });
-						checkboxElement.dispatchEvent(event);
-					});
-				} else if (itemType === 'button') {
-					setWrapElement.classList.add('button');
-					titleElement.addEventListener('click', () => {
-						const buttonElements = setWrapElement.querySelectorAll('.setCont button');
-						const inputElements = setWrapElement.querySelectorAll('.setCont input[type="button"], .setCont input[type="image"], .setCont input[type="submit"]');
-
-						// 첫 번째 button이 있으면 선택, 없으면 input[type="button" | "image" | "submit"] 중 첫 번째 요소 선택
-						let targetButtonElement = buttonElements.length > 0 ? buttonElements[0] : (inputElements.length > 0 ? inputElements[0] : null);
-						if (targetButtonElement.disabled || targetButtonElement.classList.contains('disabled') || targetButtonElement.style.display === 'none') {
-							targetButtonElement = buttonElements.length > 1 ? buttonElements[1] : (inputElements.length > 1 ? inputElements[1] : null);
-						}
-						if (targetButtonElement) targetButtonElement.click();
-					});
-				} else if (itemType === 'buttonMix') {
-					setWrapElement.classList.add('button', 'mixCont');
-					titleElement.addEventListener('click', () => {
-						const buttonElements = setWrapElement.querySelectorAll('.setCont button');
-						const inputElements = setWrapElement.querySelectorAll('.setCont input[type="button"], .setCont input[type="image"], .setCont input[type="submit"]');
-
-						// 첫 번째 button이 있으면 선택, 없으면 input[type="button" | "image" | "submit"] 중 첫 번째 요소 선택
-						const targetButtonElement = buttonElements.length > 0 ? buttonElements[0] : (inputElements.length > 0 ? inputElements[0] : null);
-						targetButtonElement.click();
-					});
-				}
-				
-				return listItemElement;
-			}
-
-			/**
-			 * Creates color theme selection settings (색상 테마 선택 설정을 생성합니다)
-			 * @returns {HTMLElement} Settings element for color theme selection (색상 테마 선택을 위한 설정 요소)
-			 * @description Creates radio button interface for selecting color themes including light, dark, and high contrast modes
-			 *              (라이트, 다크, 고대비 모드를 포함한 색상 테마 선택을 위한 라디오 버튼 인터페이스를 생성합니다)
-			 */
-			createColorThemeSettings() {
-				const optionName = 'colorTheme';
-				const optionItems = [
-					{ value: 'initial', label: this.getLocalizedText('panel.personal.options.colorMode.options.initial') },
-					{ value: 'light', label: this.getLocalizedText('panel.personal.options.colorMode.options.light') },
-					{ value: 'dark', label: this.getLocalizedText('panel.personal.options.colorMode.options.dark'), disabled: true },
-					{ value: 'reverse', label: this.getLocalizedText('panel.personal.options.colorMode.options.reverse') }
-				];
-				return this.createSettingsItem('radio', this.getLocalizedText('panel.personal.options.colorMode.title'), optionName, optionItems);
-			}
-
-			/**
-			 * Creates saturation adjustment settings (채도 조정 설정을 생성합니다)
-			 * @returns {HTMLElement} Settings element for saturation control (채도 제어를 위한 설정 요소)
-			 * @description Creates radio button interface for adjusting color saturation levels for users with color vision deficiencies
-			 *              (색각 이상자를 위한 색상 채도 레벨 조정을 위한 라디오 버튼 인터페이스를 생성합니다)
-			 */
-			createSaturationSettings() {
-				const option_name = 'saturation';
-				const option_items = [
-					{ value: 'initial', label: this.getLocalizedText('panel.personal.options.saturation.options.initial') },
-					{ value: 'low', label: this.getLocalizedText('panel.personal.options.saturation.options.low') },
-					{ value: 'high', label: this.getLocalizedText('panel.personal.options.saturation.options.high') },
-					{ value: 'monochrome', label: this.getLocalizedText('panel.personal.options.saturation.options.monochrome') }
-				];
-				return this.createSettingsItem('radio', this.getLocalizedText('panel.personal.options.saturation.title'), option_name, option_items);
-			}
-
-			/**
-			 * Creates font size adjustment settings (폰트 크기 조정 설정을 생성합니다)
-			 * @returns {HTMLElement} Settings element for font size control (폰트 크기 제어를 위한 설정 요소)
-			 * @description Creates radio button interface for font size selection with configurable ratios and labels
-			 *              (설정 가능한 비율과 라벨로 폰트 크기 선택을 위한 라디오 버튼 인터페이스를 생성합니다)
-			 */
-			createFontSizeSettings() {
-				const optionName = 'fontSize';
-				const optionItems = [];
-
-				// 이미 생성자에서 병합된 fontSizeRatios 사용
-				for (const [key, ratio] of Object.entries(this.fontSizeRatios)) {
-					if (ratio === false) continue;
-
-					// fontSizeOptions에서 추가 설정 확인
-					const customConfig = this.options.fontSizeOptions?.[key];
-					let label = this.getLocalizedText(`panel.personal.options.fontSize.options.${key}`);
-					let checked = false;
-					let disabled = false;
-
-					if (typeof customConfig === 'object') {
-						label = customConfig.label || label || this.generateFontSizeLabel(key, ratio);
-						checked = customConfig.checked === true;
-						disabled = customConfig.disabled === true;
-					} else {
-						label = label || this.generateFontSizeLabel(key, ratio);
-					}
-
-					optionItems.push({
-						value: key,
-						label,
-						checked: key === 'initial' ? true : checked,
-						disabled
-					});
-				}
-
-				return this.createSettingsItem('radio', this.getLocalizedText('panel.personal.options.fontSize.title'), optionName, optionItems);
-			}
-
-			/**
-			 * Creates font family selection settings (폰트 패밀리 선택 설정을 생성합니다)
-			 * @returns {HTMLElement} Settings element for font family selection (폰트 패밀리 선택을 위한 설정 요소)
-			 * @description Creates radio button interface for selecting different font families including web fonts and system fonts
-			 *              (웹폰트와 시스템 폰트를 포함한 다양한 폰트 패밀리 선택을 위한 라디오 버튼 인터페이스를 생성합니다)
-			 */
-			createFontFamilySettings() {
-				const option_name = 'fontFamily';
-				const option_items = [];
-
-				// 호출 시 전달된 fontFamily 옵션과 기본 FONT_FAMILY_OPTIONS 병합
-				const mergedFontOptions = {
-					...WAT.FONT_FAMILY_OPTIONS,
-					...this.options.fontFamily
-				};
-
-				// 병합된 폰트 목록을 순회하며 옵션 생성
-				for (const [fontName, fontConfig] of Object.entries(mergedFontOptions)) {
-					// 명시적으로 비활성화(false)된 폰트만 제외 — enabled 생략은 활성으로 취급
-					if (fontConfig === false || (typeof fontConfig === 'object' && fontConfig.enabled === false)) continue;
-
-					// 웹폰트 URL이 있는 경우 동적으로 로드
-					if (typeof fontConfig === 'object' && fontConfig.url) {
-						this.loadWebFont(fontConfig.url);
-					}
-
-					const optionItem = {
-						value: fontName,
-						label: this.getLocalizedText(`panel.personal.options.fontFamily.options.${fontName}`) || fontConfig.label || fontName,
-						// enabled(표시 여부)와 checked(선택 여부)는 별개 — 기본 선택은 'initial'만
-						checked: fontName === 'initial'
-					};
-
-					option_items.push(optionItem);
-				}
-
-				return this.createSettingsItem('radio', this.getLocalizedText('panel.personal.options.fontFamily.title'), option_name, option_items);
-			}
-
-			/**
-			 * Creates screen scale adjustment settings (화면 배율 조정 설정을 생성합니다)
-			 * @returns {HTMLElement} Settings element for screen scale control (화면 배율 제어를 위한 설정 요소)
-			 * @description Creates radio button interface for adjusting overall screen zoom/scale levels
-			 *              (전체 화면 줌/배율 레벨 조정을 위한 라디오 버튼 인터페이스를 생성합니다)
-			 */
-			createScreenScaleSettings() {
-				const option_name = 'screenScale';
-				const option_items = [
-					{ value: 'initial', label: this.getLocalizedText('panel.personal.options.screenScale.options.initial') },
-					{ value: 'scale-1p2x', label: this.getLocalizedText('panel.personal.options.screenScale.options.scale-1p2x') },
-					{ value: 'scale-1p5x', label: this.getLocalizedText('panel.personal.options.screenScale.options.scale-1p5x') },
-					{ value: 'scale-2x', label: this.getLocalizedText('panel.personal.options.screenScale.options.scale-2x') }
-				];
-				return this.createSettingsItem('radio', this.getLocalizedText('panel.personal.options.screenScale.title'), option_name, option_items);
-			}
-
-			/**
-			 * Creates letter spacing adjustment settings (자간 조정 설정을 생성합니다)
-			 * @returns {HTMLElement} Settings element for letter spacing control (자간 제어를 위한 설정 요소)
-			 * @description Creates radio button interface for adjusting letter spacing to improve text readability
-			 *              (텍스트 가독성 향상을 위한 자간 조정을 위한 라디오 버튼 인터페이스를 생성합니다)
-			 */
-			createLetterSpacingSettings() {
-				const option_name = 'letterSpacing';
-				const option_items = [];
-
-				for (const [key, ratio] of Object.entries(this.letterSpacingRatios)) {
-					if (ratio === false) continue;
-
-					const customConfig = this.options.letterSpacingOptions?.[key];
-					let label = this.getLocalizedText(`panel.personal.options.letterSpacing.options.${key}`);
-					let checked = false;
-					let disabled = false;
-
-					if (typeof customConfig === 'object') {
-						label = customConfig.label || label || this.generateLetterSpacingLabel(key, ratio);
-						checked = customConfig.checked === true;
-						disabled = customConfig.disabled === true;
-					} else {
-						label = label || this.generateLetterSpacingLabel(key, ratio);
-					}
-
-					option_items.push({
-						value: key,
-						label,
-						checked: key === 'initial' ? true : checked,
-						disabled
-					});
-				}
-
-				return this.createSettingsItem('radio', this.getLocalizedText('panel.personal.options.letterSpacing.title'), option_name, option_items);
-			}
-
-			/**
-			 * Creates text alignment settings (텍스트 정렬 설정을 생성합니다)
-			 * @returns {HTMLElement} Settings element for text alignment control (텍스트 정렬 제어를 위한 설정 요소)
-			 * @description Creates radio button interface for selecting text alignment options (left, center, right, justify)
-			 *              (텍스트 정렬 옵션(좌측, 중앙, 우측, 양쪽 정렬) 선택을 위한 라디오 버튼 인터페이스를 생성합니다)
-			 */
-			createTxtAlignSettings() {
-				const option_name = 'txtAlign';
-				const option_items = [
-					{ value: 'initial', label: this.getLocalizedText('panel.personal.options.txtAlign.options.initial') },
-					{ value: 'left', label: this.getLocalizedText('panel.personal.options.txtAlign.options.left') },
-					{ value: 'center', label: this.getLocalizedText('panel.personal.options.txtAlign.options.center') },
-					{ value: 'right', label: this.getLocalizedText('panel.personal.options.txtAlign.options.right') }
-				];
-				return this.createSettingsItem('radio', this.getLocalizedText('panel.personal.options.txtAlign.title'), option_name, option_items);
-			}
-
-			/**
-			 * Creates line height adjustment settings (줄간격 조정 설정을 생성합니다)
-			 * @returns {HTMLElement} Settings element for line height control (줄간격 제어를 위한 설정 요소)
-			 * @description Creates radio button interface for adjusting line height to improve text readability
-			 *              (텍스트 가독성 향상을 위한 줄간격 조정을 위한 라디오 버튼 인터페이스를 생성합니다)
-			 */
-			createLineHeightSettings() {
-				const option_name = 'lineHeight';
-				const option_items = [];
-
-				for (const [key, ratio] of Object.entries(this.lineHeightRatios)) {
-					if (ratio === false) continue;
-
-					const customConfig = this.options.lineHeightOptions?.[key];
-					let label = this.getLocalizedText(`panel.personal.options.lineHeight.options.${key}`);
-					let checked = false;
-					let disabled = false;
-
-					if (typeof customConfig === 'object') {
-						label = customConfig.label || label || this.generateLineHeightLabel(key, ratio);
-						checked = customConfig.checked === true;
-						disabled = customConfig.disabled === true;
-					} else {
-						label = label || this.generateLineHeightLabel(key, ratio);
-					}
-
-					option_items.push({
-						value: key,
-						label,
-						checked: key === 'initial' ? true : checked,
-						disabled
-					});
-				}
-
-				return this.createSettingsItem('radio', this.getLocalizedText('panel.personal.options.lineHeight.title'), option_name, option_items);
-
-			}
-
-			/**
-			 * Creates reading guide settings (읽기 가이드 설정을 생성합니다)
-			 * @returns {HTMLElement} Settings element for reading guide control (읽기 가이드 제어를 위한 설정 요소)
-			 * @description Creates radio button interface for enabling reading assistance tools like focus masks and reading lines
-			 *              (포커스 마스크와 읽기 라인 같은 읽기 보조 도구 활성화를 위한 라디오 버튼 인터페이스를 생성합니다)
-			 */
-			createReadGuideSettings() {
-				const option_name = 'readGuide';
-				const option_items = [
-					{ value: 'unset', label: this.getLocalizedText('panel.personal.options.readGuide.options.unset') },
-					{ value: 'mask', label: this.getLocalizedText('panel.personal.options.readGuide.options.mask') },
-					{ value: 'underline', label: this.getLocalizedText('panel.personal.options.readGuide.options.underline') },
-					{ value: 'bigCursor', label: this.getLocalizedText('panel.personal.options.readGuide.options.bigCursor') }
-				];
-				return this.createSettingsItem('radio', this.getLocalizedText('panel.personal.options.readGuide.title'), option_name, option_items);
-			}
-
-			/**
-			 * Creates image display mode settings (이미지 표시 모드 설정을 생성합니다)
-			 * @returns {HTMLElement} Settings element for image display control (이미지 표시 제어를 위한 설정 요소)
-			 * @description Creates radio button interface for controlling how images are displayed (normal, hidden, text conversion)
-			 *              (이미지 표시 방법 제어(일반, 숨김, 텍스트 변환)를 위한 라디오 버튼 인터페이스를 생성합니다)
-			 */
-			createImgDisplayModeSettings() {
-				const option_name = 'imgDisplayMode';
-				const option_items = [
-					{ value: 'initial', label: this.getLocalizedText('panel.personal.options.imgDisplayMode.options.initial') },
-					{ value: 'hide', label: this.getLocalizedText('panel.personal.options.imgDisplayMode.options.hide') },
-					{ value: 'convert', label: this.getLocalizedText('panel.personal.options.imgDisplayMode.options.convert') }
-				];
-				return this.createSettingsItem('radio', this.getLocalizedText('panel.personal.options.imgDisplayMode.title'), option_name, option_items);
-			}
-
-			/**
-			 * Creates media playback control settings (미디어 재생 제어 설정을 생성합니다)
-			 * @returns {HTMLElement} Settings element for media stop control (미디어 정지 제어를 위한 설정 요소)
-			 * @description Creates checkbox interface for stopping/starting all media elements on the page
-			 *              (페이지의 모든 미디어 요소 정지/시작을 위한 체크박스 인터페이스를 생성합니다)
-			 */
-			createMediaStopSettings() {
-				const option_name = 'mediaStop';
-				const option_items = [
-					{ value: 'stop', label: this.getLocalizedText('panel.personal.options.mediaControl.options.stop'), label_toggle: this.getLocalizedText('panel.personal.options.mediaControl.options.play') }
-				];
-				return this.createSettingsItem('checkbox', this.getLocalizedText('panel.personal.options.mediaControl.title'), option_name, option_items);
-			}
-
-			/**
-			 * Creates media mute control settings (미디어 음소거 제어 설정을 생성합니다)
-			 * @returns {HTMLElement} Settings element for media mute control (미디어 음소거 제어를 위한 설정 요소)
-			 * @description Creates checkbox interface for muting/unmuting all media elements on the page
-			 *              (페이지의 모든 미디어 요소 음소거/음소거 해제를 위한 체크박스 인터페이스를 생성합니다)
-			 */
-			createMediaMuteSettings() {
-				const option_name = 'mediaMute';
-				const option_items = [
-					{ value: 'mute', label: this.getLocalizedText('panel.personal.options.soundControl.options.mute'), label_toggle: this.getLocalizedText('panel.personal.options.soundControl.options.unmute') }
-				];
-				return this.createSettingsItem('checkbox', this.getLocalizedText('panel.personal.options.soundControl.title'), option_name, option_items);
-			}
-
-			/**
-			 * Creates animation control settings (애니메이션 제어 설정을 생성합니다)
-			 * @returns {HTMLElement} Settings element for animation stop control (애니메이션 정지 제어를 위한 설정 요소)
-			 * @description Creates checkbox interface for stopping/starting CSS animations and transitions
-			 *              (CSS 애니메이션과 전환 효과 정지/시작을 위한 체크박스 인터페이스를 생성합니다)
-			 */
-			createStopAniSettings() {
-				const option_name = 'stopAni';
-				const option_items = [
-					{ value: 'stop', label: this.getLocalizedText('panel.personal.options.animationControl.options.stop'), label_toggle: this.getLocalizedText('panel.personal.options.animationControl.options.play') }
-				];
-				return this.createSettingsItem('checkbox', this.getLocalizedText('panel.personal.options.animationControl.title'), option_name, option_items);
-			}
-
-			/**
-			 * Creates page scroll control settings (페이지 스크롤 제어 설정을 생성합니다)
-			 * @returns {HTMLElement} Settings element for page scroll control (페이지 스크롤 제어를 위한 설정 요소)
-			 * @description Creates button interface for automatic page scrolling with start/stop and directional controls
-			 *              (시작/정지 및 방향 제어가 있는 자동 페이지 스크롤을 위한 버튼 인터페이스를 생성합니다)
-			 */
-			createPageScrollSettings() {
-				const option_name = 'pageScroll';
-				const option_items = [
-					{ value: 'toggle', label: this.getLocalizedText('panel.personal.options.pageScroll.options.start'), label_toggle: this.getLocalizedText('panel.personal.options.pageScroll.options.stop'), addClass: 'btn_iconSet btn_toggle' },
-					//{ value: 'start', label: this.getLocalizedText('options.pageScroll.start'), label_toggle: this.getLocalizedText('options.pageScroll.stop') },
-					//{ value: 'stop', label: this.getLocalizedText('options.pageScroll.stop'), disabled: true },
-					{ value: 'up', label: this.getLocalizedText('panel.personal.options.pageScroll.options.up'), addClass: 'btn_iconSet btn_up' },
-					{ value: 'down', label: this.getLocalizedText('panel.personal.options.pageScroll.options.down'), addClass: 'btn_iconSet btn_down' }
-				];
-				return this.createSettingsItem('button', this.getLocalizedText('panel.personal.options.pageScroll.title'), option_name, option_items);
-			}
-
-			/**
-			 * Creates text-to-speech control settings (텍스트 음성 변환 제어 설정을 생성합니다)
-			 * @returns {HTMLElement} Settings element for TTS control (TTS 제어를 위한 설정 요소)
-			 * @description Creates button interface for text-to-speech functionality with playback controls and focus detection
-			 *              (재생 제어와 포커스 감지가 있는 텍스트 음성 변환 기능을 위한 버튼 인터페이스를 생성합니다)
-			 */
-			createTTSSettings() {
-				const option_name = 'tts';
-				const option_items = [
-					{ value: 'toggle', label: this.getLocalizedText('panel.personal.options.tts.options.start'), label_toggle: this.getLocalizedText('panel.personal.options.tts.options.stop'), type: 'button', addClass: 'btn_iconSet btn_toggle' },
-					//{ value: 'start', label: this.getLocalizedText('options.tts.start'), type: 'button', addClass: 'btn_iconSet btn_play' },
-					//{ value: 'stop', label: this.getLocalizedText('options.tts.stop'), type: 'button', disabled: true },
-					{ value: 'prev', label: this.getLocalizedText('panel.personal.options.tts.options.prev'), type: 'button', disabled: true, addClass: 'btn_iconSet btn_prev' },
-					{ value: 'next', label: this.getLocalizedText('panel.personal.options.tts.options.next'), type: 'button', disabled: true, addClass: 'btn_iconSet btn_next' },
-					{ value: 'focus_toggle', label: `${this.getLocalizedText('panel.personal.options.tts.options.focus-start')}`, type: 'button', addClass: 'btn_iconSet btn_toggle btn_focus' }
-					//,{ value: 'focus_stop', label: `${this.getLocalizedText('panel.personal.options.tts.title')} ${this.getLocalizedText('panel.personal.options.tts.options.stop')}`, type: 'button', style: 'display:none;', addClass: 'btn_iconSet btn_close' }
-				];
-				return this.createSettingsItem('button', this.getLocalizedText('panel.personal.options.tts.title'), option_name, option_items);
-			}
-
-			/**
-			 * Creates speech-to-text control settings (음성 텍스트 변환 제어 설정을 생성합니다)
-			 * @returns {HTMLElement} Settings element for STT control (STT 제어를 위한 설정 요소)
-			 * @description Creates button interface for speech recognition and voice command functionality
-			 *              (음성 인식과 음성 명령 기능을 위한 버튼 인터페이스를 생성합니다)
-			 */
-			createSTTSettings() {
-				const option_name = 'stt';
-				const option_items = [
-					{ value: 'start', label: this.getLocalizedText('panel.personal.options.stt.options.start'), type: 'button' },
-				];
-				return this.createSettingsItem('button', this.getLocalizedText('panel.personal.options.stt.title'), option_name, option_items);
-			}
-
-			/**
-			 * Creates dictionary search control settings (사전 검색 제어 설정을 생성합니다)
-			 * @returns {HTMLElement} Settings element for dictionary control (사전 제어를 위한 설정 요소)
-			 * @description Creates checkbox interface for enabling/disabling dictionary lookup on text selection
-			 *              (텍스트 선택 시 사전 검색 활성화/비활성화를 위한 체크박스 인터페이스를 생성합니다)
-			 */
-			createDictionSettings() {
-				const option_name = 'diction';
-				const option_items = [
-					{ value: 'on', label: this.getLocalizedText('panel.personal.options.diction.options.on'), label_toggle: this.getLocalizedText('panel.personal.options.diction.options.off') }
-				];
-				return this.createSettingsItem('checkbox', this.getLocalizedText('panel.personal.options.diction.title'), option_name, option_items);
-			}
-
-			/**
-			 * Creates page structure analysis settings (페이지 구조 분석 설정을 생성합니다)
-			 * @returns {HTMLElement} Settings element for page structure control (페이지 구조 제어를 위한 설정 요소)
-			 * @description Creates button interface for displaying page structure information (headings, links, etc.)
-			 *              (페이지 구조 정보(제목, 링크 등) 표시를 위한 버튼 인터페이스를 생성합니다)
-			 */
-			createPageStructureSettings() {
-				const option_name = 'pageStructure';
-				const option_items = [
-					{ value: 'show', label: this.getLocalizedText('panel.personal.options.pageStructure.options.show'), label_toggle: this.getLocalizedText('panel.personal.options.pageStructure.options.hide') }
-				];
-				return this.createSettingsItem('button', this.getLocalizedText('panel.personal.options.pageStructure.title'), option_name, option_items);
-			}
-
+			// 개인 옵션 팩토리 18종 — PanelBuilder 데이터 테이블 기반 생성으로 위임
+			createFontSizeSettings() { return this._getPanelBuilder().buildOption('fontSize'); }
+			createFontFamilySettings() { return this._getPanelBuilder().buildOption('fontFamily'); }
+			createScreenScaleSettings() { return this._getPanelBuilder().buildOption('screenScale'); }
+			createTxtAlignSettings() { return this._getPanelBuilder().buildOption('txtAlign'); }
+			createLetterSpacingSettings() { return this._getPanelBuilder().buildOption('letterSpacing'); }
+			createLineHeightSettings() { return this._getPanelBuilder().buildOption('lineHeight'); }
+			createColorThemeSettings() { return this._getPanelBuilder().buildOption('colorTheme'); }
+			createSaturationSettings() { return this._getPanelBuilder().buildOption('saturation'); }
+			createReadGuideSettings() { return this._getPanelBuilder().buildOption('readGuide'); }
+			createImgDisplayModeSettings() { return this._getPanelBuilder().buildOption('imgDisplayMode'); }
+			createMediaStopSettings() { return this._getPanelBuilder().buildOption('mediaStop'); }
+			createMediaMuteSettings() { return this._getPanelBuilder().buildOption('mediaMute'); }
+			createStopAniSettings() { return this._getPanelBuilder().buildOption('stopAni'); }
+			createPageScrollSettings() { return this._getPanelBuilder().buildOption('pageScroll'); }
+			createTTSSettings() { return this._getPanelBuilder().buildOption('tts'); }
+			createSTTSettings() { return this._getPanelBuilder().buildOption('stt'); }
+			createDictionSettings() { return this._getPanelBuilder().buildOption('diction'); }
+			createPageStructureSettings() { return this._getPanelBuilder().buildOption('pageStructure'); }
 
 			/**
 			 * Gets the name of the currently selected accessibility profile (현재 선택된 접근성 프로필의 이름을 가져옵니다)
