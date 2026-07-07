@@ -792,7 +792,7 @@
 <body>
 	<div class="container">
 		<div class="header">
-			<h1>ModuWeb - 모두를 위한 웹 접근성 도우미</h1>
+			<h1>ModuWeb - 프로젝트 개요</h1>
 			<div class="subtitle">ModuWeb (WAT: Web Accessibility Tools - 웹 접근성 지원 도구)</div>
 		</div>
 
@@ -815,14 +815,14 @@
 						<p>
 							ModuWeb은 웹 접근성 지원 도구입니다. 다양한 사용자의 접근성 요구사항을 충족시키기 위해 설계된 모듈형 플러그인 시스템입니다.
 							이 프로젝트는 웹 표준을 준수하며, 사용자 친화적인 인터페이스를 제공합니다.<br>
-							웹사이트 관리자 및 개발자는 최소한의 노력으로 웹 접근성을 개선하고, 웹사이트 사용자에게 향상된 경험을 제공할 수 있습니다.
+							웹 접근성 기능을 적용해 콘텐츠를 보다 쉽게 이용할 수 있게 돕습니다.
 
 						</p>
 					</div>
 
 					<div class="grid">
 						<div class="card">
-							<h3>🎯 프로젝트 목표</h3>
+							<h3>프로젝트 목표</h3>
 							<ul>
 								<li>웹 접근성 환경 개선</li>
 								<li>평등한 웹 경험 제공</li>
@@ -849,7 +849,7 @@
 							<div class="spec-category">
 								<h4>📋 버전 정보</h4>
 								<ul class="spec-list">
-									<li><span class="spec-label">현재 버전</span><span class="spec-value">2.0.0</span></li>
+									<li><span class="spec-label">현재 버전</span><span class="spec-value">2.0.1</span></li>
 									<li><span class="spec-label">마지막 업데이트</span><span class="spec-value">2025-08-19</span></li>
 									<li><span class="spec-label">라이선스</span><span class="spec-value">Apache 2.0</span></li>
 									<li><span class="spec-label">개발 팀</span><span class="spec-value">DAEGU CYBER UNIVERSITY</span></li>
@@ -1102,7 +1102,7 @@
 								</div>
 							</div>
 							<div class="sequence-note">
-								💡 반응형 상태 기반 아키텍처
+							반응형 상태 기반 아키텍처
 							</div>
 						</div>
 					</div>
@@ -1136,7 +1136,7 @@
 						</div>
 
 						<div class="feature-item">
-							<h4>🎯 집중력 지원</h4>
+							<h4>집중력 지원</h4>
 							<div class="description">집중력 향상을 위한 시각적 도구</div>
 							<ul>
 								<li>마우스 위치 강조</li>
@@ -1210,9 +1210,7 @@
 <pre><code><span class="comment">// WAT 인스턴스 생성 및 초기화</span>
 <span class="keyword">const</span> wat = <span class="keyword">new</span> WAT({
     containerSelector: <span class="string">'#content'</span>,
-    language: <span class="string">'ko'</span>,
-    enableTTS: <span class="keyword">true</span>,
-    enableSTT: <span class="keyword">true</span>
+    language: <span class="string">'ko'</span>
 });
 
 <span class="keyword">await</span> wat.init();
@@ -1227,7 +1225,7 @@ wat.ttsManager.toggleAutoTTS();
 wat.ttsManager.setSpeechRate(1.2);
 
 <span class="comment">// STT 기능 사용</span>
-wat.sttManager.startListening();</code></pre>
+wat.sttManager.toggleVoiceCommand();</code></pre>
 						</div>
 					</div>
 				</div>
@@ -1381,9 +1379,9 @@ wat.sttManager.startListening();</code></pre>
 									<div class="property">+ isListening: boolean</div>
 								</div>
 								<div class="class-methods">
-									<div class="method">+ startListening(): void</div>
-									<div class="method">+ stopListening(): void</div>
-									<div class="method">+ processCommand(command): void</div>
+									<div class="method">+ toggleVoiceCommand(): void</div>
+									<div class="method">+ setLanguage(language): void</div>
+									<div class="method">+ getStatus(): Object</div>
 								</div>
 							</div>
 						</div>

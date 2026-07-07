@@ -11,15 +11,18 @@
 	<script type="text/javascript">
 		// DOM 로딩 완료 후 WAT 초기화
 		document.addEventListener('DOMContentLoaded', () => {
+			const watOptions = {
+				configPath: '../config.json',		// config.json
+			};
 			// 기본 설정으로 WAT 초기화
-			const wat = new WAT();
-			//const wat = new WAT(watOptions);
+			//const wat = new WAT();
+			const wat = new WAT(watOptions);
 			window.watPlugin = wat;
 			wat.init();
 
 			// 초기화 완료 후 환영 메시지
 			document.addEventListener('wat:initialized', () => {
-				console.log('웹 접근성 도구가 준비되었습니다!');
+				console.log('웹 접근성 도구가 준비되었습니다! 11');
 			});
 		});
 	</script>
@@ -55,7 +58,10 @@
 // DOM 로딩 완료 후 WAT 초기화
 document.addEventListener('DOMContentLoaded', () => {
 	// 기본 설정으로 WAT 초기화
-	const wat = new WAT();
+	const watOptions = {
+		configPath: '../config.json'
+	};
+	const wat = new WAT(watOptions);
 	window.watPlugin = wat;
 	wat.init();
 });
@@ -110,7 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
 				</div>
 				<div class="videoWrap">
 					<video controls style="max-width: 100%; height: auto;">
-						<source src="//commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" type="video/mp4">
+						<source src="./sample/Big_Buck_Bunny_1080_1m22s_27mb.mp4" type="video/mp4">
 						Your browser does not support the video tag.
 					</video>
 				</div>

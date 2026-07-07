@@ -326,7 +326,12 @@
 		"on": "Ein, Aktivieren, Starten",
 		"off": "Aus, Deaktivieren, Stoppen, Beenden",
 		"minimize": "Fenster minimieren",
-		"restore": "Fenster wiederherstellen"
+		"restore": "Fenster wiederherstellen",
+		"voiceCommands": {
+			"navigation": "Navigieren, Link, Klicken",
+			"action": "Ausführen, Ein, Aus, Beenden",
+			"settings": "Einstellungen, Optionen, Menü"
+		}
 	},
 	"patterns": {
 		"__comment__": "Suchmusterverwaltung. Legen Sie die Titel und Suchbegriffe fest.",

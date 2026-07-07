@@ -135,12 +135,13 @@
 
 		// WAT 상태 확인
 		function checkWATStatus() {
-			if (watOptions) {
+			const wat = window.watPlugin;
+			if (wat) {
 				const status = {
-					initialized: watOptions.isInitialized || false,
-					ttsEnabled: watOptions.ttsManager ? true : false,
-					sttEnabled: watOptions.sttManager ? true : false,
-					focusTTSEnabled: watOptions.focusTTS ? true : false
+					initialized: wat.isInitialized || false,
+					ttsEnabled: !!wat.ttsManager,
+					sttEnabled: !!wat.sttManager,
+					focusTTSEnabled: wat.ttsManager ? (wat.ttsManager.currentState === wat.ttsManager.states.FOCUS_TTS) : false
 				};
 				document.getElementById('watStatus').innerHTML =
 					`<strong>WAT 상태:</strong><br>
@@ -153,78 +154,104 @@
 
 		// TTS 예제 함수들
 		function speakSimpleText() {
-			if (watOptions && watOptions.ttsManager) {
-				watOptions.ttsManager.speakText('안녕하세요! WAT TTS 기능입니다.');
-			}
+			speakBrowser('안녕하세요! WAT TTS 기능입니다.');
 		}
 
 		function speakLongText() {
-			if (watOptions && watOptions.ttsManager) {
-				const longText = '이것은 긴 텍스트 예제입니다. WAT의 TTS 기능을 사용하여 이 긴 텍스트를 음성으로 변환하고 있습니다. 다양한 설정을 통해 읽기 속도, 음높이, 볼륨 등을 조절할 수 있습니다.';
-				watOptions.ttsManager.speakText(longText);
-			}
+			const longText = '이것은 긴 텍스트 예제입니다. WAT의 TTS 기능을 사용하여 이 긴 텍스트를 음성으로 변환하고 있습니다. 다양한 설정을 통해 읽기 속도, 음높이, 볼륨 등을 조절할 수 있습니다.';
+			speakBrowser(longText);
 		}
 
 		function speakWithOptions() {
-			if (watOptions && watOptions.ttsManager) {
-				watOptions.ttsManager.speakText('빠른 속도로 높은 음성으로 읽어보겠습니다!', {
-					rate: 2.0,
-					pitch: 1.5,
-					volume: 0.9
-				});
-			}
+			speakBrowser('빠른 속도로 높은 음성으로 읽어보겠습니다!', {
+				rate: 2.0,
+				pitch: 1.5,
+				volume: 0.9
+			});
 		}
 
 		function pauseTTS() {
-			if (watOptions && watOptions.ttsManager) {
-				watOptions.ttsManager.pause();
+			if ('speechSynthesis' in window && 'pause' in window.speechSynthesis) {
+				window.speechSynthesis.pause();
 				console.log('TTS 일시정지됨');
 			}
 		}
 
 		function resumeTTS() {
-			if (watOptions && watOptions.ttsManager) {
-				watOptions.ttsManager.resume();
+			if ('speechSynthesis' in window && 'resume' in window.speechSynthesis) {
+				window.speechSynthesis.resume();
 				console.log('TTS 재개됨');
 			}
 		}
 
 		function stopTTS() {
-			if (watOptions && watOptions.ttsManager) {
-				watOptions.ttsManager.stop();
+			if ('speechSynthesis' in window) {
+				window.speechSynthesis.cancel();
 				console.log('TTS 중지됨');
 			}
 		}
 
 		function getTTSStatus() {
-			if (watOptions && watOptions.ttsManager) {
-				const status = watOptions.ttsManager.getStatus();
-				alert('TTS 상태: ' + JSON.stringify(status, null, 2));
+			if (!('speechSynthesis' in window)) {
+				alert('이 브라우저는 speechSynthesis를 지원하지 않습니다.');
+				return;
 			}
+
+			const status = {
+				speaking: window.speechSynthesis.speaking,
+				paused: window.speechSynthesis.paused
+			};
+			alert('TTS 상태: ' + JSON.stringify(status, null, 2));
 		}
 
 		// STT 예제 함수들
 		function startSTT() {
-			if (watOptions && watOptions.sttManager) {
-				document.getElementById('sttResult').textContent = '음성 인식 시작... 말씀해 주세요.';
-				watOptions.sttManager.start((result) => {
-					document.getElementById('sttResult').textContent = '인식된 텍스트: ' + result;
-				});
+			const wat = window.watPlugin;
+			if (!wat || !wat.sttManager) return;
+
+			if (!wat.sttManager.getStatus().isActive) {
+				wat.sttManager.toggleVoiceCommand();
 			}
+
+			document.getElementById('sttResult').textContent = '음성 명령 모드: 활성화 (말씀 후 명령 실행)';
 		}
 
 		function stopSTT() {
-			if (watOptions && watOptions.sttManager) {
-				watOptions.sttManager.stop();
-				document.getElementById('sttResult').textContent = '음성 인식이 중지되었습니다.';
+			const wat = window.watPlugin;
+			if (!wat || !wat.sttManager) return;
+
+			if (wat.sttManager.getStatus().isActive) {
+				wat.sttManager.toggleVoiceCommand();
 			}
+
+			document.getElementById('sttResult').textContent = '음성 명령 모드: 비활성화';
 		}
 
 		function getSTTStatus() {
-			if (watOptions && watOptions.sttManager) {
-				const status = watOptions.sttManager.getStatus();
-				alert('STT 상태: ' + JSON.stringify(status, null, 2));
+			const wat = window.watPlugin;
+			if (!wat || !wat.sttManager) return;
+
+			const status = wat.sttManager.getStatus();
+			const commandHistory = wat.sttManager.voiceCommand?.commandHistory || [];
+			const last = commandHistory[0];
+			const lastText = last ? `${last.command} ${last.target}` : '(없음)';
+
+			alert('STT 상태: ' + JSON.stringify(status, null, 2) + '\n최근 명령: ' + lastText);
+		}
+
+		function speakBrowser(text, { rate, pitch, volume } = {}) {
+			if (!('speechSynthesis' in window)) {
+				alert('이 브라우저는 speechSynthesis를 지원하지 않습니다.');
+				return;
 			}
+
+			window.speechSynthesis.cancel();
+
+			const utterance = new SpeechSynthesisUtterance(text);
+			utterance.rate = rate ?? watOptions?.ttsSpeechRate ?? 1.6;
+			utterance.pitch = pitch ?? 1.0;
+			utterance.volume = volume ?? 1.0;
+			window.speechSynthesis.speak(utterance);
 		}
 
 		// 이벤트 리스너 관리
@@ -420,17 +447,14 @@ wat.init();
 					</div>
 					<div class="code-example">
 						<pre><code>// 기본 텍스트 읽기
-customWAT.ttsManager.speakText('안녕하세요!');
-
-// 옵션과 함께 읽기
-customWAT.ttsManager.speakText('빠르게 읽어보겠습니다', {
-    rate: 2.0,
-    pitch: 1.2,
-    volume: 0.9
-});
+const utterance = new SpeechSynthesisUtterance('안녕하세요!');
+utterance.rate = 2.0;   // 속도
+utterance.pitch = 1.0;  // 음높이
+utterance.volume = 1.0; // 볼륨
+speechSynthesis.speak(utterance);
 
 // 현재 페이지 제목 읽기
-customWAT.ttsManager.speakText(document.title);</code></pre>
+speechSynthesis.speak(new SpeechSynthesisUtterance(document.title));</code></pre>
 					</div>
 				</div>
 
@@ -443,18 +467,16 @@ customWAT.ttsManager.speakText(document.title);</code></pre>
 						<button class="demo-button" onclick="getTTSStatus()">TTS 상태 확인</button>
 					</div>
 					<div class="code-example">
-						<pre><code>// TTS 일시정지
-customWAT.ttsManager.pause();
+						<pre><code>// TTS 일시정지/재개/중지 (브라우저)
+speechSynthesis.pause();
+speechSynthesis.resume();
+speechSynthesis.cancel();
 
-// TTS 재개
-customWAT.ttsManager.resume();
-
-// TTS 중지
-customWAT.ttsManager.stop();
-
-// TTS 상태 확인
-const status = customWAT.ttsManager.getStatus();
-console.log('TTS 상태:', status);</code></pre>
+// TTS 상태 확인 (브라우저)
+console.log({
+    speaking: speechSynthesis.speaking,
+    paused: speechSynthesis.paused
+});</code></pre>
 					</div>
 				</div>
 			</section>
@@ -473,18 +495,13 @@ console.log('TTS 상태:', status);</code></pre>
 						음성 인식 결과가 여기에 표시됩니다...
 					</div>
 					<div class="code-example">
-						<pre><code>// 음성 인식 시작
-customWAT.sttManager.start((result) => {
-    console.log('인식된 텍스트:', result);
-    document.getElementById('sttResult').textContent = result;
-});
+						<pre><code>// 음성 명령 시작/중지
+window.watPlugin.sttManager.toggleVoiceCommand();
 
-// 음성 인식 중지
-customWAT.sttManager.stop();
-
-// STT 상태 확인
-const sttStatus = customWAT.sttManager.getStatus();
-console.log('STT 상태:', sttStatus);</code></pre>
+// 상태 확인
+document.addEventListener('wat:stt:stateChanged', (event) => {
+    console.log(event.detail);
+});</code></pre>
 					</div>
 				</div>
 			</section>
@@ -504,15 +521,10 @@ console.log('STT 상태:', sttStatus);</code></pre>
 						</select>
 					</div>
 					<div class="code-example">
-						<pre><code>// 포커스 TTS 수동 활성화
-customWAT.focusTTS.enable();
+						<pre><code>// 포커스 TTS 토글
+window.watPlugin.ttsManager.toggleFocusTTS();
 
-// 포커스 TTS 비활성화
-customWAT.focusTTS.disable();
-
-// 특정 요소의 텍스트 강제 읽기
-const element = document.querySelector('#targetElement');
-customWAT.focusTTS.readElement(element);</code></pre>
+// 포커스 TTS는 더블클릭/마우스 선택 시 해당 텍스트를 읽습니다.</code></pre>
 					</div>
 				</div>
 

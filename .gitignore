@@ -1,3 +1,6 @@
+# 로컬 전용 메모·가이드 (커밋·푸시 대상 아님)
+/_private/
+
 # 백업 폴더
 /_backup/
 
@@ -17,6 +20,13 @@ web.config
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# 아카이브 / 대용량 미디어 (샘플 동영상 등)
+*.zip
+*.mp4
+
+# 소스맵 (빌드 시 재생성 가능)
+dist/*.js.map
 
 # 임시 파일
 *.tmp

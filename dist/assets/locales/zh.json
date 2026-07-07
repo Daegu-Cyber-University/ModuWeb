@@ -326,7 +326,12 @@
 		"on": "开启, 激活, 开始",
 		"off": "关闭, 非激活, 停止, 结束",
 		"minimize": "最小化窗口",
-		"restore": "恢复窗口"
+		"restore": "恢复窗口",
+		"voiceCommands": {
+			"navigation": "移动, 链接, 点击",
+			"action": "执行, 打开, 关闭, 停止",
+			"settings": "设置, 选项, 菜单"
+		}
 	},
 	"patterns": {
 		"__comment__": "搜索模式管理。设置搜索模式的标题和搜索词。",
