@@ -6,6 +6,7 @@
  */
 import { jest, describe, test, expect, beforeEach, afterEach } from '@jest/globals';
 import { WAT } from '../../src/wat/WAT.js';
+import { Dictionary } from '../../src/wat/Dictionary.js';
 import { Constants } from '../../src/core/constants.js';
 
 /** WAT 인스턴스 없이 알림 메서드를 호출하기 위한 최소 스텁 */
@@ -156,12 +157,18 @@ describe('showUserFeedback', () => {
 });
 
 // ──────────────────────────────────────────────────
-// _showDictionaryMessage — 사전 알림 (.wat-dictionary-notification)
+// Dictionary._showDictionaryMessage — 사전 알림 (.wat-dictionary-notification)
+// Phase 6-2에서 Dictionary 모듈로 추출됨 — plugin._notify로 위임
 // ──────────────────────────────────────────────────
 describe('_showDictionaryMessage', () => {
+	/** Dictionary 메서드 호출용 스텁 — plugin 서비스에 알림 스텁을 연결 */
+	function makeDictStub() {
+		return { plugin: makeStub() };
+	}
+
 	test('타입별 modifier 클래스와 메시지를 표시한다', () => {
-		const stub = makeStub();
-		WAT.prototype._showDictionaryMessage.call(stub, '단어를 찾을 수 없습니다', 'info');
+		const stub = makeDictStub();
+		Dictionary.prototype._showDictionaryMessage.call(stub, '단어를 찾을 수 없습니다', 'info');
 
 		const el = document.querySelector('.wat-dictionary-notification');
 		expect(el).not.toBeNull();
@@ -170,25 +177,25 @@ describe('_showDictionaryMessage', () => {
 	});
 
 	test('라이브 리전 semantics가 타입별로 분리된다 (error=alert, 그 외=status)', () => {
-		const stub = makeStub();
-		WAT.prototype._showDictionaryMessage.call(stub, '오류', 'error');
+		const stub = makeDictStub();
+		Dictionary.prototype._showDictionaryMessage.call(stub, '오류', 'error');
 		const errorEl = document.querySelector('.wat-dictionary-notification');
 		expect(errorEl.getAttribute('role')).toBe('alert');
 		expect(errorEl.getAttribute('aria-live')).toBeNull(); // alert는 assertive 함의 — polite 중복 지정 금지
 
-		WAT.prototype._showDictionaryMessage.call(stub, '안내', 'info');
+		Dictionary.prototype._showDictionaryMessage.call(stub, '안내', 'info');
 		const infoEl = document.querySelector('.wat-dictionary-notification');
 		expect(infoEl.getAttribute('role')).toBe('status');
 		expect(infoEl.getAttribute('aria-live')).toBe('polite');
 	});
 
 	test('닫기 버튼이 로컬라이즈된 aria-label을 갖고 클릭 시 알림이 제거된다', () => {
-		const stub = makeStub();
-		WAT.prototype._showDictionaryMessage.call(stub, 'msg', 'info');
+		const stub = makeDictStub();
+		Dictionary.prototype._showDictionaryMessage.call(stub, 'msg', 'info');
 
 		const closeBtn = document.querySelector('.wat-notify-close');
 		expect(closeBtn).not.toBeNull();
-		expect(stub.getLocalizedText).toHaveBeenCalledWith('tags.button.text.close');
+		expect(stub.plugin.getLocalizedText).toHaveBeenCalledWith('tags.button.text.close');
 		expect(closeBtn.getAttribute('aria-label')).toBe('[tags.button.text.close]');
 
 		closeBtn.click();
@@ -196,9 +203,9 @@ describe('_showDictionaryMessage', () => {
 	});
 
 	test('새 알림 표시 시 기존 사전 알림은 제거된다', () => {
-		const stub = makeStub();
-		WAT.prototype._showDictionaryMessage.call(stub, '첫 번째', 'info');
-		WAT.prototype._showDictionaryMessage.call(stub, '두 번째', 'error');
+		const stub = makeDictStub();
+		Dictionary.prototype._showDictionaryMessage.call(stub, '첫 번째', 'info');
+		Dictionary.prototype._showDictionaryMessage.call(stub, '두 번째', 'error');
 
 		const all = document.querySelectorAll('.wat-dictionary-notification');
 		expect(all.length).toBe(1);
@@ -206,8 +213,8 @@ describe('_showDictionaryMessage', () => {
 	});
 
 	test('5초(+페이드) 후 자동 제거된다', () => {
-		const stub = makeStub();
-		WAT.prototype._showDictionaryMessage.call(stub, 'msg', 'info');
+		const stub = makeDictStub();
+		Dictionary.prototype._showDictionaryMessage.call(stub, 'msg', 'info');
 
 		jest.advanceTimersByTime(5000 + FADE_MS + 1);
 		expect(document.querySelector('.wat-dictionary-notification')).toBeNull();

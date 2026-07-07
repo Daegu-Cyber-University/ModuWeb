@@ -4,6 +4,7 @@
  */
 import { jest, describe, test, expect, beforeEach, afterEach } from '@jest/globals';
 import { WAT } from '../../src/wat/WAT.js';
+import { Dictionary } from '../../src/wat/Dictionary.js';
 
 function pressKey(target, key, options = {}) {
 	const event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true, ...options });
@@ -125,21 +126,22 @@ describe('trapFocus', () => {
 // displayDictionResult — 사전 결과 모달 (인라인 트랩 사용 中 — Phase 1에서 trapFocus로 통합 예정)
 // ──────────────────────────────────────────────────
 describe('displayDictionResult', () => {
+	// Phase 6-2에서 Dictionary 모듈로 추출됨 — plugin 서비스는 스텁, 모달 로직은 실물 사용
 	function makeDictionStub() {
 		return {
-			removeAllDictionLayers: jest.fn(function () {
-				return WAT.prototype.removeAllDictionLayers.call(this);
-			}),
-			trapFocus: WAT.prototype.trapFocus,
-			getConfigValue: jest.fn((path, fallback) => fallback),
-			getLocalizedText: jest.fn((key) => `[${key}]`),
+			plugin: {
+				trapFocus: WAT.prototype.trapFocus,
+				getConfigValue: jest.fn((path, fallback) => fallback),
+				getLocalizedText: jest.fn((key) => `[${key}]`)
+			},
+			removeAllDictionLayers: Dictionary.prototype.removeAllDictionLayers,
 			_adjustModalPosition: jest.fn()
 		};
 	}
 
 	test('role=dialog, aria-modal, aria-labelledby를 갖춘 모달을 생성한다', () => {
 		const stub = makeDictionStub();
-		WAT.prototype.displayDictionResult.call(stub, { title: '안녕', description: '인사말' });
+		Dictionary.prototype.displayDictionResult.call(stub, { title: '안녕', description: '인사말' });
 
 		const layer = document.querySelector('.wat-diction-result-layer');
 		expect(layer).not.toBeNull();
@@ -151,7 +153,7 @@ describe('displayDictionResult', () => {
 
 	test('외부 API 응답(title/description)은 텍스트로만 삽입된다 (XSS 방지)', () => {
 		const stub = makeDictionStub();
-		WAT.prototype.displayDictionResult.call(stub, {
+		Dictionary.prototype.displayDictionResult.call(stub, {
 			title: '<img src=x onerror=alert(1)>',
 			description: '<script>alert(2)</script>'
 		});
@@ -164,10 +166,10 @@ describe('displayDictionResult', () => {
 	test('안전하지 않은 스킴의 링크는 렌더링하지 않는다', () => {
 		const stub = makeDictionStub();
 		// eslint-disable-next-line no-script-url
-		WAT.prototype.displayDictionResult.call(stub, { title: 't', description: 'd', link: 'javascript:alert(1)' });
+		Dictionary.prototype.displayDictionResult.call(stub, { title: 't', description: 'd', link: 'javascript:alert(1)' });
 		expect(document.querySelector('.wat-diction-result-layer a')).toBeNull();
 
-		WAT.prototype.displayDictionResult.call(stub, { title: 't', description: 'd', link: 'https://example.com/x' });
+		Dictionary.prototype.displayDictionResult.call(stub, { title: 't', description: 'd', link: 'https://example.com/x' });
 		expect(document.querySelector('.wat-diction-result-layer a')).not.toBeNull();
 	});
 
@@ -177,7 +179,7 @@ describe('displayDictionResult', () => {
 		previous.focus();
 
 		const stub = makeDictionStub();
-		WAT.prototype.displayDictionResult.call(stub, { title: 't', description: 'd' });
+		Dictionary.prototype.displayDictionResult.call(stub, { title: 't', description: 'd' });
 
 		const closeBtn = document.querySelector('.wat-diction-result-layer button');
 		closeBtn.click();
@@ -192,7 +194,7 @@ describe('displayDictionResult', () => {
 		previous.focus();
 
 		const stub = makeDictionStub();
-		WAT.prototype.displayDictionResult.call(stub, { title: 't', description: 'd' });
+		Dictionary.prototype.displayDictionResult.call(stub, { title: 't', description: 'd' });
 
 		const layer = document.querySelector('.wat-diction-result-layer');
 		pressKey(layer, 'Escape');
@@ -203,7 +205,7 @@ describe('displayDictionResult', () => {
 
 	test('배경 오버레이가 함께 생성되고 닫을 때 같이 제거된다', () => {
 		const stub = makeDictionStub();
-		WAT.prototype.displayDictionResult.call(stub, { title: 't', description: 'd' });
+		Dictionary.prototype.displayDictionResult.call(stub, { title: 't', description: 'd' });
 
 		const overlay = document.querySelector('.wat-diction-overlay');
 		expect(overlay).not.toBeNull();
@@ -217,7 +219,7 @@ describe('displayDictionResult', () => {
 
 	test('닫기 버튼으로도 오버레이가 함께 제거된다', () => {
 		const stub = makeDictionStub();
-		WAT.prototype.displayDictionResult.call(stub, { title: 't', description: 'd' });
+		Dictionary.prototype.displayDictionResult.call(stub, { title: 't', description: 'd' });
 
 		document.querySelector('.wat-diction-result-layer button').click();
 		expect(document.querySelector('.wat-diction-overlay')).toBeNull();
