@@ -5,6 +5,7 @@
 import { jest, describe, test, expect, beforeEach, afterEach } from '@jest/globals';
 import { WAT } from '../../src/wat/WAT.js';
 import { Dictionary } from '../../src/wat/Dictionary.js';
+import { OverlayManager } from '../../src/wat/OverlayManager.js';
 
 function pressKey(target, key, options = {}) {
 	const event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true, ...options });
@@ -128,12 +129,15 @@ describe('trapFocus', () => {
 describe('displayDictionResult', () => {
 	// Phase 6-2에서 Dictionary 모듈로 추출됨 — plugin 서비스는 스텁, 모달 로직은 실물 사용
 	function makeDictionStub() {
+		const plugin = {
+			trapFocus: WAT.prototype.trapFocus,
+			getConfigValue: jest.fn((path, fallback) => fallback),
+			getLocalizedText: jest.fn((key) => `[${key}]`)
+		};
+		// 사전 모달 닫기 경로가 사용하는 오버레이 프리미티브 주입 (WAT 배선과 동일)
+		plugin.overlayManager = new OverlayManager(plugin);
 		return {
-			plugin: {
-				trapFocus: WAT.prototype.trapFocus,
-				getConfigValue: jest.fn((path, fallback) => fallback),
-				getLocalizedText: jest.fn((key) => `[${key}]`)
-			},
+			plugin,
 			removeAllDictionLayers: Dictionary.prototype.removeAllDictionLayers,
 			_adjustModalPosition: jest.fn()
 		};

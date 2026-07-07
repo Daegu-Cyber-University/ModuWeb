@@ -2194,17 +2194,9 @@ var WATPlugin = (function (exports) {
 			const closeButton = document.createElement('button');
 			closeButton.textContent = this.plugin.getLocalizedText('tags.button.text.close');
 			closeButton.addEventListener('click', () => {
-				layer.remove();
-				overlay.remove();
-				// 다른 모달의 오버레이가 없을 때만 스크롤 잠금 해제 (사전 모달 자체는 잠금을 걸지 않음)
-				if (!document.querySelector('.wat-overlay')) {
-					document.body.classList.remove('overlay-active');
-				}
-				if (previousFocusedElement) {
-					previousFocusedElement.focus();
-				} else {
-					document.body.focus();
-				}
+				// 레이어·오버레이 제거 + 스크롤 잠금 정리(교차 모달 안전) + 포커스 복원 — OverlayManager로 통합
+				this.plugin.overlayManager.teardown(layer, overlay);
+				this.plugin.overlayManager.restoreFocus(previousFocusedElement);
 			});
 			layer.appendChild(closeButton);
 
@@ -2471,11 +2463,7 @@ var WATPlugin = (function (exports) {
 			closeButton.classList.add('btnClose');
 			closeButton.addEventListener('click', () => {
 				this.closePageStructure();
-				if (previousFocusedElement) {
-					previousFocusedElement.focus();
-				} else {
-					body.focus();
-				}
+				this.plugin.overlayManager.restoreFocus(previousFocusedElement);
 			});
 			layer.appendChild(closeButton);
 
@@ -2694,15 +2682,9 @@ var WATPlugin = (function (exports) {
 			const layer = document.getElementById('pgStructure_layer');
 			// 플러그인이 만든 오버레이만 제거 (호스트 페이지의 .overlay 오삭제 방지)
 			const overlay = document.querySelector('.overlay.wat-overlay');
-			const body = document.body;
-			if (layer) {
-				layer.classList.add('hidden');
-				layer.remove();
-			}
-			if (overlay) {
-				overlay.remove();
-			}
-			body.classList.remove('overlay-active');
+			// 레이어·오버레이 제거 + 스크롤 잠금 정리(교차 모달 안전) — OverlayManager로 통합.
+			// (기존 무조건 해제 → 남은 .wat-overlay가 없을 때만 해제로 수렴)
+			this.plugin.overlayManager.teardown(layer, overlay);
 		}
 	}
 
@@ -4146,6 +4128,100 @@ var WATPlugin = (function (exports) {
 	}
 
 	/**
+	 * @fileoverview OverlayManager - 모달 오버레이 공통 프리미티브
+	 * @module src/wat/OverlayManager
+	 * @description WAT.js에서 추출·통합된 모달 오버레이 접근성 프리미티브 (Phase 6-8).
+	 *              사전(Dictionary)·페이지구조(PageStructure) 모달이 공유하는
+	 *              포커스 트랩(Tab 순환)·Escape 닫기·오버레이 정리·포커스 복원을 한곳에서 담당한다.
+	 *
+	 *              설계 노트:
+	 *              - aria-modal / 배경 오버레이 / 포커스 트랩이 이미 모달 격리를 제공하므로
+	 *                `inert`는 도입하지 않았다(오적용 시 페이지 전역 조작 불능이라는 심각한 실패 모드
+	 *                대비 한계 이득이 작고, 이 저장소 환경에서 브라우저 회귀 검증이 불가). — 향후 과제.
+	 *              - 대상 오버레이가 애니메이션을 사용하지 않아 reduced-motion 처리는 no-op.
+	 *              - overlay-active(스크롤 잠금) 해제는 '남은 .wat-overlay가 없을 때만'으로 통일한다
+	 *                (기존에 Escape·PageStructure 경로가 무조건 해제하던 불일치를 교차 모달 안전 규칙으로 수렴).
+	 */
+	class OverlayManager {
+		/**
+		 * @param {Object} [plugin] - WAT 인스턴스 (현재 트랩/정리 로직은 plugin에 의존하지 않음)
+		 */
+		constructor(plugin) {
+			this.plugin = plugin;
+		}
+
+		/**
+		 * 모달 레이어에 포커스 트랩(Tab 순환)과 Escape 닫기를 설정합니다.
+		 * @param {HTMLElement} layer - 모달 레이어 (role=dialog)
+		 * @param {HTMLElement|null} previousFocusedElement - 닫을 때 포커스를 복원할 요소
+		 * @param {HTMLElement} overlay - 배경 오버레이 요소
+		 * @returns {void}
+		 */
+		trap(layer, previousFocusedElement, overlay) {
+			const focusableElements = layer.querySelectorAll(
+				'a, button, input, textarea, select, details, [tabindex]:not([tabindex="-1"])'
+			);
+			const firstFocusableElement = focusableElements[0];
+			const lastFocusableElement = focusableElements[focusableElements.length - 1];
+			const self = this;
+
+			function handleTab(e) {
+				if (e.key === 'Tab') {
+					// 포커스 가능 요소가 없으면 Tab을 차단해 포커스가 모달 밖으로 새지 않도록 고정
+					if (focusableElements.length === 0) {
+						e.preventDefault();
+						return;
+					}
+					if (e.shiftKey) { // Shift + Tab
+						if (document.activeElement === firstFocusableElement) {
+							e.preventDefault();
+							lastFocusableElement.focus();
+						}
+					} else { // Tab
+						if (document.activeElement === lastFocusableElement) {
+							e.preventDefault();
+							firstFocusableElement.focus();
+						}
+					}
+				} else if (e.key === 'Escape') {
+					self.teardown(layer, overlay);
+					self.restoreFocus(previousFocusedElement);
+				}
+			}
+
+			layer.addEventListener('keydown', handleTab);
+		}
+
+		/**
+		 * 모달 레이어·오버레이를 제거하고 스크롤 잠금을 정리합니다 (포커스는 건드리지 않음).
+		 * @param {HTMLElement|null} layer - 제거할 모달 레이어
+		 * @param {HTMLElement|null} overlay - 제거할 배경 오버레이
+		 * @returns {void}
+		 */
+		teardown(layer, overlay) {
+			if (layer) layer.remove();
+			if (overlay) overlay.remove();
+			// 다른 모달의 오버레이가 남아 있지 않을 때만 스크롤 잠금 해제 (교차 모달 안전)
+			if (!document.querySelector('.wat-overlay')) {
+				document.body.classList.remove('overlay-active');
+			}
+		}
+
+		/**
+		 * 모달을 닫은 뒤 이전 포커스 요소로 포커스를 복원합니다 (없거나 소실됐으면 body).
+		 * @param {HTMLElement|null} previousFocusedElement - 복원할 포커스 대상
+		 * @returns {void}
+		 */
+		restoreFocus(previousFocusedElement) {
+			if (previousFocusedElement && document.contains(previousFocusedElement)) {
+				previousFocusedElement.focus();
+			} else {
+				document.body.focus();
+			}
+		}
+	}
+
+	/**
 	 * @fileoverview AutoTTS - 자동 순차 TTS 기능
 	 * @module src/tts/AutoTTS
 	 */
@@ -5408,8 +5484,7 @@ var WATPlugin = (function (exports) {
 		generateImageText(element, lang) {
 			const alt = element.alt || '';
 			const title = element.title || '';
-			element.src || '';
-			
+
 			let text = this.plugin.getLocalizedText('tts.image.label') + ' ';
 			
 			if (alt) {
@@ -6767,6 +6842,9 @@ var WATPlugin = (function (exports) {
 
 				// Initialize Settings Applier (설정 저장/복원/프로필 적용 담당)
 				this.settingsApplier = new SettingsApplier(this);
+
+				// Initialize Overlay Manager (모달 오버레이 포커스 트랩·Escape·정리 공통 담당)
+				this.overlayManager = new OverlayManager(this);
 			}
 
 			/**
@@ -8109,7 +8187,6 @@ var WATPlugin = (function (exports) {
 			 */
 			updateLanguageSetting() {
 				const languageSettingTitle = this.getLocalizedText('panel.settings.manage.options.language.title');
-				this.getLocalizedText('panel.settings.manage.options.language.options.' + this.language);
 				const languageSettingContainer = document.getElementById(Constants.ELEMENT_IDS.LANGUAGE_SETTING_WRAP);
 				if (languageSettingContainer) {
 					const legend = languageSettingContainer.querySelector('.watSet-title');
@@ -8780,9 +8857,6 @@ var WATPlugin = (function (exports) {
 			 * this.updateViewMode('list');
 			 */
 			updateViewMode(req_viewMode) {
-				//const wat = viewModeWrap.closest('#wat');
-				document.getElementById(Constants.ELEMENT_IDS.MAIN_WRAP);
-				//const isIconMode = viewMode === 'icon';
 				const viewModeStr = req_viewMode.toString().toLowerCase();
 				document.documentElement.dataset['watViewmode'] = viewModeStr;
 				//localStorage.setItem(Constants.STORAGE_KEYS.SETTINGS, {viewMode: viewModeStr});
@@ -11621,7 +11695,6 @@ var WATPlugin = (function (exports) {
 			 */
 			startPageScroll() {
 				this.stopPageScroll(); // Ensure no multiple intervals are running
-				Constants.TIMING.SCROLL_STEP; // Change this value to make the scroll faster or slower
 				//document.getElementById('wat-button-pageScroll_start').style.display = 'none';
 				//document.getElementById('wat-button-pageScroll_stop').style.display = 'inline';
 				const elm_start_btn = document.getElementById('wat-button-pageScroll_start');
@@ -12140,44 +12213,10 @@ var WATPlugin = (function (exports) {
 			 * this.trapFocus(modalElement, previousElement, overlayElement);
 			 */
 			trapFocus(layer, previousFocusedElement, overlay) {
-				const focusableElements = layer.querySelectorAll(
-					'a, button, input, textarea, select, details, [tabindex]:not([tabindex="-1"])'
-				);
-				const firstFocusableElement = focusableElements[0];
-				const lastFocusableElement = focusableElements[focusableElements.length - 1];
-
-				function handleTab(e) {
-					if (e.key === 'Tab') {
-						// 포커스 가능 요소가 없으면 Tab을 차단해 포커스가 모달 밖으로 새지 않도록 고정
-						if (focusableElements.length === 0) {
-							e.preventDefault();
-							return;
-						}
-						if (e.shiftKey) { // Shift + Tab
-							if (document.activeElement === firstFocusableElement) {
-								e.preventDefault();
-								lastFocusableElement.focus();
-							}
-						} else { // Tab
-							if (document.activeElement === lastFocusableElement) {
-								e.preventDefault();
-								firstFocusableElement.focus();
-							}
-						}
-					} else if (e.key === 'Escape') {
-						layer.remove();
-						overlay.remove();
-						// 닫기 버튼 경로와 동일하게 body 상태 클래스도 정리 (스크롤 잠금 잔존 방지)
-						document.body.classList.remove('overlay-active');
-						if (previousFocusedElement) {
-							previousFocusedElement.focus();
-						} else {
-							document.body.focus();
-						}
-					}
-				}
-
-				layer.addEventListener('keydown', handleTab);
+				// 포커스 트랩·Escape 닫기·오버레이 정리는 OverlayManager로 통합됨 (Phase 6-8).
+				// prototype 단독 호출(.call({}, …)) 테스트에서도 동작하도록 지연 생성.
+				if (!this.overlayManager) this.overlayManager = new OverlayManager(this);
+				return this.overlayManager.trap(layer, previousFocusedElement, overlay);
 			}
 
 
@@ -12208,35 +12247,21 @@ var WATPlugin = (function (exports) {
 					'[tabindex]:not([tabindex="-1"]):not(.no-speech *):not(.blind *)',
 					'.ttsElm:not(.no-speech *):not(.blind *)'
 				];
-				const extractClassElements = [
-					'.ttsElm:not(.no-speech *):not(.blind *)'
-				];
-			
+
 				// 모든 포커스 가능한 요소들을 검색하고 배열로 변환
 				// 전달받은 element를 검색 루트로 사용 (기존에는 인자를 무시하고 항상 document 전체를 검색했음)
 				const searchRoot = element || document;
 				const combinedSelector = focusableElements.join(', ');
 				const focusableNodes = Array.from(searchRoot.querySelectorAll(combinedSelector)).filter(el => el.offsetWidth > 0 && el.offsetHeight > 0);
-				//console.log(focusableNodes);
-				Array.from(document.querySelectorAll(extractClassElements.join(',')));
-			
+
 				// Clear existing TTS elements and add new ones
 				this.state.set('tts.elements', []);
-				
+
 				// 반환된 요소들 중 실제로 포커스 가능한지 추가 검증
 				focusableNodes.forEach(el => {
-					//if (!el.closest('.no-speech, .blind') && !el.hasAttribute('disabled') && el.tabIndex >= 0 && el.offsetParent !== null) {
-						const currentElements = this.state.get('tts.elements');
-						this.state.set('tts.elements', [...currentElements, el]);
-					//}
-				});
-				/*
-				extractClassNodes.forEach(el => {
 					const currentElements = this.state.get('tts.elements');
 					this.state.set('tts.elements', [...currentElements, el]);
 				});
-				*/
-
 			}
 
 

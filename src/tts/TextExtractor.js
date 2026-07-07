@@ -325,8 +325,7 @@ export class TextExtractor {
 	generateImageText(element, lang) {
 		const alt = element.alt || '';
 		const title = element.title || '';
-		const src = element.src || '';
-		
+
 		let text = this.plugin.getLocalizedText('tts.image.label') + ' ';
 		
 		if (alt) {

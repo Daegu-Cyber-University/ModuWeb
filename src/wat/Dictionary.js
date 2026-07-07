@@ -304,17 +304,9 @@ export class Dictionary {
 		const closeButton = document.createElement('button');
 		closeButton.textContent = this.plugin.getLocalizedText('tags.button.text.close');
 		closeButton.addEventListener('click', () => {
-			layer.remove();
-			overlay.remove();
-			// 다른 모달의 오버레이가 없을 때만 스크롤 잠금 해제 (사전 모달 자체는 잠금을 걸지 않음)
-			if (!document.querySelector('.wat-overlay')) {
-				document.body.classList.remove('overlay-active');
-			}
-			if (previousFocusedElement) {
-				previousFocusedElement.focus();
-			} else {
-				document.body.focus();
-			}
+			// 레이어·오버레이 제거 + 스크롤 잠금 정리(교차 모달 안전) + 포커스 복원 — OverlayManager로 통합
+			this.plugin.overlayManager.teardown(layer, overlay);
+			this.plugin.overlayManager.restoreFocus(previousFocusedElement);
 		});
 		layer.appendChild(closeButton);
 

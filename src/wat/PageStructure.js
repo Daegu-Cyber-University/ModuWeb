@@ -80,11 +80,7 @@ export class PageStructure {
 		closeButton.classList.add('btnClose');
 		closeButton.addEventListener('click', () => {
 			this.closePageStructure();
-			if (previousFocusedElement) {
-				previousFocusedElement.focus();
-			} else {
-				body.focus();
-			}
+			this.plugin.overlayManager.restoreFocus(previousFocusedElement);
 		});
 		layer.appendChild(closeButton);
 
@@ -303,14 +299,8 @@ export class PageStructure {
 		const layer = document.getElementById('pgStructure_layer');
 		// 플러그인이 만든 오버레이만 제거 (호스트 페이지의 .overlay 오삭제 방지)
 		const overlay = document.querySelector('.overlay.wat-overlay');
-		const body = document.body;
-		if (layer) {
-			layer.classList.add('hidden');
-			layer.remove();
-		}
-		if (overlay) {
-			overlay.remove();
-		}
-		body.classList.remove('overlay-active');
+		// 레이어·오버레이 제거 + 스크롤 잠금 정리(교차 모달 안전) — OverlayManager로 통합.
+		// (기존 무조건 해제 → 남은 .wat-overlay가 없을 때만 해제로 수렴)
+		this.plugin.overlayManager.teardown(layer, overlay);
 	}
 }

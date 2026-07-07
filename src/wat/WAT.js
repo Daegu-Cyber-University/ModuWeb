@@ -16,6 +16,7 @@ import { Dictionary } from './Dictionary.js';
 import { PageStructure } from './PageStructure.js';
 import { PanelBuilder } from './PanelBuilder.js';
 import { SettingsApplier } from './SettingsApplier.js';
+import { OverlayManager } from './OverlayManager.js';
 import { isSafeHttpUrl } from '../core/safeUrl.js';
 import { safeParseJSON } from '../core/safeParseJSON.js';
 import { TTSManager } from '../tts/TTSManager.js';
@@ -499,6 +500,9 @@ export class WAT {
 
 			// Initialize Settings Applier (설정 저장/복원/프로필 적용 담당)
 			this.settingsApplier = new SettingsApplier(this);
+
+			// Initialize Overlay Manager (모달 오버레이 포커스 트랩·Escape·정리 공통 담당)
+			this.overlayManager = new OverlayManager(this);
 		}
 
 		/**
@@ -1876,7 +1880,6 @@ export class WAT {
 		 */
 		updateLanguageSetting() {
 			const languageSettingTitle = this.getLocalizedText('panel.settings.manage.options.language.title');
-			const languageSettingLabel = this.getLocalizedText('panel.settings.manage.options.language.options.' + this.language);
 			const languageSettingContainer = document.getElementById(Constants.ELEMENT_IDS.LANGUAGE_SETTING_WRAP);
 			if (languageSettingContainer) {
 				const legend = languageSettingContainer.querySelector('.watSet-title');
@@ -2547,11 +2550,7 @@ export class WAT {
 		 * this.updateViewMode('list');
 		 */
 		updateViewMode(req_viewMode) {
-			//const wat = viewModeWrap.closest('#wat');
-			const wat = document.getElementById(Constants.ELEMENT_IDS.MAIN_WRAP);
-			//const isIconMode = viewMode === 'icon';
 			const viewModeStr = req_viewMode.toString().toLowerCase();
-			const isIconMode = viewModeStr === 'icon' ? true : false;
 			document.documentElement.dataset['watViewmode'] = viewModeStr;
 			//localStorage.setItem(Constants.STORAGE_KEYS.SETTINGS, {viewMode: viewModeStr});
 			this.savePreferences();
@@ -5503,8 +5502,6 @@ export class WAT {
 		 */
 		startPageScroll() {
 			this.stopPageScroll(); // Ensure no multiple intervals are running
-			const scrollStep = 1; // Change this value to make the scroll faster or slower
-			const scrollSpeed = Constants.TIMING.SCROLL_STEP; // Change this value to make the scroll faster or slower
 			//document.getElementById('wat-button-pageScroll_start').style.display = 'none';
 			//document.getElementById('wat-button-pageScroll_stop').style.display = 'inline';
 			const elm_start_btn = document.getElementById('wat-button-pageScroll_start');
@@ -6023,44 +6020,10 @@ export class WAT {
 		 * this.trapFocus(modalElement, previousElement, overlayElement);
 		 */
 		trapFocus(layer, previousFocusedElement, overlay) {
-			const focusableElements = layer.querySelectorAll(
-				'a, button, input, textarea, select, details, [tabindex]:not([tabindex="-1"])'
-			);
-			const firstFocusableElement = focusableElements[0];
-			const lastFocusableElement = focusableElements[focusableElements.length - 1];
-
-			function handleTab(e) {
-				if (e.key === 'Tab') {
-					// 포커스 가능 요소가 없으면 Tab을 차단해 포커스가 모달 밖으로 새지 않도록 고정
-					if (focusableElements.length === 0) {
-						e.preventDefault();
-						return;
-					}
-					if (e.shiftKey) { // Shift + Tab
-						if (document.activeElement === firstFocusableElement) {
-							e.preventDefault();
-							lastFocusableElement.focus();
-						}
-					} else { // Tab
-						if (document.activeElement === lastFocusableElement) {
-							e.preventDefault();
-							firstFocusableElement.focus();
-						}
-					}
-				} else if (e.key === 'Escape') {
-					layer.remove();
-					overlay.remove();
-					// 닫기 버튼 경로와 동일하게 body 상태 클래스도 정리 (스크롤 잠금 잔존 방지)
-					document.body.classList.remove('overlay-active');
-					if (previousFocusedElement) {
-						previousFocusedElement.focus();
-					} else {
-						document.body.focus();
-					}
-				}
-			}
-
-			layer.addEventListener('keydown', handleTab);
+			// 포커스 트랩·Escape 닫기·오버레이 정리는 OverlayManager로 통합됨 (Phase 6-8).
+			// prototype 단독 호출(.call({}, …)) 테스트에서도 동작하도록 지연 생성.
+			if (!this.overlayManager) this.overlayManager = new OverlayManager(this);
+			return this.overlayManager.trap(layer, previousFocusedElement, overlay);
 		}
 
 
@@ -6091,35 +6054,21 @@ export class WAT {
 				'[tabindex]:not([tabindex="-1"]):not(.no-speech *):not(.blind *)',
 				'.ttsElm:not(.no-speech *):not(.blind *)'
 			];
-			const extractClassElements = [
-				'.ttsElm:not(.no-speech *):not(.blind *)'
-			];
-		
+
 			// 모든 포커스 가능한 요소들을 검색하고 배열로 변환
 			// 전달받은 element를 검색 루트로 사용 (기존에는 인자를 무시하고 항상 document 전체를 검색했음)
 			const searchRoot = element || document;
 			const combinedSelector = focusableElements.join(', ');
 			const focusableNodes = Array.from(searchRoot.querySelectorAll(combinedSelector)).filter(el => el.offsetWidth > 0 && el.offsetHeight > 0);
-			//console.log(focusableNodes);
-			const extractClassNodes = Array.from(document.querySelectorAll(extractClassElements.join(',')));
-		
+
 			// Clear existing TTS elements and add new ones
 			this.state.set('tts.elements', []);
-			
+
 			// 반환된 요소들 중 실제로 포커스 가능한지 추가 검증
 			focusableNodes.forEach(el => {
-				//if (!el.closest('.no-speech, .blind') && !el.hasAttribute('disabled') && el.tabIndex >= 0 && el.offsetParent !== null) {
-					const currentElements = this.state.get('tts.elements');
-					this.state.set('tts.elements', [...currentElements, el]);
-				//}
-			});
-			/*
-			extractClassNodes.forEach(el => {
 				const currentElements = this.state.get('tts.elements');
 				this.state.set('tts.elements', [...currentElements, el]);
 			});
-			*/
-
 		}
 
 
