@@ -15,7 +15,9 @@ import { IframeStyler } from './IframeStyler.js';
 import { Dictionary } from './Dictionary.js';
 import { PageStructure } from './PageStructure.js';
 import { PanelBuilder } from './PanelBuilder.js';
+import { SettingsApplier } from './SettingsApplier.js';
 import { isSafeHttpUrl } from '../core/safeUrl.js';
+import { safeParseJSON } from '../core/safeParseJSON.js';
 import { TTSManager } from '../tts/TTSManager.js';
 import { TextExtractor } from '../tts/TextExtractor.js';
 import { STTManager } from '../stt/STTManager.js';
@@ -36,16 +38,7 @@ const basePath = (() => {
 	}
 })();
 
-// localStorage 등 외부 유래 문자열의 안전한 JSON 파싱 — 손상된 값이 초기화 전체를 중단시키지 않도록
-function safeParseJSON(raw, fallback = {}) {
-	if (raw === null || raw === undefined) return fallback;
-	try {
-		return JSON.parse(raw);
-	} catch (e) {
-		console.warn('[WAT] 저장된 설정 값이 손상되어 기본값을 사용합니다:', e.message);
-		return fallback;
-	}
-}
+// safeParseJSON은 core/safeParseJSON.js로 이동 (SettingsApplier.js와 공용)
 
 // escapeHTML은 core/escapeHTML.js로 이동 (PanelBuilder.js에서 사용)
 
@@ -503,6 +496,9 @@ export class WAT {
 
 			// Initialize Panel Builder (설정 패널 UI 항목 생성 담당)
 			this.panelBuilder = new PanelBuilder(this);
+
+			// Initialize Settings Applier (설정 저장/복원/프로필 적용 담당)
+			this.settingsApplier = new SettingsApplier(this);
 		}
 
 		/**
@@ -2629,737 +2625,145 @@ export class WAT {
 		createDictionSettings() { return this._getPanelBuilder().buildOption('diction'); }
 		createPageStructureSettings() { return this._getPanelBuilder().buildOption('pageStructure'); }
 
+		// ========== SETTINGS PERSISTENCE (SettingsApplier 위임) ==========
+		// 설정 저장/복원/내보내기·가져오기/프로필 적용 클러스터는
+		// src/wat/SettingsApplier.js로 추출됨 (Phase 6-7). 아래 래퍼는 공개 API
+		// 호환용이며, 인스턴스에 SettingsApplier가 없으면 즉석 생성한다
+		// (플레인 객체 스텁으로 prototype 메서드를 직접 호출하는 테스트 패턴 호환).
+
 		/**
-		 * Gets the name of the currently selected accessibility profile (현재 선택된 접근성 프로필의 이름을 가져옵니다)
-		 * @returns {string|null} Selected profile name or null if none selected (선택된 프로필명 또는 선택된 것이 없으면 null)
-		 * @example
-		 * // Get currently active profile (현재 활성 프로필 가져오기)
-		 * const profileName = this.getSelectedProfileName();
-		 * console.log(profileName); // 'lowVision', 'colorBlindness', 'dyslexia', or null
+		 * 현재 선택된 접근성 프로필의 이름을 가져옵니다 (SettingsApplier 위임)
+		 * @returns {string|null} 선택된 프로필명 또는 null
 		 */
 		getSelectedProfileName() {
-			const activeButton = document.querySelector('.watSet-item-container.profile-container .profileToggle[aria-pressed="true"]');
-			if (activeButton) {
-				return activeButton.getAttribute('data-profile') || activeButton.textContent.trim();
-			}
-			return null;
+			if (!this.settingsApplier) this.settingsApplier = new SettingsApplier(this);
+			return this.settingsApplier.getSelectedProfileName();
 		}
 
 		/**
-		 * Applies settings for the specified accessibility profile (지정된 접근성 프로필의 설정을 적용합니다)
-		 * @param {string} profileName - Name of the profile to apply ('lowVision', 'colorBlindness', 'dyslexia') (적용할 프로필명)
+		 * 지정된 접근성 프로필의 설정을 적용합니다 (SettingsApplier 위임)
+		 * @param {string} profileName - 적용할 프로필명 ('lowVision', 'colorBlindness', 'dyslexia')
 		 * @returns {void}
-		 * @throws {Error} Throws error if profile is not found (프로필을 찾을 수 없으면 에러 발생)
-		 * @description Applies profile settings based on checked options and validates that at least one option is selected
-		 *              (체크된 옵션을 기반으로 프로필 설정을 적용하며 최소 하나의 옵션이 선택되었는지 검증합니다)
-		 * @example
-		 * // Apply low vision profile settings (저시력자용 프로필 설정 적용)
-		 * this.applyProfileSettings('lowVision');
 		 */
 		applyProfileSettings(profileName) {
-			const profileDefault = Defaults.PROFILES[profileName];
-			if (!profileDefault) {
-				console.warn(this.getLocalizedText('msg.warning.profileNotFound', { profileName: profileName }));
-				return;
-			}
-			// 정적 기본값(Defaults.PROFILES)을 UI 상태로 직접 변이하면 세션 내내 기본값이 오염되므로 복사본 사용
-			const profileData = {
-				settings: { ...profileDefault.settings },
-				enabled: { ...profileDefault.enabled }
-			};
-			
-			// Reset accessibility settings to default when switching profiles, maintain view mode/position (프로필 전환 시 접근성 설정들을 기본값으로 초기화하고 보기모드/위치는 유지)
-			const currentSettings = {
-				// 접근성 설정들은 기본값으로 초기화
-				fontSize: Defaults.SETTINGS.fontSize,
-				fontFamily: Defaults.SETTINGS.fontFamily,
-				screenScale: Defaults.SETTINGS.screenScale,
-				txtAlign: Defaults.SETTINGS.txtAlign,
-				letterSpacing: Defaults.SETTINGS.letterSpacing,
-				lineHeight: Defaults.SETTINGS.lineHeight,
-				colorTheme: Defaults.SETTINGS.colorTheme,
-				saturation: Defaults.SETTINGS.saturation,
-				readGuide: Defaults.SETTINGS.readGuide,
-				imgDisplayMode: Defaults.SETTINGS.imgDisplayMode,
-				// 도구 관련 설정들은 현재 사용자 설정 유지
-				viewMode: document.documentElement.dataset.watViewmode || Defaults.SETTINGS.viewMode,
-				toolPosition: document.documentElement.dataset.watPosition || Defaults.SETTINGS.toolPosition
-			};
-			
-			const effectiveSettings = { ...currentSettings };
-
-			const profileCheckboxs = document.querySelectorAll(`.watSet-profile-item-container[data-profile="${profileName}"] .profileListItemInput[type="checkbox"]`);
-			// ************************* Checkboxes Validation .Start *************************
-			const checkedCheckbox = document.querySelectorAll(`.watSet-profile-item-container[data-profile="${profileName}"] .profileListItemInput[type="checkbox"]:checked`);
-			if (checkedCheckbox.length === 0) {
-				const profileToggle = document.querySelector(`.watSet-profile-item-container[data-profile="${profileName}"] .profileToggle`);
-				alert(this.getLocalizedText('msg.warning.noSettingsChecked'));
-				// 체크박스가 하나도 렌더링되지 않은 경우(옵션 전체 비활성화) 크래시 방지
-				if (profileCheckboxs.length > 0) {
-					profileCheckboxs[0].focus();
-					profileCheckboxs[0].classList.add('force-focus');
-
-					const handleFocusOut = () => {
-						this._setTimeout(() => {
-							if (document.activeElement !== profileCheckboxs[0]) {
-								profileCheckboxs[0].classList.remove('force-focus');
-								profileCheckboxs[0].removeEventListener('focusout', handleFocusOut);
-							}
-						}, 100);
-					};
-
-					profileCheckboxs[0].addEventListener('focusout', handleFocusOut);
-				}
-				if (profileToggle) {
-					// textContent 직접 설정 시 내부 .watSet-button-label span이 파괴되어 이후 토글이 고장남
-					const toggleLabel = profileToggle.querySelector('.watSet-button-label');
-					if (toggleLabel) {
-						toggleLabel.textContent = this.getLocalizedText('tags.button.text.on');
-					} else {
-						profileToggle.textContent = this.getLocalizedText('tags.button.text.on');
-					}
-					profileToggle.setAttribute('aria-pressed', 'false');
-				}
-				return;
-			}
-			// ************************* Checkboxes Validation .End   *************************
-
-			// Apply profile settings: merge by reflecting checkbox states in UI for each item (프로필 설정 적용: 각 항목에 대해 UI에 있는 체크박스 상태를 반영해서 병합)
-			for (const key in profileData.settings) {
-				// 사용자 옵션에 해당 기능이 비활성화된 경우 => 건너뜀
-				if (this.options[key] === false) continue;
-
-				// 만약 UI에 체크박스가 있다면, 이를 통해 최신 상태를 반영
-				// 예를 들어 각 체크박스에 data-key 속성을 부여해두었다고 가정
-				const checkbox = document.querySelector(`.watSet-profile-item-container[data-profile="${profileName}"] .profileListItemInput[type="checkbox"][data-key="${key}"]`);
-				if (checkbox) {
-					profileData.enabled[key] = checkbox.checked;
-				}
-				// 체크된 항목만 baseSettings에 덮어쓰도록 함
-				if (profileData.enabled[key]) {
-					effectiveSettings[key] = profileData.settings[key];
-				}
-			}
-
-		// Disable save during profile application (프로필 적용 중 저장 비활성화)
-		const originalSkipFlag = this._skipSavePreferences;
-		this._skipSavePreferences = true;			if (effectiveSettings.fontSize)		{ this.changeFontSize(effectiveSettings.fontSize); }
-			if (effectiveSettings.fontFamily)	{ this.changeFontFamily(effectiveSettings.fontFamily); }
-			if (effectiveSettings.screenScale)	{ this.changeScreenScale(effectiveSettings.screenScale); }
-			if (effectiveSettings.txtAlign)		{ this.changeTextAlign(effectiveSettings.txtAlign); }
-			if (effectiveSettings.letterSpacing)	{ this.changeLetterSpacing(effectiveSettings.letterSpacing); }
-			if (effectiveSettings.lineHeight)	{ this.changeLineHeight(effectiveSettings.lineHeight); }
-			if (effectiveSettings.colorTheme)	{ this.changeColorTheme(effectiveSettings.colorTheme); }
-			if (effectiveSettings.saturation)	{ this.changeSaturation(effectiveSettings.saturation); }
-			if (effectiveSettings.readGuide)	{ this.changeReadGuide(effectiveSettings.readGuide); }
-			
-		// Restore save flag (저장 플래그 복원)
-		this._skipSavePreferences = originalSkipFlag;
-		
-		// Synchronize individual settings UI after profile application (프로필 적용 후 개별 설정 UI 동기화)
-		this._syncIndividualSettingsUI(effectiveSettings);
-		
-		// Save after profile application (프로필 적용 완료 후 저장)
-		this.savePreferences();			// UI 동기화를 확실하게 하기 위해 약간의 지연 후 한 번 더 실행
-			setTimeout(() => {
-				this._syncIndividualSettingsUI(effectiveSettings);
-			}, 50);
-			
-			localStorage.setItem(Constants.STORAGE_KEYS.SELECTED_PROFILE, JSON.stringify({
-				profileName: profileName,
-				enabledSettings: profileData.enabled,
-				appliedSesttings: effectiveSettings
-			}));
+			if (!this.settingsApplier) this.settingsApplier = new SettingsApplier(this);
+			return this.settingsApplier.applyProfileSettings(profileName);
 		}
 
 		/**
-		 * Toggles the specified profile on or off (지정된 프로필을 켜거나 끕니다)
-		 * @param {string} profile - Profile name to toggle (토글할 프로필명)
-		 * @param {HTMLElement} targetToggle - Toggle button element that was clicked (클릭된 토글 버튼 요소)
+		 * 지정된 프로필을 켜거나 끕니다 (SettingsApplier 위임)
+		 * @param {string} profile - 토글할 프로필명
+		 * @param {HTMLElement} targetToggle - 클릭된 토글 버튼 요소
 		 * @returns {void}
-		 * @description Toggles profile activation, applies/resets settings, and updates UI states
-		 *              (프로필 활성화를 토글하고, 설정을 적용/리셋하며, UI 상태를 업데이트합니다)
-		 * @example
-		 * // Toggle a profile (프로필 토글)
-		 * this.toggleProfile('lowVision', toggleButtonElement);
 		 */
-	toggleProfile(profile, targetToggle) {
-		const isOn = targetToggle.getAttribute('aria-pressed') === 'true';
-		const siblingToggles = Array.from(targetToggle.closest('.watSet-item-container.profile-container').querySelectorAll('.profileToggle')).filter(toggle => toggle !== targetToggle);
-		const targetLabel = targetToggle.querySelector('.watSet-button-label');
-		targetLabel.textContent = isOn ? this.getLocalizedText('tags.button.text.stateOff') : this.getLocalizedText('tags.button.text.stateOn');
-		targetToggle.setAttribute('aria-pressed', isOn ? 'false' : 'true');
-
-		if (isOn) {
-			// 프로필을 끌 때: 접근성 설정만 기본값으로 리셋, 도구 설정은 유지
-			const defaults = Defaults.SETTINGS;
-			
-			// 접근성 설정들만 기본값으로 리셋
-			this.changeFontSize(defaults.fontSize);
-			this.changeFontFamily(defaults.fontFamily);
-			this.changeScreenScale(defaults.screenScale);
-			this.changeTextAlign(defaults.txtAlign);
-			this.changeLetterSpacing(defaults.letterSpacing);
-			this.changeLineHeight(defaults.lineHeight);
-			this.changeColorTheme(defaults.colorTheme);
-			this.changeSaturation(defaults.saturation);
-			this.changeReadGuide(defaults.readGuide);
-			document.documentElement.dataset.imgDisplayMode = defaults.imgDisplayMode;
-			
-			// 도구 설정들은 현재 사용자 설정 유지
-			const resetSettings = {
-				fontSize: defaults.fontSize,
-				fontFamily: defaults.fontFamily,
-				screenScale: defaults.screenScale,
-				txtAlign: defaults.txtAlign,
-				letterSpacing: defaults.letterSpacing,
-				lineHeight: defaults.lineHeight,
-				colorTheme: defaults.colorTheme,
-				saturation: defaults.saturation,
-				readGuide: defaults.readGuide,
-				imgDisplayMode: defaults.imgDisplayMode,
-				// 현재 사용자 설정 유지
-				viewMode: document.documentElement.dataset.watViewmode || defaults.viewMode,
-				toolPosition: document.documentElement.dataset.watPosition || defaults.toolPosition
-			};
-			
-			// UI 동기화
-			this._syncIndividualSettingsUI(resetSettings);
-			
-			// 현재 토글 버튼에서 active 클래스 제거
-			targetToggle.classList.remove(Constants.CSS_CLASSES.ACTIVE);
-
-			// 프로필 해제 시 저장된 선택 상태도 제거 (재방문 시 잘못 복원 방지)
-			localStorage.removeItem(Constants.STORAGE_KEYS.SELECTED_PROFILE);
-
-			// Save settings (설정 저장)
-			this.savePreferences();
-		} else {
-			// 프로필을 켤 때
-			this.applyProfileSettings(profile);
-			
-			// 현재 토글 버튼에 active 클래스 추가
-			targetToggle.classList.add(Constants.CSS_CLASSES.ACTIVE);
+		toggleProfile(profile, targetToggle) {
+			if (!this.settingsApplier) this.settingsApplier = new SettingsApplier(this);
+			return this.settingsApplier.toggleProfile(profile, targetToggle);
 		}
 
-		// 다른 프로필 토글들은 모두 비활성화
-		siblingToggles.forEach(toggle => {
-			const siblingLabel = toggle.querySelector('.watSet-button-label');
-			siblingLabel.textContent = this.getLocalizedText('tags.button.text.stateOff');
-			toggle.setAttribute('aria-pressed', 'false');
-			toggle.classList.remove(Constants.CSS_CLASSES.ACTIVE);
-		});
-	}		/**
-		 * Resets all accessibility settings to their default values (모든 접근성 설정을 기본값으로 리셋합니다)
+		/**
+		 * 모든 접근성 설정을 기본값으로 리셋합니다 (SettingsApplier 위임)
 		 * @returns {void}
-		 * @description Restores all accessibility features to their initial/default state
-		 *              (모든 접근성 기능을 초기/기본 상태로 복원합니다)
-		 * @example
-		 * // Reset all settings to defaults (모든 설정을 기본값으로 리셋)
-		 * this.resetWatSettings();
 		 */
 		resetWatSettings() {
-			const defaults = Defaults.SETTINGS;
-			
-			// 접근성 설정들만 기본값으로 리셋
-			this.changeFontSize(defaults.fontSize);
-			this.changeFontFamily(defaults.fontFamily);
-			this.changeScreenScale(defaults.screenScale);
-			this.changeTextAlign(defaults.txtAlign);
-			this.changeLetterSpacing(defaults.letterSpacing);
-			this.changeLineHeight(defaults.lineHeight);
-			this.changeColorTheme(defaults.colorTheme);
-			this.changeSaturation(defaults.saturation);
-			this.changeReadGuide(defaults.readGuide);
-			// 이미지 표시 모드도 접근성 설정으로 포함
-			document.documentElement.dataset.imgDisplayMode = defaults.imgDisplayMode;
-			
-			// 도구 설정들(viewMode, toolPosition)은 현재 사용자 설정 유지
-			// document.documentElement.dataset.watViewmode = defaults.viewMode;  // 제거
-			// document.documentElement.dataset.watPosition = defaults.toolPosition;  // 제거
-			
-			// 리셋할 설정들만 포함
-			const resetSettings = {
-				fontSize: defaults.fontSize,
-				fontFamily: defaults.fontFamily,
-				screenScale: defaults.screenScale,
-				txtAlign: defaults.txtAlign,
-				letterSpacing: defaults.letterSpacing,
-				lineHeight: defaults.lineHeight,
-				colorTheme: defaults.colorTheme,
-				saturation: defaults.saturation,
-				readGuide: defaults.readGuide,
-				imgDisplayMode: defaults.imgDisplayMode,
-				// 현재 사용자 설정 유지
-				viewMode: document.documentElement.dataset.watViewmode || defaults.viewMode,
-				toolPosition: document.documentElement.dataset.watPosition || defaults.toolPosition
-			};
-			
-			// 전체 리셋 후 개별 설정 UI 동기화
-			this._syncIndividualSettingsUI(resetSettings);
-			
-			// UI 동기화를 확실하게 하기 위해 약간의 지연 후 한 번 더 실행
-			setTimeout(() => {
-				this._syncIndividualSettingsUI(defaults);
-			}, 50);
+			if (!this.settingsApplier) this.settingsApplier = new SettingsApplier(this);
+			return this.settingsApplier.resetWatSettings();
 		}
 
 		/**
-		 * Resets settings for a specific accessibility profile (특정 접근성 프로필의 설정을 리셋합니다)
-		 * @param {string} profileId - Profile identifier ('visualImpairment', 'colorBlindness', 'dyslexia') (프로필 식별자)
+		 * 특정 접근성 프로필의 설정을 리셋합니다 (SettingsApplier 위임)
+		 * @param {string} profileId - 프로필 식별자
 		 * @returns {void}
-		 * @description Resets profile-specific settings to their default values based on profile type
-		 *              (프로필 타입에 따라 프로필별 설정을 기본값으로 리셋합니다)
-		 * @example
-		 * // Reset color blindness profile settings (색각이상자용 프로필 설정 리셋)
-		 * this.resetProfileSettings('colorBlindness');
 		 */
 		resetProfileSettings(profileId) {
-			const resetSettings = {};
-			
-			switch (profileId) {
-				case 'lowVision': // 실제 프로필 키(Defaults.PROFILES)와 일치시킴 — 구 명칭 'visualImpairment'
-					this.changeFontSize('initial');
-					this.changeFontFamily('initial');
-					this.toggleImgTextConversion(false);
-					this.toggleDisplayContents(false);
-					resetSettings.fontSize = 'initial';
-					resetSettings.fontFamily = 'initial';
-					break;
-				case 'colorBlindness':
-					this.changeSaturation('initial');
-					this.toggleDataAttribute('stopAni', false);
-					resetSettings.saturation = 'initial';
-					break;
-				case 'dyslexia':
-					this.changeFontFamily('initial');
-					this.changeLineHeight('initial');
-					this.toggleDataAttribute('stopAni', false);
-					this.changeReadGuide('');
-					resetSettings.fontFamily = 'initial';
-					resetSettings.lineHeight = 'initial';
-					resetSettings.readGuide = 'unset';
-					break;
-			}
-			
-			// 프로필 리셋 후 개별 설정 UI 동기화
-			this._syncIndividualSettingsUI(resetSettings);
-			
-			// UI 동기화를 확실하게 하기 위해 약간의 지연 후 한 번 더 실행
-			setTimeout(() => {
-				this._syncIndividualSettingsUI(resetSettings);
-			}, 50);
+			if (!this.settingsApplier) this.settingsApplier = new SettingsApplier(this);
+			return this.settingsApplier.resetProfileSettings(profileId);
 		}
 
-
 		/**
-		 * Saves current accessibility settings to localStorage (현재 접근성 설정을 localStorage에 저장합니다)
+		 * 현재 접근성 설정을 localStorage에 저장합니다 (SettingsApplier 위임)
 		 * @returns {void}
-		 * @description Collects current settings from HTML data attributes and stores them in localStorage as JSON
-		 *              (HTML 데이터 속성에서 현재 설정을 수집하고 JSON으로 localStorage에 저장합니다)
-		 * @example
-		 * // Save current settings (현재 설정 저장)
-		 * this.savePreferences();
 		 */
 		savePreferences() {
-			// 초기화 중에는 저장하지 않음
-			if (this._skipSavePreferences) {
-				return;
-			}
-			
-			const defaultSettings = Defaults.SETTINGS;
-
-			const settings = {
-				fontSize: document.documentElement.dataset.fontSize || defaultSettings.fontSize,
-				fontFamily: document.documentElement.dataset.fontFamily || defaultSettings.fontFamily,
-				screenScale: document.documentElement.dataset.screenScale || defaultSettings.screenScale,
-				txtAlign: document.documentElement.getAttribute('data-txt-align') || defaultSettings.txtAlign,
-				letterSpacing: document.documentElement.getAttribute('data-letter-spacing') || defaultSettings.letterSpacing,
-				lineHeight: document.documentElement.getAttribute('data-line-height') || defaultSettings.lineHeight,
-				colorTheme: document.documentElement.dataset.colorTheme || defaultSettings.colorTheme,
-				saturation: document.documentElement.dataset.saturation || defaultSettings.saturation,
-				readGuide: document.documentElement.getAttribute('data-read-guide') || defaultSettings.readGuide,
-				imgDisplayMode: document.documentElement.dataset.imgDisplayMode || defaultSettings.imgDisplayMode,
-				viewMode: document.documentElement.dataset.watViewmode || defaultSettings.viewMode,
-				toolPosition: document.documentElement.dataset.watPosition || defaultSettings.toolPosition,
-				language: document.documentElement.dataset.watLanguage || defaultSettings.language
-			};
-		
-			localStorage.setItem(Constants.STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
-		
-		// Also update StateManager settings
-		this.state.set('settings', settings);
-		
-		// Dispatch settings saved event
-		this._dispatchStateEvent('settings:saved', {
-			settings: { ...settings },
-			timestamp: Date.now()
-		});
+			if (!this.settingsApplier) this.settingsApplier = new SettingsApplier(this);
+			return this.settingsApplier.savePreferences();
 		}
 
 		/**
-		 * 저장된 접근성 설정을 JSON 파일로 내보냅니다 (브라우저·기기 간 설정 이전 지원)
+		 * 저장된 접근성 설정을 JSON 파일로 내보냅니다 (SettingsApplier 위임)
 		 * @returns {void}
-		 * @example
-		 * wat.exportSettings(); // moduweb-settings.json 다운로드
 		 */
 		exportSettings() {
-			try {
-				const data = {};
-				Object.values(Constants.STORAGE_KEYS).forEach(key => {
-					const value = localStorage.getItem(key);
-					if (value !== null) data[key] = value;
-				});
-
-				const payload = {
-					format: 'moduweb-settings',
-					version: 1,
-					data
-				};
-
-				const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-				const url = URL.createObjectURL(blob);
-				const link = document.createElement('a');
-				link.href = url;
-				link.download = 'moduweb-settings.json';
-				document.body.appendChild(link);
-				link.click();
-				link.remove();
-				URL.revokeObjectURL(url);
-
-				this._notify(this.getLocalizedText('msg.success.export') || '설정을 파일로 내보냈습니다.', { type: 'success' });
-			} catch (error) {
-				console.error('[WAT] 설정 내보내기 실패:', error);
-				this._notify(this.getLocalizedText('msg.error.general') || '오류가 발생했습니다.', { type: 'error' });
-			}
+			if (!this.settingsApplier) this.settingsApplier = new SettingsApplier(this);
+			return this.settingsApplier.exportSettings();
 		}
 
 		/**
-		 * 파일 선택 대화상자를 열어 설정 JSON을 가져옵니다
+		 * 파일 선택 대화상자를 열어 설정 JSON을 가져옵니다 (SettingsApplier 위임)
 		 * @private
 		 */
 		_promptImportSettings() {
-			const input = document.createElement('input');
-			input.type = 'file';
-			input.accept = 'application/json,.json';
-			input.addEventListener('change', () => {
-				const file = input.files && input.files[0];
-				if (!file) return;
-				const reader = new FileReader();
-				reader.onload = () => this.importSettings(String(reader.result));
-				reader.readAsText(file);
-			});
-			input.click();
+			if (!this.settingsApplier) this.settingsApplier = new SettingsApplier(this);
+			return this.settingsApplier.promptImportSettings();
 		}
 
 		/**
-		 * 내보낸 설정 JSON을 검증 후 적용합니다 (적용 후 페이지 새로고침)
+		 * 내보낸 설정 JSON을 검증 후 적용합니다 (SettingsApplier 위임)
 		 * @param {string} jsonText - exportSettings()가 생성한 JSON 문자열
 		 * @returns {boolean} 적용 성공 여부
 		 */
 		importSettings(jsonText) {
-			const invalidMsg = this.getLocalizedText('msg.error.importInvalid') || '올바른 ModuWeb 설정 파일이 아닙니다.';
-			const payload = safeParseJSON(jsonText, null);
-
-			// 형식 검증 — WAT가 만든 파일만 수용
-			if (!payload || payload.format !== 'moduweb-settings' || typeof payload.data !== 'object' || payload.data === null) {
-				this._notify(invalidMsg, { type: 'error' });
-				return false;
-			}
-
-			// 알려진 WAT 키만 반영 (임의 키로 호스트 localStorage를 오염시키지 않음)
-			const knownKeys = new Set(Object.values(Constants.STORAGE_KEYS));
-			let applied = 0;
-			for (const [key, value] of Object.entries(payload.data)) {
-				if (knownKeys.has(key) && typeof value === 'string') {
-					localStorage.setItem(key, value);
-					applied++;
-				}
-			}
-
-			if (applied === 0) {
-				this._notify(invalidMsg, { type: 'error' });
-				return false;
-			}
-
-			this._notify(this.getLocalizedText('msg.success.import') || '설정을 가져왔습니다. 페이지를 새로고침합니다.', { type: 'success' });
-			// 새 설정이 전체 UI·스타일에 반영되도록 새로고침 (reset 버튼과 동일 패턴)
-			this._setTimeout(() => window.location.reload(), 800);
-			return true;
+			if (!this.settingsApplier) this.settingsApplier = new SettingsApplier(this);
+			return this.settingsApplier.importSettings(jsonText);
 		}
 
 		/**
-		 * Loads accessibility settings from localStorage (localStorage에서 접근성 설정을 로드합니다)
-		 * @returns {Object} Loaded settings object with default fallbacks (기본값으로 대체된 로드된 설정 객체)
-		 * @description Retrieves saved settings from localStorage and merges with default settings
-		 *              (localStorage에서 저장된 설정을 가져와 기본 설정과 병합합니다)
-		 * @example
-		 * // Load saved preferences (저장된 환경설정 로드)
-		 * const settings = this.loadPreferences();
-		 * console.log(settings.fontSize); // Current font size setting
+		 * localStorage에서 접근성 설정을 로드합니다 (SettingsApplier 위임)
+		 * @returns {Object} 기본값으로 대체된 로드된 설정 객체
 		 */
 		loadPreferences() {
-			const savedSettings = localStorage.getItem(Constants.STORAGE_KEYS.SETTINGS);
-			const loadedSettings = safeParseJSON(savedSettings, {});
-			const defaultSettings = Defaults.SETTINGS;
-		
-			// 초기값 설정
-			const pluginSettings = {
-				fontSize: loadedSettings.fontSize || defaultSettings.fontSize,
-				fontFamily: loadedSettings.fontFamily || defaultSettings.fontFamily,
-				screenScale: loadedSettings.screenScale || defaultSettings.screenScale,
-				txtAlign: loadedSettings.txtAlign || defaultSettings.txtAlign,
-				letterSpacing: loadedSettings.letterSpacing || defaultSettings.letterSpacing,
-				lineHeight: loadedSettings.lineHeight || defaultSettings.lineHeight,
-				colorTheme: loadedSettings.colorTheme || defaultSettings.colorTheme,
-				saturation: loadedSettings.saturation || defaultSettings.saturation,
-				readGuide: loadedSettings.readGuide || defaultSettings.readGuide,
-				imgDisplayMode: loadedSettings.imgDisplayMode || defaultSettings.imgDisplayMode,
-				viewMode: loadedSettings.viewMode || defaultSettings.viewMode,
-				toolPosition: loadedSettings.toolPosition || defaultSettings.toolPosition
-			};
-
-			const controlItems = ['viewMode', 'toolPosition'];
-
-			// 설정 적용
-			Object.entries(pluginSettings).forEach(([key, value]) => {
-				const radioDefaultData = {"name": key, "value": value};
-				
-				// UI 컨트롤 설정 - 라디오 버튼 체크 및 UI 상태 업데이트
-				const classSelector = controlItems.includes(key) ? '.wat-set-item-type-radio' : '.wat-item-type-radio';
-				const selector = `${classSelector}[name="${key}"][value="${value}"]`;
-				const radioElement = document.querySelector(selector);
-				
-				if (radioElement) {
-					radioElement.checked = true;
-					
-					// UI 상태 업데이트 (setRadioListeners와 동일한 로직)
-					const elm_parent_li = radioElement.closest('.opt_item');
-					const elm_parent_personalOpt_item = radioElement.closest('.personalOpt_item');
-					
-					if (elm_parent_li) {
-						const elm_parent_ul = elm_parent_li.closest('.opt_lists');
-						if (elm_parent_ul) {
-							// 모든 형제 요소에서 selectOn 클래스 제거
-							const elm_parent_li_siblings = Array.from(elm_parent_ul.children).filter(child => child !== elm_parent_li);
-							elm_parent_li_siblings.forEach(sibling => {
-								sibling.classList.remove('selectOn');
-							});
-							// 현재 요소에 selectOn 클래스 추가
-							elm_parent_li.classList.add('selectOn');
-						}
-					}
-					
-					if (elm_parent_personalOpt_item) {
-						if (value === 'initial' || value === 'unset') {
-							elm_parent_personalOpt_item.classList.remove('selectOn');
-						} else {
-							elm_parent_personalOpt_item.classList.add('selectOn');
-						}
-					}
-				} else {
-					console.warn(`Radio element not found for ${key}=${value}: ${selector}`);
-				}
-				
-				// 화면 확대 설정에 대한 현재 비율 초기화
-				if (key === 'screenScale') {
-					const ratio = this.screenScaleRatios[value] || 1;
-					this.state.set('plugin.currentScreenScale', ratio);
-				}
-			});
-			
-			// Dispatch settings loaded event
-			this._dispatchStateEvent('settings:loaded', {
-				settings: { ...pluginSettings },
-				wasEmpty: !savedSettings,
-				timestamp: Date.now()
-			});
-			
-			return pluginSettings;
+			if (!this.settingsApplier) this.settingsApplier = new SettingsApplier(this);
+			return this.settingsApplier.loadPreferences();
 		}
 
 		/**
-		 * Applies a specific setting to the actual page content
-		 * @param {string} settingKey - The setting key (e.g., 'fontSize', 'screenScale')
-		 * @param {string} settingValue - The setting value (e.g., 'size-1p5x', 'scale-1p2x')
+		 * 특정 설정을 실제 페이지 콘텐츠에 적용합니다 (SettingsApplier 위임)
+		 * @param {string} settingKey - 설정 키
+		 * @param {string} settingValue - 설정 값
 		 * @private
 		 */
 		_applySettingToPage(settingKey, settingValue) {
-			switch (settingKey) {
-				case 'fontSize':
-					this.changeFontSize(settingValue);
-					break;
-				case 'fontFamily':
-					this.changeFontFamily(settingValue);
-					break;
-				case 'screenScale':
-					this.changeScreenScale(settingValue);
-					break;
-				case 'txtAlign':
-					this.changeTextAlign(settingValue);
-					break;
-				case 'letterSpacing':
-					this.changeLetterSpacing(settingValue);
-					break;
-				case 'lineHeight':
-					this.changeLineHeight(settingValue);
-					break;
-				case 'colorTheme':
-					this.changeColorTheme(settingValue);
-					break;
-				case 'saturation':
-					this.changeSaturation(settingValue);
-					break;
-				case 'readGuide':
-					this.changeReadGuide(settingValue);
-					break;
-				case 'imgDisplayMode':
-					this.changeImgDisplayMode(settingValue);
-					break;
-				case 'viewMode':
-					// Apply viewMode to document dataset for UI styling
-					document.documentElement.dataset.watViewmode = settingValue;
-					break;
-				case 'toolPosition':
-					// Apply toolPosition to document dataset for UI positioning
-					document.documentElement.dataset.watPosition = settingValue;
-					break;
-				default:
-					console.warn(`Unknown setting key: ${settingKey}`);
-			}
+			if (!this.settingsApplier) this.settingsApplier = new SettingsApplier(this);
+			return this.settingsApplier.applySettingToPage(settingKey, settingValue);
 		}
 
 		/**
-		 * Applies initial preferences when the plugin starts (플러그인 시작 시 초기 환경설정을 적용합니다)
+		 * 플러그인 시작 시 초기 환경설정을 적용합니다 (SettingsApplier 위임)
 		 * @returns {void}
-		 * @description Loads and applies saved preferences, setting UI controls to match saved states
-		 *              (저장된 환경설정을 로드하고 적용하며, 저장된 상태와 일치하도록 UI 컨트롤을 설정합니다)
-		 * @example
-		 * // Apply initial settings on plugin initialization (플러그인 초기화 시 초기 설정 적용)
-		 * this.setInitialPreferences();
 		 */
 		setInitialPreferences() {
-			const loadedSettings = this.loadPreferences();
-
-			// 초기 설정 로드 후 UI 동기화
-			if (loadedSettings) {
-				setTimeout(() => {
-					this._syncIndividualSettingsUI(loadedSettings);
-				}, 100);
-			}
-
-			// 저장된 프로필 선택 상태 복원 (사용성 U-1) —
-			// 설정값 자체는 loadPreferences가 복원하므로 토글·체크박스 UI만 동기화
-			this._restoreSelectedProfileUI();
+			if (!this.settingsApplier) this.settingsApplier = new SettingsApplier(this);
+			return this.settingsApplier.setInitialPreferences();
 		}
 
 		/**
-		 * 저장된 프로필 선택 상태를 토글 UI에 복원합니다
+		 * 저장된 프로필 선택 상태를 토글 UI에 복원합니다 (SettingsApplier 위임)
 		 * @private
-		 * @description 이전 방문에서 켠 프로필이 재방문 시 "꺼짐"으로 보이고, 다시 켜면
-		 *              설정이 리셋되던 문제(U-1)를 해결한다. localStorage의 selectedProfile을
-		 *              읽어 해당 프로필 토글을 켜짐 상태로 표시하고 체크박스 선택을 복원한다.
 		 */
 		_restoreSelectedProfileUI() {
-			const saved = safeParseJSON(localStorage.getItem(Constants.STORAGE_KEYS.SELECTED_PROFILE), null);
-			if (!saved || !saved.profileName) return;
-
-			const container = document.querySelector(`.watSet-profile-item-container[data-profile="${saved.profileName}"]`);
-			if (!container) {
-				// 프로필 구성이 바뀌어 더 이상 존재하지 않으면 저장값 정리
-				localStorage.removeItem(Constants.STORAGE_KEYS.SELECTED_PROFILE);
-				return;
-			}
-
-			const toggle = container.querySelector('.profileToggle');
-			if (toggle) {
-				toggle.setAttribute('aria-pressed', 'true');
-				toggle.classList.add(Constants.CSS_CLASSES.ACTIVE);
-				const label = toggle.querySelector('.watSet-button-label');
-				if (label) label.textContent = this.getLocalizedText('tags.button.text.stateOn');
-			}
-
-			// 프로필 내 개별 항목 체크박스 선택 상태 복원
-			if (saved.enabledSettings && typeof saved.enabledSettings === 'object') {
-				for (const [key, enabled] of Object.entries(saved.enabledSettings)) {
-					const checkbox = container.querySelector(`.profileListItemInput[type="checkbox"][data-key="${key}"]`);
-					if (checkbox) checkbox.checked = !!enabled;
-				}
-			}
+			if (!this.settingsApplier) this.settingsApplier = new SettingsApplier(this);
+			return this.settingsApplier.restoreSelectedProfileUI();
 		}
 
 		/**
-		 * Synchronizes individual UI controls to reflect current setting values (개별 UI 컨트롤을 현재 설정값과 동기화합니다)
-		 * @param {Object} settings - Settings object to sync UI controls with (UI 컨트롤과 동기화할 설정 객체)
-		 * @returns {void}
-		 * @description Updates UI controls (radio buttons, checkboxes) to visually reflect the provided settings
-		 *              (제공된 설정을 시각적으로 반영하도록 UI 컨트롤(라디오 버튼, 체크박스)을 업데이트합니다)
+		 * 개별 UI 컨트롤을 현재 설정값과 동기화합니다 (SettingsApplier 위임)
+		 * @param {Object} settings - UI 컨트롤과 동기화할 설정 객체
 		 * @private
 		 */
 		_syncIndividualSettingsUI(settings) {
-			if (!settings || typeof settings !== 'object') {
-				return;
-			}
-
-			const controlItems = ['viewMode', 'toolPosition', 'readGuideMode'];
-
-			Object.entries(settings).forEach(([key, value]) => {
-				// UI 컨트롤 설정 - 라디오 버튼 체크 및 UI 상태 업데이트
-				const classSelector = controlItems.includes(key) ? '.wat-set-item-type-radio' : '.wat-item-type-radio';
-				const selector = `${classSelector}[name="${key}"][value="${value}"]`;
-				const radioElement = document.querySelector(selector);
-				
-				if (radioElement) {
-					// 강제로 라디오 버튼 체크 상태 업데이트
-					radioElement.checked = true;
-					
-					// 변경 이벤트 발생시켜서 UI 업데이트 강제 실행
-					const changeEvent = new Event('change', { bubbles: true, cancelable: true });
-					radioElement.dispatchEvent(changeEvent);
-					
-					// UI 상태 업데이트 (setRadioListeners와 동일한 로직)
-					const elm_parent_li = radioElement.closest('.opt_item');
-					const elm_parent_personalOpt_item = radioElement.closest('.personalOpt_item');
-					
-					if (elm_parent_li) {
-						const elm_parent_ul = elm_parent_li.closest('.opt_lists');
-						if (elm_parent_ul) {
-							// 모든 형제 요소에서 selectOn 클래스 제거
-							const elm_parent_li_siblings = Array.from(elm_parent_ul.children).filter(child => child !== elm_parent_li);
-							elm_parent_li_siblings.forEach(sibling => {
-								sibling.classList.remove('selectOn');
-							});
-							// 현재 요소에 selectOn 클래스 추가
-							elm_parent_li.classList.add('selectOn');
-						}
-					}
-					
-					if (elm_parent_personalOpt_item) {
-						if (value === 'initial' || value === 'unset') {
-							elm_parent_personalOpt_item.classList.remove('selectOn');
-						} else {
-							elm_parent_personalOpt_item.classList.add('selectOn');
-						}
-					}
-				}
-			});
-
-			// 읽기 가이드 관련 버튼 상태 동기화
-			if (settings.readGuide !== undefined) {
-				const modeButtons = document.querySelectorAll('[data-read-guide-mode]');
-				modeButtons.forEach(button => {
-					const buttonMode = button.getAttribute('data-read-guide-mode');
-					if (buttonMode === settings.readGuide) {
-						button.classList.add(Constants.CSS_CLASSES.ACTIVE);
-						button.setAttribute('aria-pressed', 'true');
-					} else {
-						button.classList.remove(Constants.CSS_CLASSES.ACTIVE);
-						button.setAttribute('aria-pressed', 'false');
-					}
-				});
-			}
+			if (!this.settingsApplier) this.settingsApplier = new SettingsApplier(this);
+			return this.settingsApplier.syncIndividualSettingsUI(settings);
 		}
-
 
 		/**
 		 * Sets up global event listeners using event delegation (이벤트 위임을 사용하여 전역 이벤트 리스너를 설정합니다)
