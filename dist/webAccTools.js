@@ -1250,6 +1250,627 @@ var WATPlugin = (function (exports) {
 	}
 
 	/**
+	 * @fileoverview IframeStyler - 동일 출처 iframe에 대한 접근성 스타일 적용/동기화 담당
+	 * @module src/wat/IframeStyler
+	 * @description WAT.js에서 추출된 iframe 스타일링 클러스터 (Phase 6-1).
+	 *              iframe 탐지·제외 판정·CSS 주입·동적 스타일 마킹/적용·신규 iframe 감시를 담당한다.
+	 *              WAT 인스턴스(plugin)의 서비스(제외 셀렉터, 비율 테이블, 원본 스타일 맵,
+	 *              추적형 타이머, 옵저버 레지스트리)를 위임받아 사용한다.
+	 */
+
+	const WAT_DEBUG_ENABLED$1 = false;
+
+	class IframeStyler {
+		/**
+		 * @param {Object} plugin - WAT 인스턴스 (container, excludeSelector, styleMode,
+		 *                          fontSizeRatios 등 서비스 제공자)
+		 */
+		constructor(plugin) {
+			this.plugin = plugin;
+		}
+
+		/**
+		 * 페이지의 모든 유효한 iframe에 접근성 스타일을 적용합니다
+		 * @returns {void}
+		 */
+		applyStylesToIframes() {
+			const iframes = document.querySelectorAll('iframe');
+
+			// excludeSelector에 해당하지 않는 iframe만 필터링
+			const validIframes = Array.from(iframes).filter(iframe => {
+				return !this.isIframeInExcludeZone(iframe);
+			});
+
+			validIframes.forEach((iframe, index) => {
+				this.processIframe(iframe, index);
+			});
+		}
+
+		/**
+		 * 개별 iframe에 접근성 스타일을 적용합니다 (동일 출처만, 크로스 오리진은 안내 후 스킵)
+		 * @param {HTMLIFrameElement} iframe - 처리할 iframe
+		 * @param {number} index - 컬렉션 내 인덱스 (id 폴백용)
+		 * @returns {void}
+		 */
+		processIframe(iframe, index) {
+			const src = iframe.src || '';
+			const iframeId = iframe.id || `iframe-${index}`;
+
+			// iframe이 excludeSelector 내부에 있는지 확인
+			if (this.isIframeInExcludeZone(iframe)) {
+				return;
+			}
+
+			try {
+				// 동일 출처 접근 시도
+				const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+
+				if (iframeDoc) {
+					if (WAT_DEBUG_ENABLED$1) ;
+					this.applyStylesToIframeDocument(iframeDoc, iframeId);
+				} else {
+					console.warn(`[WAT] iframe document access denied: ${iframeId} (${src})`);
+				}
+			} catch (error) {
+				// 크로스 오리진인 경우
+				if (this.isKnownExternalService(src)) ; else {
+					console.warn(`[WAT] Cross-origin iframe processing failed: ${iframeId} (${src})`, error.message);
+				}
+			}
+		}
+
+		/**
+		 * iframe이 제외 영역(도구 컨테이너·wat-exclude·사용자 excludeSelector) 내에 있는지 판단합니다
+		 * @param {HTMLIFrameElement} iframe - 확인할 iframe
+		 * @returns {boolean} 제외 대상이면 true
+		 */
+		isIframeInExcludeZone(iframe) {
+			// 1. 컨테이너 내부 iframe 확인
+			if (this.plugin.container && this.plugin.container.contains(iframe)) {
+				return true;
+			}
+
+			// 2. wat-exclude 클래스 확인
+			if (iframe.classList.contains('wat-exclude') || iframe.closest('.wat-exclude')) {
+				return true;
+			}
+
+			// 3. 사용자 설정 excludeSelector 확인
+			if (this.plugin.excludeSelector) {
+				const userExcludes = this.plugin.excludeSelector.split(',').map(s => s.trim());
+				for (const exclude of userExcludes) {
+					if (exclude) {
+						try {
+							// iframe 자체가 선택자에 해당하거나
+							if (iframe.matches(exclude)) {
+								return true;
+							}
+							// iframe의 부모 요소가 선택자에 해당하는 경우
+							if (iframe.closest(exclude)) {
+								return true;
+							}
+						} catch (error) {
+							console.warn(`[WAT] Invalid excludeSelector: ${exclude}`, error);
+						}
+					}
+				}
+			}
+
+			return false;
+		}
+
+		/**
+		 * iframe 소스가 알려진 외부 서비스(YouTube 등)인지 판단합니다 (크로스 오리진 경고 억제용)
+		 * @param {string} src - iframe 소스 URL
+		 * @returns {boolean}
+		 */
+		isKnownExternalService(src) {
+			const externalServices = [
+				'youtube.com', 'youtu.be', 'vimeo.com',
+				'google.com', 'maps.google.com', 'googleapis.com',
+				'facebook.com', 'twitter.com', 'instagram.com',
+				'kakao.com', 'naver.com'
+			];
+
+			return externalServices.some(service => src.includes(service));
+		}
+
+		/**
+		 * iframe 문서에 메인 문서의 접근성 설정을 복사하고 CSS 주입·요소 마킹을 수행합니다
+		 * @param {Document} iframeDoc - iframe 문서
+		 * @param {string} iframeId - 식별자 (로그용)
+		 * @returns {void}
+		 */
+		applyStylesToIframeDocument(iframeDoc, iframeId) {
+			const documentElement = iframeDoc.documentElement;
+
+			// 메인 문서의 data 속성들을 iframe에도 적용
+			const styleAttributes = [
+				'fontSize', 'fontFamily', 'txtAlign',
+				'letterSpacing', 'lineHeight', 'colorTheme',
+				'saturation', 'screenScale', 'hideImg', 'stopAni'
+			];
+
+			styleAttributes.forEach(attr => {
+				const value = document.documentElement.dataset[attr];
+				if (value && value !== 'initial') {
+					documentElement.dataset[attr] = value;
+				}
+			});
+
+			// 폰트 패밀리 직접 적용
+			if (document.documentElement.style.fontFamily) {
+				documentElement.style.fontFamily = document.documentElement.style.fontFamily;
+			}
+
+			// CSS 파일 주입
+			this.injectCSSToIframe(iframeDoc, iframeId);
+
+			// 동적 스타일 요소 마킹
+			this.markDynamicStyledElementsInIframe(iframeDoc, iframeId);
+		}
+
+		/**
+		 * 메인 문서의 CSS 링크를 iframe 문서에 주입합니다 (data-wat-injected로 추적, 중복 방지)
+		 * @param {Document} iframeDoc - iframe 문서
+		 * @param {string} iframeId - 식별자 (로그용)
+		 * @returns {void}
+		 */
+		injectCSSToIframe(iframeDoc, iframeId) {
+			try {
+				const cssLink = document.querySelector(`link[href*="${Constants.PATHS.CSS_FILE}"]`);
+				if (cssLink && !iframeDoc.querySelector(`link[href*="${Constants.PATHS.CSS_FILE}"]`)) {
+					const iframeCssLink = iframeDoc.createElement('link');
+					iframeCssLink.rel = 'stylesheet';
+					iframeCssLink.href = cssLink.href;
+					iframeCssLink.setAttribute('data-wat-injected', 'true');
+					iframeDoc.head.appendChild(iframeCssLink);
+					if (WAT_DEBUG_ENABLED$1) ;
+				}
+			} catch (error) {
+				console.warn(`[WAT] CSS injection failed: ${iframeId}`, error.message);
+			}
+		}
+
+		/**
+		 * iframe 내부 텍스트 요소를 동적 스타일링 대상으로 마킹하고 원본 스타일을 기록합니다
+		 * @param {Document} iframeDoc - iframe 문서
+		 * @param {string} iframeId - 식별자 (로그용)
+		 * @returns {void}
+		 */
+		markDynamicStyledElementsInIframe(iframeDoc, iframeId) {
+			try {
+				const styleProps = [
+					{ css: 'font-size', className: 'wat-dyn-fontsize', px: true },
+					{ css: 'letter-spacing', className: 'wat-dyn-letterspacing', px: true },
+					{ css: 'line-height', className: 'wat-dyn-lineheight', px: true },
+					{ css: 'text-align', className: 'wat-dyn-textalign', px: false }
+				];
+
+				// iframe 내부에서도 excludeSelector 적용
+				const excludeSelectors = ['.wat-container', '.wat-container *'];
+
+				// 사용자 설정 excludeSelector 추가
+				if (this.plugin.excludeSelector) {
+					const userExcludes = this.plugin.excludeSelector.split(',').map(s => s.trim());
+					userExcludes.forEach(exclude => {
+						if (exclude) {
+							excludeSelectors.push(exclude, `${exclude} *`);
+						}
+					});
+				}
+
+				excludeSelectors.push('.wat-exclude', '.wat-exclude *');
+
+				const notSelector = excludeSelectors.length > 0 ? `:not(${excludeSelectors.join('):not(')})` : '';
+
+				const selector = `*${notSelector}`;
+				// 사용자 excludeSelector가 잘못된 CSS면 전체가 죽지 않도록 방어 (메인 문서 버전과 동일)
+				let elements;
+				try {
+					elements = iframeDoc.querySelectorAll(selector);
+				} catch (e) {
+					console.warn(`[WAT] iframe excludeSelector가 유효하지 않아 제외 없이 진행합니다: ${iframeId}`, e.message);
+					elements = iframeDoc.querySelectorAll('*');
+				}
+
+				elements.forEach(el => {
+					// iframe 내부에서도 제외 검증
+					if (this.shouldExcludeElementInIframe(el, iframeDoc)) {
+						return;
+					}
+
+					if (!el.textContent.trim()) return;
+
+					let hasDynamic = false;
+					const origStyles = {};
+					// 요소당 getComputedStyle 1회로 축소 (성능 — 대형 iframe 프리즈 방지)
+					const computed = el.ownerDocument.defaultView.getComputedStyle(el);
+
+					styleProps.forEach(({ css, className, px }) => {
+						const elVal = computed.getPropertyValue(css);
+
+						let value = elVal;
+						if (px && value) {
+							const pxValue = this.getPxValueFromIframe(el, css, computed);
+							if (pxValue) value = pxValue;
+						}
+						origStyles[css] = value;
+						el.classList.add('wat-dyn-el', className);
+						hasDynamic = true;
+					});
+
+					if (hasDynamic) {
+						this.plugin._originalStyleMap.set(el, origStyles);
+					}
+				});
+
+				if (WAT_DEBUG_ENABLED$1) ;
+			} catch (error) {
+				console.warn(`[WAT] iframe element marking failed: ${iframeId}`, error.message);
+			}
+		}
+
+		/**
+		 * iframe 내부 요소가 스타일링 제외 대상인지 판단합니다
+		 * @param {Element} element - iframe 내부 요소
+		 * @param {Document} iframeDoc - iframe 문서 컨텍스트
+		 * @returns {boolean} 제외 대상이면 true
+		 */
+		shouldExcludeElementInIframe(element, iframeDoc) {
+			// wat-exclude 클래스 확인
+			if (element.classList.contains('wat-exclude') || element.closest('.wat-exclude')) {
+				return true;
+			}
+
+			// 사용자 설정 excludeSelector 확인
+			if (this.plugin.excludeSelector) {
+				const userExcludes = this.plugin.excludeSelector.split(',').map(s => s.trim());
+				for (const exclude of userExcludes) {
+					if (exclude) {
+						try {
+							if (element.matches(exclude) || element.closest(exclude)) {
+								return true;
+							}
+						} catch (error) {
+							// 선택자 오류 시 무시
+						}
+					}
+				}
+			}
+
+			return false;
+		}
+
+		/**
+		 * iframe 컨텍스트에서 CSS 속성 값을 px로 환산합니다 (em/rem 지원)
+		 * @param {Element} el - 대상 요소
+		 * @param {string} prop - CSS 속성명
+		 * @param {CSSStyleDeclaration} [computed] - 호출자가 이미 계산한 computed 스타일 (재사용으로 리플로우 절감)
+		 * @returns {number|string} px 값 또는 빈 문자열
+		 */
+		getPxValueFromIframe(el, prop, computed) {
+			try {
+				const cs = computed || el.ownerDocument.defaultView.getComputedStyle(el);
+				const val = cs.getPropertyValue(prop);
+				if (!val) return '';
+				if (prop === 'line-height' && val === 'normal') return '';
+				if (val.endsWith('px')) return parseFloat(val);
+				if (val.endsWith('em') || val.endsWith('rem')) {
+					const base = parseFloat(cs.fontSize);
+					return parseFloat(val) * base;
+				}
+				return parseFloat(val) || '';
+			} catch (error) {
+				return '';
+			}
+		}
+
+		// ========== iframe Sync ==========
+
+		/**
+		 * 스타일 변경을 모든 접근 가능한 iframe에 동기화합니다
+		 * @param {string} styleType - 스타일 타입 ('fontSize', 'lineHeight' 등)
+		 * @param {string} value - 적용할 값
+		 * @returns {void}
+		 */
+		syncStyleToIframes(styleType, value) {
+			const iframes = document.querySelectorAll('iframe');
+			let processedCount = 0;
+
+			iframes.forEach((iframe) => {
+				// iframe이 제외 영역에 있는지 확인
+				if (this.isIframeInExcludeZone(iframe)) {
+					return;
+				}
+
+				try {
+					const iframeDoc = iframe.contentDocument;
+					if (iframeDoc) {
+						this.applyStyleToIframeDocument(iframeDoc, styleType, value);
+						processedCount++;
+					}
+				} catch (error) {
+					// 크로스 오리진은 조용히 스킵
+				}
+			});
+		}
+
+		/**
+		 * 개별 iframe 문서에 특정 스타일을 적용합니다 (data 속성 + 동적 모드 시 인라인 스타일)
+		 * @param {Document} iframeDoc - iframe 문서
+		 * @param {string} styleType - 스타일 타입
+		 * @param {string} value - 값
+		 * @returns {void}
+		 */
+		applyStyleToIframeDocument(iframeDoc, styleType, value) {
+			const documentElement = iframeDoc.documentElement;
+
+			// data 속성 설정
+			documentElement.dataset[styleType] = value;
+
+			// 폰트 패밀리는 직접 스타일도 적용
+			if (styleType === 'fontFamily') {
+				if (value === 'initial') {
+					documentElement.style.fontFamily = '';
+				} else {
+					documentElement.style.fontFamily = this.plugin.getFontFamily(value);
+				}
+			}
+
+			// 동적 스타일 적용
+			if (this.plugin.styleMode === 'dynamic') {
+				this.applyDynamicStyleToIframe(iframeDoc, styleType, value);
+			}
+		}
+
+		/**
+		 * 스타일 타입에 따라 적절한 동적 적용 메서드로 라우팅합니다
+		 * @param {Document} iframeDoc - iframe 문서
+		 * @param {string} styleType - 스타일 타입
+		 * @param {string} value - 값
+		 * @returns {void}
+		 */
+		applyDynamicStyleToIframe(iframeDoc, styleType, value) {
+			if (styleType === 'fontSize') {
+				this.applyDynamicFontSizeToIframe(iframeDoc, value);
+			} else if (styleType === 'lineHeight') {
+				this.applyDynamicLineHeightToIframe(iframeDoc, value);
+			} else if (styleType === 'letterSpacing') {
+				this.applyDynamicLetterSpacingToIframe(iframeDoc, value);
+			}
+		}
+
+		/**
+		 * iframe 내 마킹된 요소들에 동적 폰트 크기를 적용합니다
+		 * @param {Document} iframeDoc - iframe 문서
+		 * @param {string} size - 폰트 크기 키
+		 * @returns {void}
+		 */
+		applyDynamicFontSizeToIframe(iframeDoc, size) {
+			const elements = iframeDoc.querySelectorAll('.wat-dyn-fontsize');
+
+			if (size === 'initial' || size === 'unset') {
+				elements.forEach(el => {
+					el.style.removeProperty('font-size');
+				});
+				return;
+			}
+
+			const ratio = this.plugin.fontSizeRatios[size] || 1;
+
+			elements.forEach(el => {
+				const orig = this.plugin._originalStyleMap.get(el);
+				const origPx = orig && parseFloat(orig['font-size']);
+				if (origPx) {
+					el.style.setProperty('font-size', (origPx * ratio) + 'px', 'important');
+				}
+			});
+		}
+
+		/**
+		 * iframe 내 마킹된 요소들에 동적 줄간격을 적용합니다
+		 * @param {Document} iframeDoc - iframe 문서
+		 * @param {string} height - 줄간격 키
+		 * @returns {void}
+		 */
+		applyDynamicLineHeightToIframe(iframeDoc, height) {
+			const elements = iframeDoc.querySelectorAll('.wat-dyn-lineheight');
+
+			if (height === 'initial' || height === 'unset') {
+				elements.forEach(el => {
+					el.style.removeProperty('line-height');
+				});
+				return;
+			}
+
+			const ratio = this.plugin.lineHeightRatios[height] || 1;
+
+			elements.forEach(el => {
+				// fontSize 버전과 동일하게 null 가드 — 원본 맵 미등록 요소에서 TypeError로 전체 중단 방지
+				const orig = this.plugin._originalStyleMap.get(el);
+				const origPx = orig && parseFloat(orig['line-height']);
+				if (origPx) {
+					el.style.setProperty('line-height', (origPx * ratio) + 'px', 'important');
+				}
+			});
+		}
+
+		/**
+		 * iframe 내 마킹된 요소들에 동적 자간을 적용합니다 (원본 미기록 시 폰트 크기 기반 폴백)
+		 * @param {Document} iframeDoc - iframe 문서
+		 * @param {string} spacing - 자간 키
+		 * @returns {void}
+		 */
+		applyDynamicLetterSpacingToIframe(iframeDoc, spacing) {
+			const elements = iframeDoc.querySelectorAll('.wat-dyn-letterspacing');
+
+			if (spacing === 'initial' || spacing === 'unset') {
+				elements.forEach(el => {
+					el.style.removeProperty('letter-spacing');
+				});
+				return;
+			}
+
+			const ratio = this.plugin.letterSpacingRatios[spacing] || 1;
+
+			elements.forEach(el => {
+				const orig = this.plugin._originalStyleMap.get(el);
+				const rawLs = orig && orig['letter-spacing'];
+				const origPx = rawLs != null && rawLs !== '' ? parseFloat(String(rawLs)) : NaN;
+				let valuePx;
+				if (Number.isFinite(origPx)) {
+					valuePx = origPx * ratio;
+				} else {
+					const fontSize = parseFloat(el.ownerDocument.defaultView.getComputedStyle(el).fontSize);
+					const baseSpacing = fontSize * 0.05;
+					valuePx = baseSpacing * ratio;
+				}
+				el.style.setProperty('letter-spacing', valuePx + 'px', 'important');
+			});
+		}
+
+		// ========== iframe Management ==========
+
+		/**
+		 * 기존 iframe 처리 + 신규 iframe 감시를 시작합니다 (init 시 1회)
+		 * @returns {void}
+		 */
+		setupIframeHandling() {
+
+			// 기존 iframe들 처리
+			this.applyStylesToIframes();
+
+			// 새로 추가되는 iframe 감지
+			this.setupIframeMutationObserver();
+		}
+
+		/**
+		 * 새로 추가되는 iframe을 감지하는 MutationObserver를 설정합니다
+		 * @returns {void}
+		 */
+		setupIframeMutationObserver() {
+			const observer = new MutationObserver((mutations) => {
+				mutations.forEach((mutation) => {
+					mutation.addedNodes.forEach((node) => {
+						if (node.nodeType === Node.ELEMENT_NODE) {
+							if (node.tagName === 'IFRAME') {
+								this.handleNewIframe(node);
+							} else {
+								// 새로 추가된 요소 내부의 iframe들도 확인
+								const iframes = node.querySelectorAll && node.querySelectorAll('iframe');
+								if (iframes) {
+									iframes.forEach(iframe => {
+										this.handleNewIframe(iframe);
+									});
+								}
+							}
+						}
+					});
+				});
+			});
+
+			observer.observe(document.body, {
+				childList: true,
+				subtree: true
+			});
+
+			this.plugin._observers.set('iframe', observer);
+		}
+
+		/**
+		 * 새로 감지된 iframe을 로드 완료 후 처리 예약합니다
+		 * @param {HTMLIFrameElement} iframe - 새 iframe
+		 * @returns {void}
+		 */
+		handleNewIframe(iframe) {
+			const iframeId = iframe.id || `new-iframe-${Date.now()}`;
+
+			// 새 iframe도 제외 영역 확인
+			if (this.isIframeInExcludeZone(iframe)) {
+				console.log(`🚫 새 iframe이 excludeSelector 내부에 있어 제외: ${iframeId}`);
+				return;
+			}
+
+			// iframe 로드 완료 대기 — HTMLIFrameElement에는 complete/readyState가 없으므로 contentDocument로 판정
+			let alreadyLoaded = false;
+			try {
+				alreadyLoaded = !!(iframe.contentDocument && iframe.contentDocument.readyState === 'complete');
+			} catch (e) {
+				// cross-origin — load 이벤트 대기로 폴백
+			}
+			if (alreadyLoaded) {
+				// 이미 로드된 경우 바로 처리 (추적형 타이머 — destroy 후 재주입 방지)
+				this.plugin._setTimeout(() => this.processNewIframe(iframe), 100);
+			} else {
+				// 로드 완료 대기 (cleanup 이후 발화 시 재주입 방지 가드 포함)
+				iframe.addEventListener('load', () => {
+					if (this.plugin._destroyed) return;
+					this.plugin._setTimeout(() => this.processNewIframe(iframe), 100);
+				}, { once: true });
+			}
+		}
+
+		/**
+		 * 새 iframe에 접근성 스타일을 적용합니다
+		 * @param {HTMLIFrameElement} iframe - 새 iframe
+		 * @returns {void}
+		 */
+		processNewIframe(iframe) {
+			const iframeId = iframe.id || `new-iframe-${Date.now()}`;
+
+			try {
+				const iframeDoc = iframe.contentDocument;
+				if (iframeDoc) {
+					this.applyStylesToIframeDocument(iframeDoc, iframeId);
+				}
+			} catch (error) {
+				const src = iframe.src || '';
+				if (this.isKnownExternalService(src)) {
+					console.log(`ℹ️ 새 외부 서비스 iframe 스킵: ${iframeId} (${src})`);
+				} else {
+					console.warn(`⚠️ 새 크로스 오리진 iframe 처리 불가: ${iframeId} (${src})`);
+				}
+			}
+		}
+
+		/**
+		 * 플러그인이 iframe들에 주입한 CSS를 모두 제거합니다 (cleanup 시)
+		 * @returns {void}
+		 */
+		removeInjectedCSS() {
+			const iframes = document.querySelectorAll('iframe');
+			let removedCount = 0;
+			let excludedCount = 0;
+
+			iframes.forEach(iframe => {
+				// 제외 영역에 있는 iframe은 처리하지 않음
+				if (this.isIframeInExcludeZone(iframe)) {
+					excludedCount++;
+					return;
+				}
+
+				try {
+					const iframeDoc = iframe.contentDocument;
+					if (iframeDoc) {
+						const injectedCSS = iframeDoc.querySelectorAll('link[data-wat-injected="true"]');
+						injectedCSS.forEach(link => {
+							link.remove();
+							removedCount++;
+						});
+					}
+				} catch (error) {
+					// 크로스 오리진은 조용히 스킵
+				}
+			});
+
+			if (removedCount > 0) {
+				console.log(`✅ ${removedCount}개 iframe에서 주입된 CSS 제거 완료 (제외: ${excludedCount}개)`);
+			}
+		}
+	}
+
+	/**
 	 * @fileoverview AutoTTS - 자동 순차 TTS 기능
 	 * @module src/tts/AutoTTS
 	 */
@@ -3423,9 +4044,12 @@ var WATPlugin = (function (exports) {
 				
 				// Initialize TTS Manager
 				this.ttsManager = new TTSManager(this);
-				
+
 				// Initialize STT Manager
 				this.sttManager = new STTManager(this);
+
+				// Initialize Iframe Styler (iframe 접근성 스타일 적용/동기화 담당)
+				this.iframeStyler = new IframeStyler(this);
 			}
 
 			/**
@@ -11585,547 +12209,33 @@ var WATPlugin = (function (exports) {
 				this.sttManager.toggleVoiceCommand();
 			}
 
-			// ========== iframe Style        ==========
+			// ========== iframe (IframeStyler 위임) ==========
 
 			/**
-			 * Applies accessibility styles to all valid iframe elements on the page (페이지의 모든 유효한 iframe 요소에 접근성 스타일을 적용합니다)
+			 * 스타일 변경을 iframe들에 동기화합니다 — IframeStyler 위임 래퍼 (하위 호환)
+			 * @param {string} styleType - 스타일 타입
+			 * @param {string} value - 값
 			 * @returns {void}
-			 * @description Finds all iframe elements and processes only those not in exclude zones, applying accessibility styles to their content
-			 *              (모든 iframe 요소를 찾아 제외 영역에 없는 것들만 처리하여 콘텐츠에 접근성 스타일을 적용합니다)
-			 * @example
-			 * // Apply styles to all accessible iframes (모든 접근 가능한 iframe에 스타일 적용)
-			 * this.applyStylesToIframes();
-			 */
-			applyStylesToIframes() {
-				const iframes = document.querySelectorAll('iframe');
-				
-				// excludeSelector에 해당하지 않는 iframe만 필터링
-				const validIframes = Array.from(iframes).filter(iframe => {
-					return !this.isIframeInExcludeZone(iframe);
-				});
-				
-				validIframes.forEach((iframe, index) => {
-					this.processIframe(iframe, index);
-				});
-			}
-
-			/**
-			 * Processes individual iframe for accessibility style application (접근성 스타일 적용을 위해 개별 iframe을 처리합니다)
-			 * @param {HTMLIFrameElement} iframe - Target iframe element to process (처리할 대상 iframe 요소)
-			 * @param {number} index - Index position of the iframe in the collection (컬렉션에서 iframe의 인덱스 위치)
-			 * @returns {void}
-			 * @throws {TypeError} Throws error if iframe is not a valid HTMLIFrameElement (iframe이 유효한 HTMLIFrameElement가 아닌 경우 에러 발생)
-			 * @description Attempts to access iframe content and apply accessibility styles if same-origin access is possible, with comprehensive error handling
-			 *              (동일 출처 접근이 가능한 경우 iframe 콘텐츠에 접근을 시도하고 접근성 스타일을 적용하며, 포괄적인 에러 처리를 포함합니다)
-			 * @example
-			 * // Process a specific iframe (특정 iframe 처리)
-			 * this.processIframe(iframeElement, 0);
-			 */
-			processIframe(iframe, index) {
-				const src = iframe.src || '';
-				const iframeId = iframe.id || `iframe-${index}`;
-				
-				// iframe이 excludeSelector 내부에 있는지 확인
-				if (this.isIframeInExcludeZone(iframe)) {
-					return;
-				}
-				
-				try {
-					// 동일 출처 접근 시도
-					const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
-					
-					if (iframeDoc) {
-						if (WAT_DEBUG_ENABLED) ;
-						this.applyStylesToIframeDocument(iframeDoc, iframeId);
-					} else {
-						console.warn(`[WAT] iframe document access denied: ${iframeId} (${src})`);
-					}
-				} catch (error) {
-					// 크로스 오리진인 경우
-					if (this.isKnownExternalService(src)) ; else {
-						console.warn(`[WAT] Cross-origin iframe processing failed: ${iframeId} (${src})`, error.message);
-					}
-				}
-			}
-
-			/**
-			 * Checks if an iframe is located within an excluded zone (iframe이 제외 영역 내에 위치하는지 확인합니다)
-			 * @param {HTMLIFrameElement} iframe - Iframe element to check (확인할 iframe 요소)
-			 * @returns {boolean} True if iframe should be excluded, false otherwise (iframe이 제외되어야 하면 true, 그렇지 않으면 false)
-			 * @description Verifies if iframe is within container, has exclude classes, or matches user-defined exclude selectors
-			 *              (iframe이 컨테이너 내부에 있는지, 제외 클래스를 가지는지, 또는 사용자 정의 제외 선택자와 일치하는지 확인합니다)
-			 * @example
-			 * // Check if iframe should be excluded (iframe이 제외되어야 하는지 확인)
-			 * const shouldExclude = this.isIframeInExcludeZone(iframeElement);
-			 */
-			isIframeInExcludeZone(iframe) {
-				// 1. 컨테이너 내부 iframe 확인
-				if (this.container && this.container.contains(iframe)) {
-					return true;
-				}
-				
-				// 2. wat-exclude 클래스 확인
-				if (iframe.classList.contains('wat-exclude') || iframe.closest('.wat-exclude')) {
-					return true;
-				}
-				
-				// 3. 사용자 설정 excludeSelector 확인
-				if (this.excludeSelector) {
-					const userExcludes = this.excludeSelector.split(',').map(s => s.trim());
-					for (const exclude of userExcludes) {
-						if (exclude) {
-							try {
-								// iframe 자체가 선택자에 해당하거나
-								if (iframe.matches(exclude)) {
-									return true;
-								}
-								// iframe의 부모 요소가 선택자에 해당하는 경우
-								if (iframe.closest(exclude)) {
-									return true;
-								}
-							} catch (error) {
-								console.warn(`[WAT] Invalid excludeSelector: ${exclude}`, error);
-							}
-						}
-					}
-				}
-				
-				return false;
-			}
-
-			/**
-			 * Determines if the iframe source is from a known external service (iframe 소스가 알려진 외부 서비스에서 온 것인지 판단합니다)
-			 * @param {string} src - Source URL of the iframe (iframe의 소스 URL)
-			 * @returns {boolean} True if source is from known external service, false otherwise (알려진 외부 서비스에서 온 것이면 true, 그렇지 않으면 false)
-			 * @description Checks against a list of known external services like YouTube, Google, social media platforms
-			 *              (YouTube, Google, 소셜 미디어 플랫폼과 같은 알려진 외부 서비스 목록과 대조하여 확인합니다)
-			 * @example
-			 * // Check if source is external service (소스가 외부 서비스인지 확인)
-			 * const isExternal = this.isKnownExternalService('https://www.youtube.com/embed/video');
-			 */
-			isKnownExternalService(src) {
-				const externalServices = [
-					'youtube.com', 'youtu.be', 'vimeo.com',
-					'google.com', 'maps.google.com', 'googleapis.com',
-					'facebook.com', 'twitter.com', 'instagram.com',
-					'kakao.com', 'naver.com'
-				];
-
-				return externalServices.some(service => src.includes(service));
-			}
-
-			/**
-			 * Applies accessibility styles to the content of an iframe document (iframe 문서의 콘텐츠에 접근성 스타일을 적용합니다)
-			 * @param {Document} iframeDoc - Document object of the iframe (iframe의 Document 객체)
-			 * @param {string} iframeId - Unique identifier for the iframe (iframe의 고유 식별자)
-			 * @returns {void}
-			 * @description Copies main document's accessibility settings to iframe, injects CSS, and marks elements for dynamic styling
-			 *              (메인 문서의 접근성 설정을 iframe에 복사하고, CSS를 주입하며, 동적 스타일링을 위해 요소를 마킹합니다)
-			 * @example
-			 * // Apply styles to iframe document (iframe 문서에 스타일 적용)
-			 * this.applyStylesToIframeDocument(iframeDocument, 'iframe-1');
-			 */
-			applyStylesToIframeDocument(iframeDoc, iframeId) {
-				const documentElement = iframeDoc.documentElement;
-
-				// 메인 문서의 data 속성들을 iframe에도 적용
-				const styleAttributes = [
-					'fontSize', 'fontFamily', 'txtAlign', 
-					'letterSpacing', 'lineHeight', 'colorTheme', 
-					'saturation', 'screenScale', 'hideImg', 'stopAni'
-				];
-
-				styleAttributes.forEach(attr => {
-					const value = document.documentElement.dataset[attr];
-					if (value && value !== 'initial') {
-					documentElement.dataset[attr] = value;
-					}
-				});
-
-				// 폰트 패밀리 직접 적용
-				if (document.documentElement.style.fontFamily) {
-					documentElement.style.fontFamily = document.documentElement.style.fontFamily;
-				}
-
-				// CSS 파일 주입
-				this.injectCSSToIframe(iframeDoc, iframeId);
-
-				// 동적 스타일 요소 마킹
-				this.markDynamicStyledElementsInIframe(iframeDoc, iframeId);
-			}
-
-			/**
-			 * Injects CSS stylesheet into iframe document for accessibility styling (접근성 스타일링을 위해 iframe 문서에 CSS 스타일시트를 주입합니다)
-			 * @param {Document} iframeDoc - Target iframe document (대상 iframe 문서)
-			 * @param {string} iframeId - Identifier for the iframe (iframe의 식별자)
-			 * @returns {void}
-			 * @description Copies main document's CSS link and injects it into iframe if not already present
-			 *              (메인 문서의 CSS 링크를 복사하여 iframe에 아직 없는 경우 주입합니다)
-			 * @example
-			 * // Inject CSS into iframe (iframe에 CSS 주입)
-			 * this.injectCSSToIframe(iframeDocument, 'iframe-1');
-			 */
-			injectCSSToIframe(iframeDoc, iframeId) {
-				try {
-					const cssLink = document.querySelector(`link[href*="${Constants.PATHS.CSS_FILE}"]`);
-					if (cssLink && !iframeDoc.querySelector(`link[href*="${Constants.PATHS.CSS_FILE}"]`)) {
-						const iframeCssLink = iframeDoc.createElement('link');
-						iframeCssLink.rel = 'stylesheet';
-						iframeCssLink.href = cssLink.href;
-						iframeCssLink.setAttribute('data-wat-injected', 'true');
-						iframeDoc.head.appendChild(iframeCssLink);
-						if (WAT_DEBUG_ENABLED) ;
-					}
-				} catch (error) {
-					console.warn(`[WAT] CSS injection failed: ${iframeId}`, error.message);
-				}
-			}
-
-			/**
-			 * Marks elements within iframe for dynamic styling capabilities (동적 스타일링 기능을 위해 iframe 내부 요소들을 마킹합니다)
-			 * @param {Document} iframeDoc - Target iframe document (대상 iframe 문서)
-			 * @param {string} iframeId - Identifier for the iframe (iframe의 식별자)
-			 * @returns {void}
-			 * @description Identifies and marks text elements within iframe with classes for font size, spacing, alignment styling
-			 *              (iframe 내부의 텍스트 요소를 식별하고 폰트 크기, 간격, 정렬 스타일링을 위한 클래스로 마킹합니다)
-			 * @example
-			 * // Mark iframe elements for dynamic styling (동적 스타일링을 위해 iframe 요소 마킹)
-			 * this.markDynamicStyledElementsInIframe(iframeDocument, 'iframe-1');
-			 */
-			markDynamicStyledElementsInIframe(iframeDoc, iframeId) {
-				try {
-					const styleProps = [
-						{ css: 'font-size', className: 'wat-dyn-fontsize', px: true },
-						{ css: 'letter-spacing', className: 'wat-dyn-letterspacing', px: true },
-						{ css: 'line-height', className: 'wat-dyn-lineheight', px: true },
-						{ css: 'text-align', className: 'wat-dyn-textalign', px: false }
-					];
-					
-					// iframe 내부에서도 excludeSelector 적용
-					const excludeSelectors = ['.wat-container', '.wat-container *'];
-					
-					// 사용자 설정 excludeSelector 추가
-					if (this.excludeSelector) {
-						const userExcludes = this.excludeSelector.split(',').map(s => s.trim());
-						userExcludes.forEach(exclude => {
-							if (exclude) {
-								excludeSelectors.push(exclude, `${exclude} *`);
-							}
-						});
-					}
-					
-					excludeSelectors.push('.wat-exclude', '.wat-exclude *');
-					
-					const notSelector = excludeSelectors.length > 0 ? `:not(${excludeSelectors.join('):not(')})` : '';
-					
-					const selector = `*${notSelector}`;
-					// 사용자 excludeSelector가 잘못된 CSS면 전체가 죽지 않도록 방어 (메인 문서 버전과 동일)
-					let elements;
-					try {
-						elements = iframeDoc.querySelectorAll(selector);
-					} catch (e) {
-						console.warn(`[WAT] iframe excludeSelector가 유효하지 않아 제외 없이 진행합니다: ${iframeId}`, e.message);
-						elements = iframeDoc.querySelectorAll('*');
-					}
-
-					elements.forEach(el => {
-						// iframe 내부에서도 제외 검증
-						if (this.shouldExcludeElementInIframe(el, iframeDoc)) {
-							return;
-						}
-
-						if (!el.textContent.trim()) return;
-
-						let hasDynamic = false;
-						const origStyles = {};
-						// 요소당 getComputedStyle 1회로 축소 (성능 — 대형 iframe 프리즈 방지)
-						const computed = el.ownerDocument.defaultView.getComputedStyle(el);
-
-						styleProps.forEach(({ css, className, px }) => {
-							const elVal = computed.getPropertyValue(css);
-
-							let value = elVal;
-							if (px && value) {
-								const pxValue = this.getPxValueFromIframe(el, css);
-								if (pxValue) value = pxValue;
-							}
-							origStyles[css] = value;
-							el.classList.add('wat-dyn-el', className);
-							hasDynamic = true;
-						});
-
-						if (hasDynamic) {
-							this._originalStyleMap.set(el, origStyles);
-						}
-					});
-					
-					if (WAT_DEBUG_ENABLED) ;
-				} catch (error) {
-					console.warn(`[WAT] iframe element marking failed: ${iframeId}`, error.message);
-				}
-			}
-
-			/**
-			 * Determines if an element within iframe should be excluded from styling (iframe 내부 요소가 스타일링에서 제외되어야 하는지 판단합니다)
-			 * @param {Element} element - Element within iframe to check (확인할 iframe 내부 요소)
-			 * @param {Document} iframeDoc - Document context of the iframe (iframe의 문서 컨텍스트)
-			 * @returns {boolean} True if element should be excluded, false otherwise (요소가 제외되어야 하면 true, 그렇지 않으면 false)
-			 * @description Checks for exclude classes and user-defined exclude selectors within iframe context
-			 *              (iframe 컨텍스트 내에서 제외 클래스와 사용자 정의 제외 선택자를 확인합니다)
-			 * @example
-			 * // Check if iframe element should be excluded (iframe 요소가 제외되어야 하는지 확인)
-			 * const shouldExclude = this.shouldExcludeElementInIframe(element, iframeDocument);
-			 */
-			shouldExcludeElementInIframe(element, iframeDoc) {
-				// wat-exclude 클래스 확인
-				if (element.classList.contains('wat-exclude') || element.closest('.wat-exclude')) {
-					return true;
-				}
-				
-				// 사용자 설정 excludeSelector 확인
-				if (this.excludeSelector) {
-					const userExcludes = this.excludeSelector.split(',').map(s => s.trim());
-					for (const exclude of userExcludes) {
-						if (exclude) {
-							try {
-								if (element.matches(exclude) || element.closest(exclude)) {
-									return true;
-								}
-							} catch (error) {
-								// 선택자 오류 시 무시
-							}
-						}
-					}
-				}
-				
-				return false;
-			}
-
-			/**
-			 * Calculates pixel values for CSS properties within iframe context (iframe 컨텍스트 내에서 CSS 속성의 픽셀 값을 계산합니다)
-			 * @param {Element} el - Target element within iframe (iframe 내부의 대상 요소)
-			 * @param {string} prop - CSS property name to calculate (계산할 CSS 속성명)
-			 * @returns {number|string} Calculated pixel value or empty string if calculation fails (계산된 픽셀 값 또는 계산 실패 시 빈 문자열)
-			 * @description Converts various CSS units (em, rem, px) to pixel values for consistent styling within iframes
-			 *              (iframe 내에서 일관된 스타일링을 위해 다양한 CSS 단위(em, rem, px)를 픽셀 값으로 변환합니다)
-			 * @example
-			 * // Get pixel value for font size in iframe (iframe에서 폰트 크기의 픽셀 값 가져오기)
-			 * const pixelValue = this.getPxValueFromIframe(element, 'font-size');
-			 */
-			getPxValueFromIframe(el, prop) {
-				try {
-					const val = el.ownerDocument.defaultView.getComputedStyle(el).getPropertyValue(prop);
-					if (!val) return '';
-					if (prop === 'line-height' && val === 'normal') return '';
-					if (val.endsWith('px')) return parseFloat(val);
-					if (val.endsWith('em') || val.endsWith('rem')) {
-						const base = parseFloat(el.ownerDocument.defaultView.getComputedStyle(el).fontSize);
-						return parseFloat(val) * base;
-					}
-					return parseFloat(val) || '';
-				} catch (error) {
-					return '';
-				}
-			}
-
-			// ========== iframe Sync         ==========
-
-			/**
-			 * Synchronizes styles to all accessible iframe elements on the page (페이지의 모든 접근 가능한 iframe 요소에 스타일을 동기화합니다)
-			 * @param {string} styleType - Type of style to synchronize ('fontSize', 'fontFamily', 'lineHeight', etc.) (동기화할 스타일 타입)
-			 * @param {string} value - Value to apply for the style (스타일에 적용할 값)
-			 * @returns {void}
-			 * @description Applies the specified style to all iframe documents that are not in exclude zones, with error handling for cross-origin restrictions
-			 *              (제외 영역에 없는 모든 iframe 문서에 지정된 스타일을 적용하며, 크로스 오리진 제한에 대한 오류 처리를 포함합니다)
-			 * @example
-			 * // Sync font size to all iframes (모든 iframe에 폰트 크기 동기화)
-			 * this.syncStyleToIframes('fontSize', 'size-1p5x');
-			 * 
-			 * // Sync font family to all iframes (모든 iframe에 폰트 패밀리 동기화)
-			 * this.syncStyleToIframes('fontFamily', 'nanum-gothic');
 			 */
 			syncStyleToIframes(styleType, value) {
-				const iframes = document.querySelectorAll('iframe');
-				let processedCount = 0;
-				
-				iframes.forEach((iframe, index) => {
-					// iframe이 제외 영역에 있는지 확인
-					if (this.isIframeInExcludeZone(iframe)) {
-						return;
-					}
-					
-					try {
-						const iframeDoc = iframe.contentDocument;
-						if (iframeDoc) {
-							this.applyStyleToIframeDocument(iframeDoc, styleType, value);
-							processedCount++;
-						}
-					} catch (error) {
-						// 크로스 오리진은 조용히 스킵
-					}
-				});
+				this.iframeStyler.syncStyleToIframes(styleType, value);
 			}
 
 			/**
-			 * Applies a specific style to an individual iframe document (개별 iframe 문서에 특정 스타일을 적용합니다)
-			 * @param {Document} iframeDoc - Target iframe document object (대상 iframe 문서 객체)
-			 * @param {string} styleType - Type of style to apply (적용할 스타일 타입)
-			 * @param {string} value - Value to set for the style (스타일에 설정할 값)
+			 * iframe 처리(기존 적용 + 신규 감시)를 시작합니다 — IframeStyler 위임 래퍼
 			 * @returns {void}
-			 * @description Sets data attributes and applies direct styles to iframe document element, with special handling for font family
-			 *              (iframe 문서 요소에 데이터 속성을 설정하고 직접 스타일을 적용하며, 폰트 패밀리에 대한 특별 처리를 포함합니다)
-			 * @example
-			 * // Apply font size to iframe document (iframe 문서에 폰트 크기 적용)
-			 * this.applyStyleToIframeDocument(iframeDoc, 'fontSize', 'size-2x');
 			 */
-			applyStyleToIframeDocument(iframeDoc, styleType, value) {
-				const documentElement = iframeDoc.documentElement;
-				
-				// data 속성 설정
-				documentElement.dataset[styleType] = value;
-				
-				// 폰트 패밀리는 직접 스타일도 적용
-				if (styleType === 'fontFamily') {
-					if (value === 'initial') {
-						documentElement.style.fontFamily = '';
-					} else {
-						documentElement.style.fontFamily = this.getFontFamily(value);
-					}
-				}
-				
-				// 동적 스타일 적용
-				if (this.styleMode === 'dynamic') {
-					this.applyDynamicStyleToIframe(iframeDoc, styleType, value);
-				}
+			setupIframeHandling() {
+				this.iframeStyler.setupIframeHandling();
 			}
 
 			/**
-			 * Applies dynamic styling to iframe document based on current style mode (현재 스타일 모드에 따라 iframe 문서에 동적 스타일링을 적용합니다)
-			 * @param {Document} iframeDoc - Target iframe document object (대상 iframe 문서 객체)
-			 * @param {string} styleType - Type of dynamic style to apply (적용할 동적 스타일 타입)
-			 * @param {string} value - Value for the dynamic style (동적 스타일의 값)
+			 * iframe들에 주입된 CSS를 제거합니다 — IframeStyler 위임 래퍼 (cleanup 경로)
 			 * @returns {void}
-			 * @description Routes to appropriate dynamic styling method based on style type for iframe-specific application
-			 *              (iframe별 적용을 위해 스타일 타입에 따라 적절한 동적 스타일링 메서드로 라우팅합니다)
-			 * @example
-			 * // Apply dynamic font size to iframe (iframe에 동적 폰트 크기 적용)
-			 * this.applyDynamicStyleToIframe(iframeDoc, 'fontSize', 'size-1p2x');
 			 */
-			applyDynamicStyleToIframe(iframeDoc, styleType, value) {
-				if (styleType === 'fontSize') {
-					this.applyDynamicFontSizeToIframe(iframeDoc, value);
-				} else if (styleType === 'lineHeight') {
-					this.applyDynamicLineHeightToIframe(iframeDoc, value);
-				} else if (styleType === 'letterSpacing') {
-					this.applyDynamicLetterSpacingToIframe(iframeDoc, value);
-				}
+			removeInjectedCSS() {
+				this.iframeStyler.removeInjectedCSS();
 			}
-
-			/**
-			 * Applies dynamic font size scaling to all marked elements within an iframe (iframe 내의 모든 마킹된 요소에 동적 폰트 크기 스케일링을 적용합니다)
-			 * @param {Document} iframeDoc - Target iframe document object (대상 iframe 문서 객체)
-			 * @param {string} size - Font size setting key (폰트 크기 설정 키)
-			 * @returns {void}
-			 * @description Scales font sizes of elements within iframe using cached original values and ratio calculations
-			 *              (캐시된 원본 값과 비율 계산을 사용하여 iframe 내 요소들의 폰트 크기를 스케일링합니다)
-			 * @example
-			 * // Apply dynamic font size to iframe elements (iframe 요소에 동적 폰트 크기 적용)
-			 * this.applyDynamicFontSizeToIframe(iframeDoc, 'size-1p5x');
-			 */
-			applyDynamicFontSizeToIframe(iframeDoc, size) {
-				const elements = iframeDoc.querySelectorAll('.wat-dyn-fontsize');
-				
-				if (size === 'initial' || size === 'unset') {
-					elements.forEach(el => {
-						el.style.removeProperty('font-size');
-					});
-					return;
-				}
-
-				const ratio = this.fontSizeRatios[size] || 1;
-				
-				elements.forEach(el => {
-					const orig = this._originalStyleMap.get(el);
-					const origPx = orig && parseFloat(orig['font-size']);
-					if (origPx) {
-						el.style.setProperty('font-size', (origPx * ratio) + 'px', 'important');
-					}
-				});
-			}
-
-			/**
-			 * Applies dynamic line height scaling to all marked elements within an iframe (iframe 내의 모든 마킹된 요소에 동적 줄간격 스케일링을 적용합니다)
-			 * @param {Document} iframeDoc - Target iframe document object (대상 iframe 문서 객체)
-			 * @param {string} height - Line height setting key (줄간격 설정 키)
-			 * @returns {void}
-			 * @description Adjusts line heights of elements within iframe using ratio-based calculations from original values
-			 *              (원본 값에서 비율 기반 계산을 사용하여 iframe 내 요소들의 줄간격을 조정합니다)
-			 * @example
-			 * // Apply dynamic line height to iframe elements (iframe 요소에 동적 줄간격 적용)
-			 * this.applyDynamicLineHeightToIframe(iframeDoc, 'size-2x');
-			 */
-			applyDynamicLineHeightToIframe(iframeDoc, height) {
-				const elements = iframeDoc.querySelectorAll('.wat-dyn-lineheight');
-				
-				if (height === 'initial' || height === 'unset') {
-					elements.forEach(el => {
-						el.style.removeProperty('line-height');
-					});
-					return;
-				}
-
-				const ratio = this.lineHeightRatios[height] || 1;
-				
-				elements.forEach(el => {
-					// fontSize 버전과 동일하게 null 가드 — 원본 맵 미등록 요소에서 TypeError로 전체 중단 방지
-					const orig = this._originalStyleMap.get(el);
-					const origPx = orig && parseFloat(orig['line-height']);
-					if (origPx) {
-						el.style.setProperty('line-height', (origPx * ratio) + 'px', 'important');
-					}
-				});
-			}
-
-			/**
-			 * Applies dynamic letter spacing scaling to all marked elements within an iframe (iframe 내의 모든 마킹된 요소에 동적 자간 스케일링을 적용합니다)
-			 * @param {Document} iframeDoc - Target iframe document object (대상 iframe 문서 객체)
-			 * @param {string} spacing - Letter spacing setting key (자간 설정 키)
-			 * @returns {void}
-			 * @description Adjusts letter spacing of elements within iframe with fallback to calculated base spacing when original values are unavailable
-			 *              (원본 값을 사용할 수 없을 때 계산된 기본 자간으로 대체하여 iframe 내 요소들의 자간을 조정합니다)
-			 * @example
-			 * // Apply dynamic letter spacing to iframe elements (iframe 요소에 동적 자간 적용)
-			 * this.applyDynamicLetterSpacingToIframe(iframeDoc, 'wide_normal');
-			 */
-			applyDynamicLetterSpacingToIframe(iframeDoc, spacing) {
-				const elements = iframeDoc.querySelectorAll('.wat-dyn-letterspacing');
-				
-				if (spacing === 'initial' || spacing === 'unset') {
-					elements.forEach(el => {
-						el.style.removeProperty('letter-spacing');
-					});
-					return;
-				}
-
-				const ratio = this.letterSpacingRatios[spacing] || 1;
-				
-				elements.forEach(el => {
-					const orig = this._originalStyleMap.get(el);
-					const rawLs = orig && orig['letter-spacing'];
-					const origPx = rawLs != null && rawLs !== '' ? parseFloat(String(rawLs)) : NaN;
-					let valuePx;
-					if (Number.isFinite(origPx)) {
-						valuePx = origPx * ratio;
-					} else {
-						const fontSize = parseFloat(el.ownerDocument.defaultView.getComputedStyle(el).fontSize);
-						const baseSpacing = fontSize * 0.05;
-						valuePx = baseSpacing * ratio;
-					}
-					el.style.setProperty('letter-spacing', valuePx + 'px', 'important');
-				});
-			}
-
-			// ========== iframe Management   ==========
 
 			/**
 			 * Sets up font size protection for plugin UI elements (플러그인 UI 요소의 폰트 크기 보호를 설정합니다)
@@ -12152,168 +12262,6 @@ var WATPlugin = (function (exports) {
 					});
 				} catch (error) {
 					console.warn('[WAT] Font size protection setup warning:', error);
-				}
-			}
-
-			/**
-			 * Sets up initial iframe handling configuration and processing (초기 iframe 처리 설정 및 처리를 설정합니다)
-			 * @returns {void}
-			 * @description Initializes iframe processing for existing iframes and sets up mutation observer for newly added ones
-			 *              (기존 iframe에 대한 처리를 초기화하고 새로 추가되는 iframe을 위한 뮤테이션 옵저버를 설정합니다)
-			 * @example
-			 * // Setup iframe handling on plugin initialization (플러그인 초기화 시 iframe 처리 설정)
-			 * this.setupIframeHandling();
-			 */
-			setupIframeHandling() {
-				
-				// 기존 iframe들 처리
-				this.applyStylesToIframes();
-				
-				// 새로 추가되는 iframe 감지
-				this.setupIframeMutationObserver();
-			}
-
-			/**
-			 * Sets up mutation observer to detect newly added iframe elements (새로 추가되는 iframe 요소를 감지하기 위한 뮤테이션 옵저버를 설정합니다)
-			 * @returns {void}
-			 * @description Creates and configures a MutationObserver to watch for iframe additions in the document
-			 *              (문서에서 iframe 추가를 감시하는 MutationObserver를 생성하고 구성합니다)
-			 * @example
-			 * // Setup iframe mutation observer (iframe 뮤테이션 옵저버 설정)
-			 * this.setupIframeMutationObserver();
-			 */
-			setupIframeMutationObserver() {
-				const observer = new MutationObserver((mutations) => {
-					mutations.forEach((mutation) => {
-						mutation.addedNodes.forEach((node) => {
-							if (node.nodeType === Node.ELEMENT_NODE) {
-								if (node.tagName === 'IFRAME') {
-									this.handleNewIframe(node);
-								} else {
-									// 새로 추가된 요소 내부의 iframe들도 확인
-									const iframes = node.querySelectorAll && node.querySelectorAll('iframe');
-									if (iframes) {
-										iframes.forEach(iframe => {
-											this.handleNewIframe(iframe);
-										});
-									}
-								}
-							}
-						});
-					});
-				});
-				
-				observer.observe(document.body, {
-					childList: true,
-					subtree: true
-				});
-				
-				this._observers.set('iframe', observer);
-			}
-
-			/**
-			 * Handles processing of newly detected iframe elements (새로 감지된 iframe 요소의 처리를 담당합니다)
-			 * @param {HTMLIFrameElement} iframe - Newly added iframe element (새로 추가된 iframe 요소)
-			 * @returns {void}
-			 * @description Checks if iframe should be excluded, waits for load completion, and schedules processing
-			 *              (iframe이 제외되어야 하는지 확인하고, 로드 완료를 기다리며, 처리를 예약합니다)
-			 * @example
-			 * // Handle a newly added iframe (새로 추가된 iframe 처리)
-			 * this.handleNewIframe(iframeElement);
-			 */
-			handleNewIframe(iframe) {
-				const iframeId = iframe.id || `new-iframe-${Date.now()}`;
-				
-				// 새 iframe도 제외 영역 확인
-				if (this.isIframeInExcludeZone(iframe)) {
-					console.log(`🚫 새 iframe이 excludeSelector 내부에 있어 제외: ${iframeId}`);
-					return;
-				}
-				
-				// iframe 로드 완료 대기 — HTMLIFrameElement에는 complete/readyState가 없으므로 contentDocument로 판정
-				let alreadyLoaded = false;
-				try {
-					alreadyLoaded = !!(iframe.contentDocument && iframe.contentDocument.readyState === 'complete');
-				} catch (e) {
-					// cross-origin — load 이벤트 대기로 폴백
-				}
-				if (alreadyLoaded) {
-					// 이미 로드된 경우 바로 처리 (추적형 타이머 — destroy 후 재주입 방지)
-					this._setTimeout(() => this.processNewIframe(iframe), 100);
-				} else {
-					// 로드 완료 대기 (cleanup 이후 발화 시 재주입 방지 가드 포함)
-					iframe.addEventListener('load', () => {
-						if (this._destroyed) return;
-						this._setTimeout(() => this.processNewIframe(iframe), 100);
-					}, { once: true });
-				}
-			}
-
-			/**
-			 * Processes a new iframe element with accessibility styles (새로운 iframe 요소에 접근성 스타일을 적용하여 처리합니다)
-			 * @param {HTMLIFrameElement} iframe - New iframe element to process (처리할 새로운 iframe 요소)
-			 * @returns {void}
-			 * @description Applies accessibility styles to newly added iframe if it's accessible and not excluded
-			 *              (접근 가능하고 제외되지 않은 새로 추가된 iframe에 접근성 스타일을 적용합니다)
-			 * @example
-			 * // Process a new iframe with styles (새로운 iframe을 스타일과 함께 처리)
-			 * this.processNewIframe(iframeElement);
-			 */
-			processNewIframe(iframe) {
-				const iframeId = iframe.id || `new-iframe-${Date.now()}`;
-
-				try {
-					const iframeDoc = iframe.contentDocument;
-					if (iframeDoc) {
-						this.applyStylesToIframeDocument(iframeDoc, iframeId);
-					}
-				} catch (error) {
-					const src = iframe.src || '';
-					if (this.isKnownExternalService(src)) {
-						console.log(`ℹ️ 새 외부 서비스 iframe 스킵: ${iframeId} (${src})`);
-					} else {
-						console.warn(`⚠️ 새 크로스 오리진 iframe 처리 불가: ${iframeId} (${src})`);
-					}
-				}
-			}
-
-			/**
-			 * Removes all CSS that was injected into iframe documents (iframe 문서에 주입된 모든 CSS를 제거합니다)
-			 * @returns {void}
-			 * @description Cleans up CSS links that were injected by the plugin into accessible iframe documents
-			 *              (플러그인에 의해 접근 가능한 iframe 문서에 주입된 CSS 링크를 정리합니다)
-			 * @example
-			 * // Remove injected CSS during cleanup (정리 과정에서 주입된 CSS 제거)
-			 * this.removeInjectedCSS();
-			 */
-			removeInjectedCSS() {
-				const iframes = document.querySelectorAll('iframe');
-				let removedCount = 0;
-				let excludedCount = 0;
-				
-				iframes.forEach(iframe => {
-					// 제외 영역에 있는 iframe은 처리하지 않음
-					if (this.isIframeInExcludeZone(iframe)) {
-						excludedCount++;
-						return;
-					}
-					
-					try {
-						const iframeDoc = iframe.contentDocument;
-						if (iframeDoc) {
-							const injectedCSS = iframeDoc.querySelectorAll('link[data-wat-injected="true"]');
-							injectedCSS.forEach(link => {
-								link.remove();
-								removedCount++;
-							});
-						}
-					} catch (error) {
-						// 크로스 오리진은 조용히 스킵
-					}
-				});
-				
-				if (removedCount > 0) {
-					console.log(`✅ ${removedCount}개 iframe에서 주입된 CSS 제거 완료 (제외: ${excludedCount}개)`);
 				}
 			}
 
