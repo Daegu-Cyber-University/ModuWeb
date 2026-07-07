@@ -12,9 +12,14 @@ import { Constants } from '../../src/core/constants.js';
 function makeStub() {
 	return {
 		_setTimeout: jest.fn((callback, delay) => setTimeout(callback, delay)),
-		getLocalizedText: jest.fn((key) => `[${key}]`)
+		getLocalizedText: jest.fn((key) => `[${key}]`),
+		// 래퍼들이 단일 디스패처로 위임하므로 스텁 this에도 연결
+		_notify: WAT.prototype._notify
 	};
 }
+
+/** _notify는 페이드아웃(300ms) 후 제거하므로 duration + 300ms 이후에 사라진다 */
+const FADE_MS = 300;
 
 beforeEach(() => {
 	document.body.innerHTML = '';
@@ -50,12 +55,12 @@ describe('showNotification', () => {
 		expect(stub._setTimeout.mock.calls[0][1]).toBe(Constants.TIMING.NOTIFICATION_DURATION);
 	});
 
-	test('지속시간 경과 후 요소가 제거된다', () => {
+	test('지속시간(+페이드) 경과 후 요소가 제거된다', () => {
 		const stub = makeStub();
 		WAT.prototype.showNotification.call(stub, 'msg', 1000);
 
 		expect(document.querySelector('.wat-notification')).not.toBeNull();
-		jest.advanceTimersByTime(1001);
+		jest.advanceTimersByTime(1000 + FADE_MS + 1);
 		expect(document.querySelector('.wat-notification')).toBeNull();
 	});
 
@@ -64,7 +69,7 @@ describe('showNotification', () => {
 		WAT.prototype.showNotification.call(stub, 'msg', 1000);
 
 		document.querySelector('.wat-notification').remove();
-		expect(() => jest.advanceTimersByTime(1001)).not.toThrow();
+		expect(() => jest.advanceTimersByTime(1000 + FADE_MS + 1)).not.toThrow();
 	});
 });
 
@@ -181,12 +186,12 @@ describe('_showDictionaryMessage', () => {
 		const stub = makeStub();
 		WAT.prototype._showDictionaryMessage.call(stub, 'msg', 'info');
 
-		const closeBtn = document.querySelector('.wat-dictionary-notification__close');
+		const closeBtn = document.querySelector('.wat-notify-close');
 		expect(closeBtn).not.toBeNull();
 		expect(stub.getLocalizedText).toHaveBeenCalledWith('tags.button.text.close');
 		expect(closeBtn.getAttribute('aria-label')).toBe('[tags.button.text.close]');
 
-		closeBtn.onclick();
+		closeBtn.click();
 		expect(document.querySelector('.wat-dictionary-notification')).toBeNull();
 	});
 
@@ -200,11 +205,11 @@ describe('_showDictionaryMessage', () => {
 		expect(all[0].textContent).toContain('두 번째');
 	});
 
-	test('5초 후 자동 제거된다', () => {
+	test('5초(+페이드) 후 자동 제거된다', () => {
 		const stub = makeStub();
 		WAT.prototype._showDictionaryMessage.call(stub, 'msg', 'info');
 
-		jest.advanceTimersByTime(5001);
+		jest.advanceTimersByTime(5000 + FADE_MS + 1);
 		expect(document.querySelector('.wat-dictionary-notification')).toBeNull();
 	});
 });

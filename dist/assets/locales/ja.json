@@ -41,7 +41,9 @@
 							"save": "保存",
 							"autoSave": "自動保存",
 							"delete": "初期化",
-							"check": "保存確認"
+							"check": "保存確認",
+							"export": "設定をエクスポート",
+							"import": "設定をインポート"
 						}
 					},
 					"position": {
@@ -638,7 +640,9 @@
 	"msg": {
 		"success": {
 			"save": "保存されました。",
-			"reset": "設定がリセットされました。"
+			"reset": "設定がリセットされました。",
+			"export": "設定をファイルに書き出しました。",
+			"import": "設定を読み込みました。ページを再読み込みします。"
 		},
 		"error": {
 			"default": "エラーが発生しました。",
@@ -656,7 +660,11 @@
 			"noSelectedText": "選択されたテキストがありません。",
 			"noElementsFound": "読み取り可能な要素が見つかりません。",
 			"ttsNotSupported": "このブラウザでは画面読み上げがサポートされていません。",
-			"ttsExecutionFailed": "画面読み上げ実行中にエラーが発生しました。"
+			"ttsExecutionFailed": "画面読み上げ実行中にエラーが発生しました。",
+			"importInvalid": "有効なModuWeb設定ファイルではありません。",
+			"dictionarySearch": "辞書検索エラー",
+			"dictionaryServerNotConfigured": "辞書サーバーが設定されていません。辞書機能を使うには serverEndpoint を設定してください。",
+			"dictionaryServerInvalid": "辞書サーバーのアドレスが正しくありません。（https が必要）"
 		},
 		"warning": {
 			"noChange": "変更内容はありません。",

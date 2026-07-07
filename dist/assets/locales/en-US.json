@@ -41,7 +41,9 @@
 							"save": "Save",
 							"autoSave": "Auto Save",
 							"delete": "Reset",
-							"check": "Check Save"
+							"check": "Check Save",
+							"export": "Export settings",
+							"import": "Import settings"
 						}
 					},
 					"position": {
@@ -638,7 +640,9 @@
 	"msg": {
 		"success": {
 			"save": "Saved successfully.",
-			"reset": "Settings have been reset."
+			"reset": "Settings have been reset.",
+			"export": "Settings exported to a file.",
+			"import": "Settings imported. Reloading the page."
 		},
 		"error": {
 			"default": "An error has occurred.",
@@ -656,7 +660,11 @@
 			"noSelectedText": "No text selected.",
 			"noElementsFound": "No readable elements found.",
 			"ttsNotSupported": "Text-to-speech is not supported in this browser.",
-			"ttsExecutionFailed": "An error occurred during text-to-speech execution."
+			"ttsExecutionFailed": "An error occurred during text-to-speech execution.",
+			"importInvalid": "Not a valid ModuWeb settings file.",
+			"dictionarySearch": "Dictionary search error",
+			"dictionaryServerNotConfigured": "Dictionary server is not configured. Set serverEndpoint to use the dictionary feature.",
+			"dictionaryServerInvalid": "The dictionary server address is invalid. (https required)"
 		},
 		"warning": {
 			"noChange": "No changes made.",

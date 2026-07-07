@@ -18,7 +18,9 @@ var WATPlugin = (function (exports) {
 	class Constants {
 		static STORAGE_KEYS = {
 			SETTINGS: 'watSettings',
-			CONTAINER: 'watContainer'
+			CONTAINER: 'watContainer',
+			SELECTED_PROFILE: 'selectedProfile',
+			PANEL_STATE: 'watPanelState'
 		};
 
 		static SELECTORS = {
@@ -4949,7 +4951,7 @@ var WATPlugin = (function (exports) {
 					this.container.classList.add('hide');
 					document.documentElement.dataset.watPanel = 'closed';
 					// Save closed state to localStorage
-					localStorage.setItem('watPanelState', 'closed');
+					localStorage.setItem(Constants.STORAGE_KEYS.PANEL_STATE, 'closed');
 					// 포커스를 열기 버튼으로 이동 — 숨겨진 패널에 포커스가 남아 실종되는 것 방지 (WCAG 2.4.3)
 					const openBtn = document.getElementById('wat_btnOpen');
 					if (openBtn) openBtn.focus();
@@ -5194,7 +5196,7 @@ var WATPlugin = (function (exports) {
 				openButtonElement.addEventListener('click', () => {
 					this.container.classList.remove('hide');
 					document.documentElement.dataset.watPanel = 'opened';
-					try { localStorage.setItem('watPanelState', 'opened'); } catch (e) {}
+					try { localStorage.setItem(Constants.STORAGE_KEYS.PANEL_STATE, 'opened'); } catch (e) {}
 					// 패널을 열면 내부 첫 포커스 대상(닫기 버튼)으로 포커스 이동 (WCAG 2.4.3)
 					const closeBtn = document.getElementById('wat_btnClose');
 					if (closeBtn) closeBtn.focus();
@@ -5223,13 +5225,13 @@ var WATPlugin = (function (exports) {
 			 *              (localStorage의 watPanelState를 확인하고 closed 상태면 hide 클래스 적용)
 			 */
 			_restorePanelState() {
-				let panelState = localStorage.getItem('watPanelState');
+				let panelState = localStorage.getItem(Constants.STORAGE_KEYS.PANEL_STATE);
 				const watContainer = document.getElementById('watContainer');
 				
 				// Default to 'closed' for first-time visitors (no stored state)
 				if (!panelState) {
 					panelState = 'closed';
-					try { localStorage.setItem('watPanelState', 'closed'); } catch (e) {}
+					try { localStorage.setItem(Constants.STORAGE_KEYS.PANEL_STATE, 'closed'); } catch (e) {}
 				}
 				
 				if (panelState === 'closed') {
@@ -5736,7 +5738,9 @@ var WATPlugin = (function (exports) {
 				const storageSettingItems = [
 					{ id: 'watSet_storage_save', class: 'watSet_storage_save', label: this.getLocalizedText('panel.settings.manage.options.storage.options.save'), type: 'button' },
 					{ id: 'watSet_storage_reset', class: 'watSet_storage_reset', label: this.getLocalizedText('panel.settings.manage.options.storage.options.delete'), type: 'button' },
-					{ id: 'watSet_storage_check', class: 'watSet_storage_check', label: this.getLocalizedText('panel.settings.manage.options.storage.options.check'), type: 'button' }
+					{ id: 'watSet_storage_check', class: 'watSet_storage_check', label: this.getLocalizedText('panel.settings.manage.options.storage.options.check'), type: 'button' },
+					{ id: 'watSet_storage_export', class: 'watSet_storage_export', label: this.getLocalizedText('panel.settings.manage.options.storage.options.export') || '설정 내보내기', type: 'button' },
+					{ id: 'watSet_storage_import', class: 'watSet_storage_import', label: this.getLocalizedText('panel.settings.manage.options.storage.options.import') || '설정 가져오기', type: 'button' }
 				];
 				storageSettingItems.forEach(item => {
 					const storageSettingItem = this.createElementWithAttrs('li', { class: 'watSet-item' });
@@ -5757,6 +5761,10 @@ var WATPlugin = (function (exports) {
 							Object.values(Constants.STORAGE_KEYS).forEach(key => localStorage.removeItem(key));
 							// 화면에 즉시 반영되도록 새로고침 (삭제 후 다른 설정 변경 시 savePreferences가 되쓰는 문제도 방지)
 							window.location.reload();
+						} else if (item.id === 'watSet_storage_export') {
+							this.exportSettings();
+						} else if (item.id === 'watSet_storage_import') {
+							this._promptImportSettings();
 						} else if (item.id === 'watSet_storage_check') {
 							// WAT 소유 키만 확인 — 호스트 사이트의 전체 localStorage를 덤프하지 않음 (정보 노출 방지)
 							const settings = localStorage.getItem(Constants.STORAGE_KEYS.SETTINGS);
@@ -6521,7 +6529,7 @@ var WATPlugin = (function (exports) {
 					this._syncIndividualSettingsUI(effectiveSettings);
 				}, 50);
 				
-				localStorage.setItem('selectedProfile', JSON.stringify({
+				localStorage.setItem(Constants.STORAGE_KEYS.SELECTED_PROFILE, JSON.stringify({
 					profileName: profileName,
 					enabledSettings: profileData.enabled,
 					appliedSesttings: effectiveSettings
@@ -6584,7 +6592,10 @@ var WATPlugin = (function (exports) {
 				
 				// 현재 토글 버튼에서 active 클래스 제거
 				targetToggle.classList.remove(Constants.CSS_CLASSES.ACTIVE);
-				
+
+				// 프로필 해제 시 저장된 선택 상태도 제거 (재방문 시 잘못 복원 방지)
+				localStorage.removeItem(Constants.STORAGE_KEYS.SELECTED_PROFILE);
+
 				// Save settings (설정 저장)
 				this.savePreferences();
 			} else {
@@ -6751,6 +6762,97 @@ var WATPlugin = (function (exports) {
 			}
 
 			/**
+			 * 저장된 접근성 설정을 JSON 파일로 내보냅니다 (브라우저·기기 간 설정 이전 지원)
+			 * @returns {void}
+			 * @example
+			 * wat.exportSettings(); // moduweb-settings.json 다운로드
+			 */
+			exportSettings() {
+				try {
+					const data = {};
+					Object.values(Constants.STORAGE_KEYS).forEach(key => {
+						const value = localStorage.getItem(key);
+						if (value !== null) data[key] = value;
+					});
+
+					const payload = {
+						format: 'moduweb-settings',
+						version: 1,
+						data
+					};
+
+					const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+					const url = URL.createObjectURL(blob);
+					const link = document.createElement('a');
+					link.href = url;
+					link.download = 'moduweb-settings.json';
+					document.body.appendChild(link);
+					link.click();
+					link.remove();
+					URL.revokeObjectURL(url);
+
+					this._notify(this.getLocalizedText('msg.success.export') || '설정을 파일로 내보냈습니다.', { type: 'success' });
+				} catch (error) {
+					console.error('[WAT] 설정 내보내기 실패:', error);
+					this._notify(this.getLocalizedText('msg.error.general') || '오류가 발생했습니다.', { type: 'error' });
+				}
+			}
+
+			/**
+			 * 파일 선택 대화상자를 열어 설정 JSON을 가져옵니다
+			 * @private
+			 */
+			_promptImportSettings() {
+				const input = document.createElement('input');
+				input.type = 'file';
+				input.accept = 'application/json,.json';
+				input.addEventListener('change', () => {
+					const file = input.files && input.files[0];
+					if (!file) return;
+					const reader = new FileReader();
+					reader.onload = () => this.importSettings(String(reader.result));
+					reader.readAsText(file);
+				});
+				input.click();
+			}
+
+			/**
+			 * 내보낸 설정 JSON을 검증 후 적용합니다 (적용 후 페이지 새로고침)
+			 * @param {string} jsonText - exportSettings()가 생성한 JSON 문자열
+			 * @returns {boolean} 적용 성공 여부
+			 */
+			importSettings(jsonText) {
+				const invalidMsg = this.getLocalizedText('msg.error.importInvalid') || '올바른 ModuWeb 설정 파일이 아닙니다.';
+				const payload = safeParseJSON(jsonText, null);
+
+				// 형식 검증 — WAT가 만든 파일만 수용
+				if (!payload || payload.format !== 'moduweb-settings' || typeof payload.data !== 'object' || payload.data === null) {
+					this._notify(invalidMsg, { type: 'error' });
+					return false;
+				}
+
+				// 알려진 WAT 키만 반영 (임의 키로 호스트 localStorage를 오염시키지 않음)
+				const knownKeys = new Set(Object.values(Constants.STORAGE_KEYS));
+				let applied = 0;
+				for (const [key, value] of Object.entries(payload.data)) {
+					if (knownKeys.has(key) && typeof value === 'string') {
+						localStorage.setItem(key, value);
+						applied++;
+					}
+				}
+
+				if (applied === 0) {
+					this._notify(invalidMsg, { type: 'error' });
+					return false;
+				}
+
+				this._notify(this.getLocalizedText('msg.success.import') || '설정을 가져왔습니다. 페이지를 새로고침합니다.', { type: 'success' });
+				// 새 설정이 전체 UI·스타일에 반영되도록 새로고침 (reset 버튼과 동일 패턴)
+				this._setTimeout(() => window.location.reload(), 800);
+				return true;
+			}
+
+			/**
 			 * Loads accessibility settings from localStorage (localStorage에서 접근성 설정을 로드합니다)
 			 * @returns {Object} Loaded settings object with default fallbacks (기본값으로 대체된 로드된 설정 객체)
 			 * @description Retrieves saved settings from localStorage and merges with default settings
@@ -6901,12 +7003,51 @@ var WATPlugin = (function (exports) {
 			 */
 			setInitialPreferences() {
 				const loadedSettings = this.loadPreferences();
-				
+
 				// 초기 설정 로드 후 UI 동기화
 				if (loadedSettings) {
 					setTimeout(() => {
 						this._syncIndividualSettingsUI(loadedSettings);
 					}, 100);
+				}
+
+				// 저장된 프로필 선택 상태 복원 (사용성 U-1) —
+				// 설정값 자체는 loadPreferences가 복원하므로 토글·체크박스 UI만 동기화
+				this._restoreSelectedProfileUI();
+			}
+
+			/**
+			 * 저장된 프로필 선택 상태를 토글 UI에 복원합니다
+			 * @private
+			 * @description 이전 방문에서 켠 프로필이 재방문 시 "꺼짐"으로 보이고, 다시 켜면
+			 *              설정이 리셋되던 문제(U-1)를 해결한다. localStorage의 selectedProfile을
+			 *              읽어 해당 프로필 토글을 켜짐 상태로 표시하고 체크박스 선택을 복원한다.
+			 */
+			_restoreSelectedProfileUI() {
+				const saved = safeParseJSON(localStorage.getItem(Constants.STORAGE_KEYS.SELECTED_PROFILE), null);
+				if (!saved || !saved.profileName) return;
+
+				const container = document.querySelector(`.watSet-profile-item-container[data-profile="${saved.profileName}"]`);
+				if (!container) {
+					// 프로필 구성이 바뀌어 더 이상 존재하지 않으면 저장값 정리
+					localStorage.removeItem(Constants.STORAGE_KEYS.SELECTED_PROFILE);
+					return;
+				}
+
+				const toggle = container.querySelector('.profileToggle');
+				if (toggle) {
+					toggle.setAttribute('aria-pressed', 'true');
+					toggle.classList.add(Constants.CSS_CLASSES.ACTIVE);
+					const label = toggle.querySelector('.watSet-button-label');
+					if (label) label.textContent = this.getLocalizedText('tags.button.text.stateOn');
+				}
+
+				// 프로필 내 개별 항목 체크박스 선택 상태 복원
+				if (saved.enabledSettings && typeof saved.enabledSettings === 'object') {
+					for (const [key, enabled] of Object.entries(saved.enabledSettings)) {
+						const checkbox = container.querySelector(`.profileListItemInput[type="checkbox"][data-key="${key}"]`);
+						if (checkbox) checkbox.checked = !!enabled;
+					}
 				}
 			}
 
@@ -7935,37 +8076,37 @@ var WATPlugin = (function (exports) {
 			}
 
 			/**
-			 * Shows user-friendly feedback messages (사용자 친화적인 피드백 메시지를 표시합니다)
-			 * @param {string} type - Message type ('success', 'error', 'warning', 'info') (메시지 타입)
-			 * @param {string} message - Message to display (표시할 메시지)
-			 * @param {number} [duration=3000] - Display duration in milliseconds (표시 지속 시간, 밀리초)
+			 * 단일 알림 디스패처 — 모든 사용자 알림(피드백·상태·사전)의 공통 구현
+			 * @param {string} message - 표시할 메시지
+			 * @param {Object} [options={}] - 알림 옵션
+			 * @param {string} [options.type='info'] - 타입 ('success'|'error'|'warning'|'info')
+			 * @param {number} [options.duration=3000] - 표시 시간(ms)
+			 * @param {boolean} [options.dismissible=false] - 닫기 버튼 표시 여부
+			 * @param {string} [options.extraClass=''] - 채널 호환용 추가 클래스 (공백 구분)
 			 * @returns {void}
-			 * @description Displays user feedback in a consistent, accessible manner
-			 *              (일관되고 접근 가능한 방식으로 사용자 피드백을 표시합니다)
-			 * @example
-			 * // Show success message (성공 메시지 표시)
-			 * this.showUserFeedback('success', 'Settings saved successfully');
-			 * 
-			 * // Show error message (에러 메시지 표시)
-			 * this.showUserFeedback('error', 'Failed to save settings', 5000);
+			 * @description showNotification / showUserFeedback / _showDictionaryMessage 3중 구현을
+			 *              수렴한 공통 프리미티브. 타입별 아이콘(WCAG 1.4.1)·role 분리(error=alert,
+			 *              그 외=status)·로케일 닫기 버튼·추적형 타이머를 일관 적용한다.
 			 */
-			showUserFeedback(type, message, duration = 3000) {
+			_notify(message, options = {}) {
+				const { type = 'info', duration = 3000, dismissible = false, extraClass = '' } = options;
 				try {
-					// 입력 검증
-					if (!type || !message) {
-						console.warn('Invalid feedback parameters');
+					if (!message) {
+						console.warn('Invalid notify parameters');
 						return;
 					}
-					
-					// 기존 피드백 제거
-					const existingFeedback = document.querySelector('.wat-user-feedback');
-					if (existingFeedback) {
-						existingFeedback.remove();
+
+					// 기존 알림 제거 — 채널 무관하게 동시 1개만 유지
+					const existing = document.querySelector('.wat-user-feedback');
+					if (existing) {
+						existing.remove();
 					}
-					
-					// 피드백 요소 생성
+
 					const feedback = document.createElement('div');
 					feedback.className = `wat-user-feedback wat-feedback-${type}`;
+					if (extraClass) {
+						feedback.classList.add(...extraClass.split(' ').filter(Boolean));
+					}
 					// 타입별 role 분리 — error는 즉시 전달(alert, assertive 함의), 나머지는 status(polite 함의)
 					if (type === 'error') {
 						feedback.setAttribute('role', 'alert');
@@ -7999,6 +8140,20 @@ var WATPlugin = (function (exports) {
 					feedback.appendChild(icon);
 					feedback.appendChild(messageSpan);
 
+					// 닫기 버튼 (사전 알림 등 수동 해제가 필요한 채널)
+					if (dismissible) {
+						const closeButton = document.createElement('button');
+						closeButton.className = 'wat-notify-close';
+						closeButton.textContent = '×';
+						closeButton.setAttribute('aria-label', this.getLocalizedText('tags.button.text.close'));
+						Object.assign(closeButton.style, {
+							background: 'none', border: 'none', color: 'inherit',
+							fontSize: '18px', cursor: 'pointer', padding: '0 0 0 4px', flexShrink: '0'
+						});
+						closeButton.addEventListener('click', () => feedback.remove());
+						feedback.appendChild(closeButton);
+					}
+
 					// 스타일 적용
 					Object.assign(feedback.style, {
 						position: 'fixed',
@@ -8021,7 +8176,7 @@ var WATPlugin = (function (exports) {
 						transition: 'transform 0.3s ease-in-out',
 						opacity: '0'
 					});
-					
+
 					// 타입별 색상 설정
 					const colors = {
 						success: '#10b981',
@@ -8029,37 +8184,53 @@ var WATPlugin = (function (exports) {
 						warning: '#f59e0b',
 						info: '#3b82f6'
 					};
-					
+
 					feedback.style.backgroundColor = colors[type] || colors.info;
-					
+
 					// DOM에 추가
 					document.body.appendChild(feedback);
-					
+
 					// 애니메이션 실행
 					requestAnimationFrame(() => {
 						feedback.style.opacity = '1';
 						feedback.style.transform = 'translateX(0)';
 					});
-					
-					// 자동 제거
-					setTimeout(() => {
+
+					// 자동 제거 — 추적형 타이머 사용 (타이머 누수 방지)
+					this._setTimeout(() => {
 						if (feedback.parentNode) {
 							feedback.style.transform = 'translateX(100%)';
 							feedback.style.opacity = '0';
-							
-							setTimeout(() => {
+
+							this._setTimeout(() => {
 								if (feedback.parentNode) {
 									feedback.remove();
 								}
 							}, 300);
 						}
 					}, duration);
-					
+
 				} catch (error) {
-					console.error('Error showing user feedback:', error);
+					console.error('Error showing notification:', error);
 					// 폴백: 간단한 alert 사용
 					alert(`${type.toUpperCase()}: ${message}`);
 				}
+			}
+
+			/**
+			 * Shows user-friendly feedback messages (사용자 친화적인 피드백 메시지를 표시합니다)
+			 * @param {string} type - Message type ('success', 'error', 'warning', 'info') (메시지 타입)
+			 * @param {string} message - Message to display (표시할 메시지)
+			 * @param {number} [duration=3000] - Display duration in milliseconds (표시 지속 시간, 밀리초)
+			 * @returns {void}
+			 * @description _notify 위임 래퍼 (하위 호환 유지)
+			 */
+			showUserFeedback(type, message, duration = 3000) {
+				if (!type || !message) {
+					console.warn('Invalid feedback parameters');
+					return;
+				}
+				this._notify(message, { type, duration });
 			}
 
 			// ========== Font Style          ==========
@@ -8343,11 +8514,12 @@ var WATPlugin = (function (exports) {
 			 * console.log(label); // '150% (1.5배)'
 			 */
 			generateFontSizeLabel(key, ratio) {
-				if (key === 'initial') return '기본 크기';
-				
-				// ratio를 기반으로 라벨 자동 생성
+				// 로케일에 정의된 라벨 우선 — 미정의 커스텀 비율만 자동 생성 (하드코딩 한국어 노출 방지)
+				const localized = this.getLocalizedText(`panel.personal.options.fontSize.options.${key}`);
+				if (localized) return localized;
+
 				const percentage = Math.round(ratio * 100);
-				return `${percentage}% (${ratio}배)`;
+				return `${percentage}%`;
 			}
 
 			// ========== Layout Style        ==========
@@ -8367,8 +8539,7 @@ var WATPlugin = (function (exports) {
 			 */
 			changeScreenScale(scale) {
 				const ratio = this.screenScaleRatios[scale] || 1;
-				this.currentScreenScale = ratio; // 현재 확대 비율 저장
-				// convertScaledCoordinates 등이 state에서 읽으므로 두 저장소를 동기화 (마스크 좌표 어긋남 방지)
+				// 확대 비율의 단일 저장소는 state — 인스턴스 프로퍼티 dual-write 제거
 				this.state.set('plugin.currentScreenScale', ratio);
 				
 				if (this.styleMode === 'manual') {
@@ -8396,8 +8567,7 @@ var WATPlugin = (function (exports) {
 			 */
 			applyDynamicScreenScale(scale) {
 				const ratio = this.screenScaleRatios[scale] || 1;
-				this.currentScreenScale = ratio; // 현재 확대 비율 저장
-				this.state.set('plugin.currentScreenScale', ratio); // state 소비처와 동기화
+				this.state.set('plugin.currentScreenScale', ratio); // 단일 저장소(state)에만 기록
 				
 				if (scale === 'initial') {
 					document.documentElement.style.removeProperty('zoom');
@@ -8454,7 +8624,7 @@ var WATPlugin = (function (exports) {
 					//this.container.style.removeProperty('transform-origin');
 				}
 				// 확대 비율도 초기값으로 재설정
-				this.currentScreenScale = 1;
+				this.state.set('plugin.currentScreenScale', 1);
 			}
 
 			/**
@@ -8488,7 +8658,7 @@ var WATPlugin = (function (exports) {
 			 * console.log(originalViewport); // { width: 1280, height: 720 }
 			 */
 			getOriginalViewportSize() {
-				const scale = this.currentScreenScale || 1;
+				const scale = this.state.get('plugin.currentScreenScale') || 1;
 				return {
 					width: window.innerWidth / scale,
 					height: window.innerHeight / scale
@@ -8525,7 +8695,7 @@ var WATPlugin = (function (exports) {
 			 * this.adjustMaskElementsForScale();
 			 */
 			adjustMaskElementsForScale() {
-				const scale = this.currentScreenScale || 1;
+				const scale = this.state.get('plugin.currentScreenScale') || 1;
 				const masks = document.querySelectorAll('.wat-reading-guide.reading-mask-top, .wat-reading-guide.reading-mask-bottom');
 				
 				masks.forEach(mask => {
@@ -8552,7 +8722,7 @@ var WATPlugin = (function (exports) {
 			 * this.adjustLineElementForScale();
 			 */
 			adjustLineElementForScale() {
-				const scale = this.currentScreenScale || 1;
+				const scale = this.state.get('plugin.currentScreenScale') || 1;
 				const line = document.querySelector('.wat-reading-guide.reading-line');
 				
 				if (line) {
@@ -8650,9 +8820,12 @@ var WATPlugin = (function (exports) {
 			 * console.log(label); // '150% (1.5배)'
 			 */
 			generateLineHeightLabel(key, ratio) {
-				if (key === 'initial') return '기본 줄간격';
+				// 로케일에 정의된 라벨 우선 — 미정의 커스텀 비율만 자동 생성
+				const localized = this.getLocalizedText(`panel.personal.options.lineHeight.options.${key}`);
+				if (localized) return localized;
+
 				const percentage = Math.round(ratio * 100);
-				return `${percentage}% (${ratio}배)`;
+				return `${percentage}%`;
 			}
 
 			/**
@@ -8792,9 +8965,12 @@ var WATPlugin = (function (exports) {
 			 * console.log(label); // '150% (1.5배)'
 			 */
 			generateLetterSpacingLabel(key, ratio) {
-				if (key === 'initial') return '기본 자간';
+				// 로케일에 정의된 라벨 우선 — 미정의 커스텀 비율만 자동 생성
+				const localized = this.getLocalizedText(`panel.personal.options.letterSpacing.options.${key}`);
+				if (localized) return localized;
+
 				const percentage = Math.round(ratio * 100);
-				return `${percentage}% (${ratio}배)`;
+				return `${percentage}%`;
 			}
 
 			// ========== Color & Visual      ==========
@@ -9135,7 +9311,7 @@ var WATPlugin = (function (exports) {
 				if (!line) return;
 				
 				// 화면 확대 비율 가져오기
-				const scale = this.currentScreenScale || 1;
+				const scale = this.state.get('plugin.currentScreenScale') || 1;
 				
 				// 좌표 변환: 화면 확대 시 실제 마우스 위치 계산
 				let mouseX, mouseY;
@@ -10073,14 +10249,14 @@ var WATPlugin = (function (exports) {
 				
 				// Check if dictionary endpoint is configured
 				if (!serverEndpoint) {
-					this._showDictionaryError(cleanedWord, '사전 검색 서버가 설정되지 않았습니다. 사전 기능을 사용하려면 serverEndpoint를 설정해주세요.');
+					this._showDictionaryError(cleanedWord, this.getLocalizedText('msg.error.dictionaryServerNotConfigured') || '사전 검색 서버가 설정되지 않았습니다.');
 					return;
 				}
 
 				// JSONP는 응답을 <script>로 실행하므로 endpoint를 https로 제한 (임의 코드 실행/MITM 방지)
 				if (!isSafeHttpUrl(serverEndpoint) || !/^https:/i.test(serverEndpoint)) {
 					console.error('[WAT] 사전 serverEndpoint는 https URL이어야 합니다:', serverEndpoint);
-					this._showDictionaryError(cleanedWord, '사전 검색 서버 주소가 올바르지 않습니다. (https 필요)');
+					this._showDictionaryError(cleanedWord, this.getLocalizedText('msg.error.dictionaryServerInvalid') || '사전 검색 서버 주소가 올바르지 않습니다. (https 필요)');
 					return;
 				}
 				
@@ -10371,9 +10547,8 @@ var WATPlugin = (function (exports) {
 		 * @private
 		 */
 		_showDictionaryError(word, errorMessage) {
-			// 로컬라이제이션 키가 없을 수 있으므로 직접 메시지 생성
-			const message = `사전 검색 오류: ${errorMessage}`;
-			this._showDictionaryMessage(message, 'error');
+			const prefix = this.getLocalizedText('msg.error.dictionarySearch') || '사전 검색 오류';
+			this._showDictionaryMessage(`${prefix}: ${errorMessage}`, 'error');
 		}		/**
 			 * Shows dictionary not found message to user
 			 * @param {string} word - The word that was searched
@@ -10391,40 +10566,13 @@ var WATPlugin = (function (exports) {
 			 * @private
 			 */
 			_showDictionaryMessage(message, type = 'info') {
-				// Remove existing notifications
-				const existingNotifications = document.querySelectorAll('.wat-dictionary-notification');
-				existingNotifications.forEach(notification => notification.remove());
-
-				// Create notification element
-				const notification = document.createElement('div');
-				notification.className = `wat-dictionary-notification wat-dictionary-notification--${type}`;
-				// role 상충 해소 — alert는 assertive를 함의하므로 polite와 동시 지정하지 않음.
-				// error만 즉시 전달(alert), info/success는 status(polite 함의)
-				if (type === 'error') {
-					notification.setAttribute('role', 'alert');
-				} else {
-					notification.setAttribute('role', 'status');
-					notification.setAttribute('aria-live', 'polite');
-				}
-				notification.textContent = message;
-
-				// Add close button
-				const closeButton = document.createElement('button');
-				closeButton.className = 'wat-dictionary-notification__close';
-				closeButton.textContent = '×';
-				closeButton.setAttribute('aria-label', this.getLocalizedText('tags.button.text.close'));
-				closeButton.onclick = () => notification.remove();
-				notification.appendChild(closeButton);
-
-				// Add to document
-				document.body.appendChild(notification);
-
-				// Auto-remove after 5 seconds
-				setTimeout(() => {
-					if (notification.parentNode) {
-						notification.remove();
-					}
-				}, 5000);
+				// _notify 위임 래퍼 — 사전 전용 클래스는 기존 CSS 호환용으로 유지, 닫기 버튼 포함
+				this._notify(message, {
+					type,
+					duration: 5000,
+					dismissible: true,
+					extraClass: `wat-dictionary-notification wat-dictionary-notification--${type}`
+				});
 			}
 
 			/**
@@ -12185,17 +12333,8 @@ var WATPlugin = (function (exports) {
 			 * this.showNotification('Error occurred', 5000);
 			 */
 			showNotification(message, duration = Constants.TIMING.NOTIFICATION_DURATION) {
-				const notification = document.createElement('div');
-				notification.textContent = message;
-				notification.classList.add('wat-notification');
-				// 스크린리더가 상태 메시지를 읽도록 라이브 리전 지정 (WCAG 4.1.3)
-				notification.setAttribute('role', 'status');
-				notification.setAttribute('aria-live', 'polite');
-				document.body.appendChild(notification);
-				// 추적형 타이머 + remove() 사용 — 다른 경로가 먼저 제거해도 예외 없이 멱등 처리
-				this._setTimeout(() => {
-					notification.remove();
-				}, duration);
+				// _notify 위임 래퍼 — wat-notification 클래스는 기존 CSS/정리 로직 호환용으로 유지
+				this._notify(message, { type: 'info', duration, extraClass: 'wat-notification' });
 			}
 
 			/**

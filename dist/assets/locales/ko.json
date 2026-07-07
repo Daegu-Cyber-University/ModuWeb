@@ -41,7 +41,9 @@
 							"save": "저장",
 							"autoSave": "자동 저장",
 							"delete": "초기화",
-							"check": "저장 확인"
+							"check": "저장 확인",
+							"export": "설정 내보내기",
+							"import": "설정 가져오기"
 						}
 					},
 					"position": {
@@ -638,7 +640,9 @@
 	"msg": {
 		"success": {
 			"save": "저장되었습니다.",
-			"reset": "설정이 초기화되었습니다."
+			"reset": "설정이 초기화되었습니다.",
+			"export": "설정을 파일로 내보냈습니다.",
+			"import": "설정을 가져왔습니다. 페이지를 새로고침합니다."
 		},
 		"error": {
 			"default": "오류가 발생했습니다.",
@@ -656,7 +660,11 @@
 			"noSelectedText": "선택된 글자가 없습니다.",
 			"noElementsFound": "읽을 수 있는 요소를 찾을 수 없습니다.",
 			"ttsNotSupported": "이 브라우저에서는 화면낭독이 지원되지 않습니다.",
-			"ttsExecutionFailed": "화면낭독 실행 중 오류가 발생했습니다."
+			"ttsExecutionFailed": "화면낭독 실행 중 오류가 발생했습니다.",
+			"importInvalid": "올바른 ModuWeb 설정 파일이 아닙니다.",
+			"dictionarySearch": "사전 검색 오류",
+			"dictionaryServerNotConfigured": "사전 검색 서버가 설정되지 않았습니다. 사전 기능을 사용하려면 serverEndpoint를 설정해주세요.",
+			"dictionaryServerInvalid": "사전 검색 서버 주소가 올바르지 않습니다. (https 필요)"
 		},
 		"warning": {
 			"noChange": "변경된 내용이 없습니다.",

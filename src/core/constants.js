@@ -9,7 +9,9 @@
 export class Constants {
 	static STORAGE_KEYS = {
 		SETTINGS: 'watSettings',
-		CONTAINER: 'watContainer'
+		CONTAINER: 'watContainer',
+		SELECTED_PROFILE: 'selectedProfile',
+		PANEL_STATE: 'watPanelState'
 	};
 
 	static SELECTORS = {

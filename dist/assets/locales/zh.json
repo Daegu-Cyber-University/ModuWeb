@@ -41,7 +41,9 @@
 							"save": "保存",
 							"autoSave": "自动保存",
 							"delete": "重置",
-							"check": "检查保存"
+							"check": "检查保存",
+							"export": "导出设置",
+							"import": "导入设置"
 						}
 					},
 					"position": {
@@ -638,7 +640,9 @@
 	"msg": {
 		"success": {
 			"save": "保存成功。",
-			"reset": "设置已重置。"
+			"reset": "设置已重置。",
+			"export": "设置已导出到文件。",
+			"import": "设置已导入。正在刷新页面。"
 		},
 		"error": {
 			"default": "发生错误。",
@@ -656,7 +660,11 @@
 			"noSelectedText": "未选择文本。",
 			"noElementsFound": "未找到可读取的元素。",
 			"ttsNotSupported": "此浏览器不支持文本转语音。",
-			"ttsExecutionFailed": "文本转语音执行过程中发生错误。"
+			"ttsExecutionFailed": "文本转语音执行过程中发生错误。",
+			"importInvalid": "不是有效的ModuWeb设置文件。",
+			"dictionarySearch": "词典搜索错误",
+			"dictionaryServerNotConfigured": "未配置词典服务器。要使用词典功能，请设置 serverEndpoint。",
+			"dictionaryServerInvalid": "词典服务器地址无效。（需要 https）"
 		},
 		"warning": {
 			"noChange": "没有更改。",

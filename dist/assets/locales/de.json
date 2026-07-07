@@ -41,7 +41,9 @@
 							"save": "Speichern",
 							"autoSave": "Automatisches Speichern",
 							"delete": "Zurücksetzen",
-							"check": "Speicherstatus prüfen"
+							"check": "Speicherstatus prüfen",
+							"export": "Einstellungen exportieren",
+							"import": "Einstellungen importieren"
 						}
 					},
 					"position": {
@@ -638,7 +640,9 @@
 	"msg": {
 		"success": {
 			"save": "Erfolgreich gespeichert.",
-			"reset": "Die Einstellungen wurden zurückgesetzt."
+			"reset": "Die Einstellungen wurden zurückgesetzt.",
+			"export": "Einstellungen wurden in eine Datei exportiert.",
+			"import": "Einstellungen importiert. Die Seite wird neu geladen."
 		},
 		"error": {
 			"default": "Ein Fehler ist aufgetreten.",
@@ -656,7 +660,11 @@
 			"noSelectedText": "Kein Text ausgewählt.",
 			"noElementsFound": "Keine lesbaren Elemente gefunden.",
 			"ttsNotSupported": "Text-zu-Sprache wird in diesem Browser nicht unterstützt.",
-			"ttsExecutionFailed": "Fehler bei der Ausführung von Text-zu-Sprache aufgetreten."
+			"ttsExecutionFailed": "Fehler bei der Ausführung von Text-zu-Sprache aufgetreten.",
+			"importInvalid": "Keine gültige ModuWeb-Einstellungsdatei.",
+			"dictionarySearch": "Wörterbuch-Suchfehler",
+			"dictionaryServerNotConfigured": "Der Wörterbuch-Server ist nicht konfiguriert. Legen Sie serverEndpoint fest, um die Wörterbuchfunktion zu nutzen.",
+			"dictionaryServerInvalid": "Die Adresse des Wörterbuch-Servers ist ungültig. (https erforderlich)"
 		},
 		"warning": {
 			"noChange": "Keine Änderungen vorgenommen.",
