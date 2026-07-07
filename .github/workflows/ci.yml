@@ -41,6 +41,15 @@ jobs:
           }
           echo "dist/ is in sync with src/ - OK"
 
+      - name: Check standalone bundle size cap (500KB)
+        run: |
+          SIZE=$(stat -c%s dist/webAccTools.standalone.min.js)
+          echo "standalone bundle size: $SIZE bytes"
+          if [ "$SIZE" -gt 512000 ]; then
+            echo "ERROR: standalone bundle exceeds 500KB cap - inlined assets grew too large."
+            exit 1
+          fi
+
       - name: Security audit (high severity)
         run: npm audit --audit-level=high
         continue-on-error: true
@@ -64,7 +73,7 @@ jobs:
 
       - name: Verify required release files exist
         run: |
-          for f in "dist/webAccTools.js" "dist/assets/css/webAccTools.css" "config.example.json" "README.md" "CHANGELOG.md" "LICENSE" "CONTRIBUTING.md"; do
+          for f in "dist/webAccTools.js" "dist/webAccTools.standalone.min.js" "dist/assets/css/webAccTools.css" "config.example.json" "README.md" "CHANGELOG.md" "LICENSE" "CONTRIBUTING.md"; do
             if [ ! -f "$f" ]; then
               echo "ERROR: Required file missing: $f"
               exit 1

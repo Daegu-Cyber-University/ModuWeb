@@ -586,8 +586,8 @@ html[data-wat-viewmode="list"] #wat .setTitle	{font-size: 0.8em}
 #watWrap .personalOpt_item.colorTheme .setTitle::before	{background-image: url('../images/icon_personal_colorTheme.png')}
 #watWrap .personalOpt_item.saturation .setTitle::before	{background-image: url('../images/icon_personal_saturation.png')}
 #watWrap .personalOpt_item.readGuide .setTitle::before	{background-image: url('../images/icon_personal_readGuide.png')}
-#watWrap .personalOpt_item.hideImg .setTitle::before	{background-image: url('../images/icon_personal_hideImg.png')}
-#watWrap .personalOpt_item.imgTextConvert .setTitle::before{background-image: url('../images/icon_personal_imgTextConvert.png')}
+/* hideImg/imgTextConvert 레거시 클래스 규칙 제거 — 패널은 imgDisplayMode 클래스를 사용 (존재하지 않는 png 참조도 함께 정리) */
+#watWrap .personalOpt_item.imgDisplayMode .setTitle::before	{background-image: url('../images/icon_personal_imgDisplayMode.png')}
 #watWrap .personalOpt_item.mediaStop .setTitle::before	{background-image: url('../images/icon_personal_mediaStop.png')}
 #watWrap .personalOpt_item.mediaMute .setTitle::before	{background-image: url('../images/icon_personal_mediaMute.png')}
 #watWrap .personalOpt_item.stopAni .setTitle::before	{background-image: url('../images/icon_personal_stopAni.png')}

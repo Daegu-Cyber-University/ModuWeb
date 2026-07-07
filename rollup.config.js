@@ -15,6 +15,66 @@ const banner = `/**
  * @see https://github.com/Daegu-Cyber-University/ModuWeb
  */`;
 
+/**
+ * standalone 번들용 인라인 자산 가상 모듈 (virtual:wat-inline-assets)
+ * - CSS: dist/assets/css/webAccTools.css 를 읽고 url(../images/*)를 data URI로 재작성
+ * - koLocale: dist/assets/locales/ko.json (기본 언어만 임베드 — 타 언어는 온라인 시 fetch)
+ * - imageMap: JS 코드가 basePath로 참조하는 이미지들의 data URI 맵 (WAT._assetUrl이 조회)
+ */
+function inlineAssets() {
+	const VIRTUAL_ID = 'virtual:wat-inline-assets';
+	const RESOLVED_ID = '\0' + VIRTUAL_ID;
+
+	const toDataUri = (filePath) => {
+		const ext = path.extname(filePath).slice(1).toLowerCase();
+		const mime = ext === 'svg' ? 'image/svg+xml' : `image/${ext}`;
+		return `data:${mime};base64,${fs.readFileSync(filePath).toString('base64')}`;
+	};
+
+	return {
+		name: 'wat-inline-assets',
+		resolveId(id) {
+			if (id === VIRTUAL_ID) return RESOLVED_ID;
+			return null;
+		},
+		load(id) {
+			if (id !== RESOLVED_ID) return null;
+
+			const imagesDir = path.join(__dirname, 'dist/assets/images');
+
+			// CSS의 상대 이미지 참조를 data URI로 재작성 (인라인 <style>은 페이지 URL 기준이라 상대 경로가 깨짐)
+			let css = fs.readFileSync(path.join(__dirname, 'dist/assets/css/webAccTools.css'), 'utf8');
+			const missing = [];
+			css = css.replace(/url\((['"]?)\.\.\/images\/([^'")]+)\1\)/g, (match, _quote, file) => {
+				const filePath = path.join(imagesDir, file);
+				if (!fs.existsSync(filePath)) {
+					missing.push(file);
+					return match;
+				}
+				return `url("${toDataUri(filePath)}")`;
+			});
+			if (missing.length > 0) {
+				this.warn(`wat-inline-assets: CSS가 참조하는 이미지 누락 — ${missing.join(', ')}`);
+			}
+
+			const koLocaleJson = fs.readFileSync(path.join(__dirname, 'dist/assets/locales/ko.json'), 'utf8');
+
+			// JS(WAT._assetUrl)가 참조하는 이미지 — 소스에서 사용처가 늘면 여기에 추가
+			const jsImageFiles = ['icon_image.png', 'icon_pgStructure_marker.svg', 'icon_pgStructure_link.svg'];
+			const imageMap = {};
+			for (const file of jsImageFiles) {
+				imageMap[`assets/images/${file}`] = toDataUri(path.join(imagesDir, file));
+			}
+
+			return [
+				`export const inlineCss = ${JSON.stringify(css)};`,
+				`export const koLocale = ${koLocaleJson};`,
+				`export const imageMap = ${JSON.stringify(imageMap)};`,
+			].join('\n');
+		},
+	};
+}
+
 function injectModuwebVersion(ver) {
 	const json = JSON.stringify(ver);
 	return {
@@ -48,6 +108,19 @@ export default [
 		plugins,
 		output: {
 			file: 'dist/webAccTools.min.js',
+			format: 'iife',
+			name: 'WATPlugin',
+			sourcemap: false,
+			banner,
+			plugins: [terser({ format: { comments: /@license|@version/ } })],
+		},
+	},
+	// standalone 빌드 — CSS·ko 로케일·이미지를 인라인한 단일 파일 (폐쇄망/오프라인, 파일 1개 복사 배포)
+	{
+		input: 'src/standalone.js',
+		plugins: [...plugins, inlineAssets()],
+		output: {
+			file: 'dist/webAccTools.standalone.min.js',
 			format: 'iife',
 			name: 'WATPlugin',
 			sourcemap: false,

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>WAT standalone 예제 (단일 파일)</title>
+	<!--
+		standalone 번들 — CSS·아이콘·한국어 로케일이 전부 파일 안에 포함되어 있어
+		<link> 태그, assets 폴더, config.json, 네트워크 없이 동작합니다 (폐쇄망/오프라인).
+		이 script 한 줄이 설치의 전부입니다.
+	-->
+	<script src="../dist/webAccTools.standalone.min.js" data-wat-auto></script>
+	<style>
+		body {font-family: sans-serif; margin: 0; padding: 20px;}
+		.content {max-width: 800px; margin: 0 auto;}
+	</style>
+</head>
+
+<body>
+	<div id="mainContent" class="content">
+		<h1>ModuWeb standalone 예제</h1>
+
+		<main>
+			<section>
+				<h2>단일 파일 배포</h2>
+				<p><code>webAccTools.standalone.min.js</code> 파일 하나만 웹루트에 복사하면
+				assets 폴더나 설정 파일 없이 접근성 도구가 동작합니다.</p>
+				<pre><code class="no-speech">&lt;script src="/webAccTools.standalone.min.js" data-wat-auto&gt;&lt;/script&gt;</code></pre>
+			</section>
+
+			<section>
+				<h2>본문 예시</h2>
+				<p>접근성 도구 패널에서 글꼴, 색상, 화면 배율, 음성 읽기 등을 조절해 보세요.
+				이 문단은 도구가 페이지 콘텐츠에 스타일을 적용하는 것을 확인하기 위한 예시 텍스트입니다.</p>
+				<p><a href="#mainContent">페이지 구조 분석 확인용 링크</a></p>
+			</section>
+		</main>
+	</div>
+
+</body>
+
+</html>

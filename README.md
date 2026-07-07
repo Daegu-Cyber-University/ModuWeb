@@ -100,7 +100,18 @@ HTML에 script 태그 한 줄만 추가하면 됩니다. CSS·아이콘·언어 
 | `data-wat-container` | 컨테이너 CSS 셀렉터 |
 | `data-wat-inject-css` | `"false"`면 CSS 자동 주입 끄기 (직접 `<link>` 관리 시) |
 
-### 방법 2 — 파일 다운로드 (자체 서버에 두고 사용)
+### 방법 2 — 단일 파일 복사 (오프라인·폐쇄망 지원)
+
+`dist/webAccTools.standalone.min.js` **파일 하나만** 웹 서버에 복사하면 됩니다.
+CSS·아이콘·한국어 언어 데이터가 파일 안에 모두 포함되어 있어 assets 폴더, 설정 파일, 외부 네트워크가 전혀 필요 없습니다.
+
+```html
+<script src="/path/to/webAccTools.standalone.min.js" data-wat-auto></script>
+```
+
+> 한국어 외 언어(en-US 등)를 쓰려면 `assets/locales/` 폴더도 함께 배포하세요 (한국어는 내장).
+
+### 방법 3 — 폴더 다운로드 (자체 서버에 두고 사용)
 
 1. [릴리스 페이지](https://github.com/Daegu-Cyber-University/ModuWeb/releases)에서 zip 다운로드
 2. `dist/` 폴더를 **구조 그대로** 웹 서버에 복사 (JS가 `assets/` 하위의 CSS·아이콘·언어 파일을 상대 경로로 찾습니다)
@@ -112,7 +123,7 @@ HTML에 script 태그 한 줄만 추가하면 됩니다. CSS·아이콘·언어 
 
 > 빌드는 필요 없습니다 — `dist/`에 빌드된 파일이 이미 포함되어 있습니다.
 
-### 방법 3 — 직접 초기화 (세밀한 제어가 필요할 때)
+### 방법 4 — 직접 초기화 (세밀한 제어가 필요할 때)
 
 ```html
 <link rel="stylesheet" href="path/to/dist/assets/css/webAccTools.css">

@@ -3033,6 +3033,20 @@ var WATPlugin = (function (exports) {
 		static FONT_FAMILY_OPTIONS = FONT_FAMILY_OPTIONS;
 
 		/**
+		 * 빌드 시 임베드된 로케일 레지스트리 — standalone 번들이 채운다.
+		 * 키가 있으면 loadLocale이 fetch 없이 사용 (오프라인/단일 파일 배포 지원)
+		 * @type {Object.<string, Object>}
+		 */
+		static embeddedLocales = {};
+
+		/**
+		 * 빌드 시 임베드된 자산(data URI) 레지스트리 — standalone 번들이 채운다.
+		 * 키는 'assets/images/...' 상대 경로, 값은 data URI. _assetUrl()이 우선 조회
+		 * @type {Object.<string, string>}
+		 */
+		static embeddedAssets = {};
+
+		/**
 		 * Creates a new WAT instance with optional configuration
 			 * @constructor
 			 * @param {Object} [options={}] - Configuration options for the plugin (플러그인 설정 옵션)
@@ -4703,6 +4717,12 @@ var WATPlugin = (function (exports) {
 			 * await plugin.loadLocale('en');
 			 */
 			async loadLocale(language) {
+				// standalone 번들 등이 임베드한 로케일이 있으면 fetch 없이 즉시 사용 (오프라인 지원)
+				const embedded = WAT.embeddedLocales && WAT.embeddedLocales[language];
+				if (embedded) {
+					this.state.set('locale', embedded);
+					return;
+				}
 				try {
 					// basePath는 '/'로 끝나므로 이중 슬래시가 생기지 않도록 결합, 없으면 상대 경로
 					const localeUrl = `${basePath || './'}${Constants.PATHS.LOCALES}${language}.json`;
@@ -4715,6 +4735,18 @@ var WATPlugin = (function (exports) {
 				} catch (error) {
 					console.error(`Error loading locale file for language: ${language}`, error);
 				}
+			}
+
+			/**
+			 * 자산(이미지 등)의 URL을 해석합니다 — 임베드 자산(data URI) 우선, 없으면 스크립트 위치 기준
+			 * @param {string} relPath - 'assets/images/...' 형태의 상대 경로
+			 * @returns {string} data URI 또는 basePath 기준 URL
+			 * @private
+			 */
+			_assetUrl(relPath) {
+				const embedded = WAT.embeddedAssets && WAT.embeddedAssets[relPath];
+				if (embedded) return embedded;
+				return basePath ? `${basePath}${relPath}` : `./${relPath}`;
 			}
 
 			/**
@@ -9558,7 +9590,7 @@ var WATPlugin = (function (exports) {
 
 						const imgDsp = document.createElement('img');
 						// 호스트 페이지 상대경로가 아닌 플러그인 배포 경로 기준으로 아이콘 로드
-						imgDsp.src = basePath ? `${basePath}assets/images/icon_image.png` : './images/icon_image.png';
+						imgDsp.src = this._assetUrl('assets/images/icon_image.png');
 						imgDsp.alt = this.getLocalizedText('panel.personal.options.imgTextConvert.title') || '텍스트로 변환된 이미지';
 						imgDsp.classList.add('wat-image-placeholder-dsp');
 						placeholder.prepend(imgDsp);
@@ -9672,7 +9704,7 @@ var WATPlugin = (function (exports) {
 						newPlaceholder.classList.add('wat-image-placeholder');
 						const placeholderIcon = document.createElement('img');
 						placeholderIcon.classList.add('wat-image-placeholder-dsp');
-						placeholderIcon.src = basePath ? `${basePath}assets/images/icon_image.png` : './images/icon_image.png';
+						placeholderIcon.src = this._assetUrl('assets/images/icon_image.png');
 						placeholderIcon.alt = '';
 						newPlaceholder.appendChild(placeholderIcon);
 						newPlaceholder.appendChild(document.createTextNode(replacementText));
@@ -11016,7 +11048,7 @@ var WATPlugin = (function (exports) {
 						li.classList.add('pgStruct_item', 'heading', heading.tagName.toLowerCase());
 						const btn_marker = document.createElement('button');
 					btn_marker.classList.add('btn_marker');
-					btn_marker.innerHTML = `<img class="img_icon marker" src="${basePath}assets/images/icon_pgStructure_marker.svg" alt="${this.getLocalizedText('panel.personal.options.pageStructure.options.marker')}">`;
+					btn_marker.innerHTML = `<img class="img_icon marker" src="${this._assetUrl('assets/images/icon_pgStructure_marker.svg')}" alt="${this.getLocalizedText('panel.personal.options.pageStructure.options.marker')}">`;
 					btn_marker.title = this.getLocalizedText('panel.personal.options.pageStructure.options.marker');
 						li.appendChild(btn_marker);
 			
@@ -11077,13 +11109,13 @@ var WATPlugin = (function (exports) {
 						tag_a.classList.add('pgStruct_link');
 								const img_link = document.createElement('img');
 					img_link.classList.add('img_icon', 'link');
-					img_link.src = `${basePath}assets/images/icon_pgStructure_link.svg`;
+					img_link.src = this._assetUrl('assets/images/icon_pgStructure_link.svg');
 					img_link.alt = this.getLocalizedText('panel.personal.options.pageStructure.options.link');
 						tag_a.appendChild(img_link);
 						li.appendChild(tag_a);
 					
 						const btn_marker = document.createElement('button');				btn_marker.classList.add('btn_marker');
-					btn_marker.innerHTML = `<img class="img_icon marker" src="${basePath}assets/images/icon_pgStructure_marker.svg" alt="${this.getLocalizedText('panel.personal.options.pageStructure.options.marker')}">`;
+					btn_marker.innerHTML = `<img class="img_icon marker" src="${this._assetUrl('assets/images/icon_pgStructure_marker.svg')}" alt="${this.getLocalizedText('panel.personal.options.pageStructure.options.marker')}">`;
 					btn_marker.addEventListener('click', () => {
 							this.closePageStructure();
 							link.scrollIntoView({ behavior: 'smooth' });
