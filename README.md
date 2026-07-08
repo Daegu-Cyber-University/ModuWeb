@@ -6,11 +6,28 @@
 
 > 모두를 위한 웹 - 웹 접근성 향상을 위한 통합 도구
 
+---
+
+### 🧭 어디부터 보면 되나요?
+
+| 나는… | 이렇게 하세요 |
+|---|---|
+| **내 웹사이트에 그냥 적용하고 싶은 사용자** | 아래 [빠른 시작](#빠른-시작)의 방법 1~3 중 하나를 복붙하면 끝. 코딩·빌드 불필요. |
+| **배포 파일 하나로 받아서 쓰고 싶은 사용자** | 배포 zip(`moduweb-<버전>.zip`)의 압축을 풀고 `install-guide.html`을 여세요. → [배포 패키지](#배포-패키지-완성본-zip) |
+| **소스를 고쳐서 쓰고 싶은 개발자** | [개발자 가이드 — 수정하고 다시 배포하기](#개발자-가이드--수정하고-다시-배포하기)를 보세요. |
+
+> **빌드가 필요한가요?** 아니요. `dist/`에 빌드 완성본이 이미 들어 있어 **일반 사용자는 빌드하지 않습니다.**
+> 빌드는 **소스(`src/`)를 수정한 개발자만** `dist/`를 다시 만들 때 실행합니다.
+
+---
+
 ## 목차
 
 - [소개](#소개)
 - [주요 기능](#주요-기능)
 - [빠른 시작](#빠른-시작)
+- [배포 패키지 (완성본 zip)](#배포-패키지-완성본-zip)
+- [개발자 가이드 — 수정하고 다시 배포하기](#개발자-가이드--수정하고-다시-배포하기)
 - [로컬 개발 환경 설정](#로컬-개발-환경-설정)
 - [사용법](#사용법)
 - [설정 옵션](#설정-옵션)
@@ -140,6 +157,69 @@ CSS·아이콘·한국어 언어 데이터가 파일 안에 모두 포함되어 
 ```
 
 `config` 옵션에 객체를 직접 넘기면 config.json 파일 없이도 동작합니다. 사전 검색 기능만 별도 서버 설정([설정 옵션](#설정-옵션) 참고)이 필요하고, 나머지 기능은 설정 없이 모두 동작합니다.
+
+## 배포 패키지 (완성본 zip)
+
+기관·사용자에게 **파일 하나로 전달**하고 싶을 때 사용하는, 압축만 풀면 바로 쓰는 배포본입니다.
+
+**받는 사람 입장 (빌드·개발 지식 불필요):**
+
+1. `moduweb-<버전>.zip` 압축을 풉니다.
+2. `install-guide.html`을 브라우저로 엽니다. (복붙용 설치 안내)
+3. 안내대로 `webAccTools.standalone.min.js` 파일 1개를 웹사이트에 올리고 `<script … data-wat-auto>` 한 줄을 넣으면 끝.
+
+**압축 안 구성:**
+
+| 항목 | 용도 |
+|---|---|
+| `webAccTools.standalone.min.js` | **단일 파일** — 이것 하나 + 1줄이면 설치 완료 (한국어 내장, 오프라인 동작) |
+| `dist/` | 폴더 방식·다국어용 (CSS·아이콘·언어·폰트 포함) |
+| `install-guide.html` | 일반 사용자용 설치 안내 (먼저 여는 파일) |
+| `example.html` | 그대로 열어보는 동작 예제 |
+| `README.md` | 개발자용 상세 문서 |
+
+**패키지 만들기 (관리자/개발자):**
+
+```bash
+npm run package        # 빌드까지 새로 하고 zip 생성 (권장)
+# 또는
+npm run package:only   # 현재 dist/ 로 zip 만 생성
+```
+
+결과물은 `package-build/moduweb-<버전>.zip` 에 생성됩니다. (git에는 포함되지 않음 — GitHub [릴리스](https://github.com/Daegu-Cyber-University/ModuWeb/releases)에 첨부해 배포)
+
+## 개발자 가이드 — 수정하고 다시 배포하기
+
+소스를 고쳐서 쓰려는 개발자를 위한 요약입니다. (환경 구성 세부는 아래 [로컬 개발 환경 설정](#로컬-개발-환경-설정)과 [`CONTRIBUTING.md`](./CONTRIBUTING.md) 참고)
+
+**핵심 원칙:** 사용자에게 나가는 산출물은 `dist/`입니다. `dist/`는 **직접 손대지 말고**, `src/`(및 CSS 원본)를 고친 뒤 **빌드로 다시 생성**하세요.
+
+**소스 구조:**
+
+| 위치 | 내용 |
+|---|---|
+| `src/wat/WAT.js` | 메인 클래스 (오케스트레이션) |
+| `src/wat/*.js` | 기능 모듈 — `PanelBuilder`(설정 패널 UI), `SettingsApplier`(설정 저장/프로필), `OverlayManager`(모달), `Dictionary`, `PageStructure`, `IframeStyler`, `StateManager` |
+| `src/tts/`, `src/stt/` | 음성 읽기(TTS)·음성 명령(STT) |
+| `src/core/` | 공통(상수·기본값·로케일·설정 관리·유틸) |
+| `dist/assets/css/webAccTools.css` | **스타일 원본** (여기서 직접 편집 — 빌드가 이 파일을 standalone에 인라인함) |
+| `dist/assets/locales/*.json` | 언어 파일 |
+
+**수정 → 배포 루프:**
+
+```bash
+npm install            # 최초 1회
+# … src/ 또는 CSS 수정 …
+npm test               # 단위/특성화 테스트 (동작 회귀 방지)
+npm run lint           # 코드 규칙
+npm run lint:css       # CSS 셀렉터 누수 게이트
+npm run build          # dist/webAccTools.js · *.min.js · *.standalone.min.js 재생성
+npm run package        # (선택) 배포 zip 생성
+```
+
+- **CSS만 고칠 때도** `npm run build`를 실행해야 standalone 번들의 인라인 CSS가 갱신됩니다.
+- 커밋 시 `src/` 변경과 함께 재생성된 `dist/`를 **같이 커밋**하세요 (사용자는 `dist/`를 바로 가져다 씁니다).
+- 새 사용자 노출 문자열은 하드코딩하지 말고 `dist/assets/locales/*.json`에 키로 추가하세요 (다국어·`locale-parity` 테스트 유지).
 
 ### Git Clone (개발 참여용)
 

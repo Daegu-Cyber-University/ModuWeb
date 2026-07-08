@@ -49,6 +49,8 @@
 		"test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage",
 		"lint": "eslint src",
 		"lint:css": "node scripts/check-css-selectors.mjs",
+		"package": "npm run build && node scripts/make-package.mjs",
+		"package:only": "node scripts/make-package.mjs",
 		"validate": "node --check src/index.js",
 		"start": "echo 'Open examples/index.html in a browser to test'",
 		"preversion": "npm test",

@@ -74,3 +74,6 @@ coverage/
 *.seed
 *.pid.lock
 .nyc_output
+
+# 배포 패키지 산출물 (npm run package)
+package-build/
