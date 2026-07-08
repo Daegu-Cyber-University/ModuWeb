@@ -42,7 +42,9 @@
 	"type": "module",
 	"scripts": {
 		"config:from-env": "node scripts/write-config-from-env.mjs",
+		"prebuild": "node scripts/write-config-from-env.mjs --if-present",
 		"build": "rollup -c rollup.config.js",
+		"prebuild:watch": "node scripts/write-config-from-env.mjs --if-present",
 		"build:watch": "rollup -c rollup.config.js --watch",
 		"test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
 		"test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",

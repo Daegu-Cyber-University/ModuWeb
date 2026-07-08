@@ -32,15 +32,21 @@ cd ModuWeb
 
 ### 2. 설정 파일 생성
 
+설정 원천은 `.env` 파일 하나입니다. `.env.example`을 복사해 값을 채우면, 빌드 시 `config.json`이 자동 생성됩니다.
+
 ```bash
 # Windows
-copy config.example.json config.json
+copy .env.example .env
 
 # macOS / Linux
-cp config.example.json config.json
+cp .env.example .env
 ```
 
-`config.json`을 열어 로컬 환경에 맞게 수정하세요. 로컬에서 사전 기능을 테스트하려면 `api.dictionary.serverEndpoint`가 **JSONP 형식**으로 응답하는 주소여야 합니다. `examples/dict_sample.json`은 응답 형식 예시이므로 그대로 `serverEndpoint`로 연결할 수 없을 수 있습니다.
+값을 채운 뒤 `npm run config:from-env`(수동) 또는 그냥 `npm run build`(자동)를 실행하세요. 변수별 설명·config 경로 대응표는 `.env.example` 주석과 README의 "`.env` 변수 ↔ config 경로 대응표"에 있습니다.
+
+> `.env` 없이 `config.example.json`을 `config.json`으로 복사해 직접 관리해도 됩니다 — `.env`에 WAT_* 변수가 없으면 빌드가 수동 config.json을 덮어쓰지 않습니다.
+
+로컬에서 사전 기능을 테스트하려면 `WAT_DICTIONARY_ENDPOINT`가 사전 중계(프록시) 주소여야 합니다. `examples/dict_sample.json`은 응답 형식 예시이므로 그대로 `serverEndpoint`로 연결할 수 없을 수 있습니다.
 
 ### 3. 의존성 설치
 
@@ -101,7 +107,7 @@ Jest 기반 단위 테스트가 `tests/unit/`에 있습니다. 브라우저 수�
 
 - `var` 키워드 사용
 - `for...in` 루프 내 `hasOwnProperty` 직접 호출 (대신 `Object.keys()` 또는 `Object.hasOwn()` 사용)
-- 외부 API 키나 서버 URL을 코드에 직접 하드코딩 (반드시 `config.json`에 위치)
+- 외부 API 키나 서버 URL을 코드에 직접 하드코딩 (반드시 `.env` → `config.json` 경유). **비밀키 자체는 어디에도 금지** — `config.json`은 브라우저에 배포되는 공개 파일이며, 생성 스크립트가 `API_KEY`/`SECRET`/`TOKEN` 류 변수명을 거부합니다. 키는 서버 프록시 안에서만 사용하세요.
 - jQuery 등 외부 라이브러리 의존성 추가
 
 ---

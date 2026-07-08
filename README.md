@@ -232,24 +232,38 @@ cd ModuWeb
 
 저장소를 클론한 후 아래 단계를 따라 로컬 환경을 구성하세요.
 
-### 1. 설정 파일 생성
+> **한눈에**: 설정 원천은 `.env` **파일 하나**입니다. `.env`를 채우면 `npm run build`(또는 `npm run config:from-env`)가 `config.json`을 자동 생성합니다. `.env`와 `config.json` 모두 git에서 제외됩니다.
 
-`config.json`은 실제 서버 엔드포인트와 민감한 URL이 포함되어 있어 git에서 제외됩니다.  
-`config.example.json`을 복사하여 로컬용 `config.json`을 생성하세요.
+### 1. `.env` 만들기 (권장)
+
+`.env.example`을 복사해 `.env`를 만들고 값을 채웁니다. 각 변수의 설명·대응 config 경로는 파일 안 주석에 있습니다.
 
 **Windows:**
 ```bash
-copy config.example.json config.json
+copy .env.example .env
 ```
 
 **macOS / Linux:**
 ```bash
-cp config.example.json config.json
+cp .env.example .env
 ```
 
-### 2. 설정 값 수정
+> ⚠️ **비밀키 금지**: `.env`의 값은 전부 **공개 파일인 config.json**으로 들어갑니다. 변수명에 `API_KEY`/`SECRET`/`TOKEN` 류가 보이면 생성 스크립트가 **거부**합니다. 외부 API 키는 서버 중계(프록시) 안에서만 사용하고, 여기엔 그 중계 URL만 넣으세요.
 
-`config.json`을 열어 필요한 항목을 수정합니다. 특히 `api.dictionary.serverEndpoint`에는 **본인이 운영하는 JSONP 중계 URL**을 넣습니다. 외부 사전 API 키는 브라우저에 두지 말고, 서버에서만 사용하세요.
+### 2. config.json 생성
+
+두 방법 중 아무거나:
+
+```bash
+npm run config:from-env   # 수동 생성 (변수가 하나도 없으면 안내 후 실패)
+npm run build             # 빌드 시 자동 생성 (WAT_* 변수가 있을 때만 — 없으면 건너뜀)
+```
+
+`.env` 없이 손으로 관리하고 싶다면(대안): `config.example.json`을 `config.json`으로 복사해 직접 수정해도 됩니다. **`.env`에 WAT_* 변수가 없으면 build가 수동 config.json을 절대 덮어쓰지 않습니다.**
+
+### 3. 설정 값 참고
+
+`api.dictionary.serverEndpoint`(= `WAT_DICTIONARY_ENDPOINT`)에는 **본인이 운영하는 사전 중계 URL**을 넣습니다. 외부 사전 API 키는 브라우저에 두지 말고, 서버에서만 사용하세요.
 
 #### 사전 API(JSONP) 계약
 
@@ -301,7 +315,7 @@ cp config.example.json config.json
 
 > **참고**: 저장소의 [`config.example.json`](./config.example.json)에는 위와 같이 자리 표시자 URL(`https://your-server.example/api/dictionary-jsonp`)이 들어 있습니다. 운영·스테이징 주소로 바꿔 사용하세요.
 
-### 3. 초기화 스크립트 확인
+### 4. 초기화 스크립트 확인
 
 `watInit.js`(또는 `dist/watInit.js`)의 `configPath`가 `config.json` 경로를 올바르게 가리키는지 확인합니다.
 
@@ -313,19 +327,9 @@ const watOptions = {
 
 예제 HTML이 `../config.json`을 사용하는 경우, 저장소 루트에서 위와 같이 `config.json`을 만든 뒤 서버 루트 기준 경로가 맞는지 확인하세요.
 
-### 4. (선택) 배포·CI에서 `.env`로 `config.json` 생성
+### 5. (참고) CI에서 `.env` 없이 생성하기
 
-브라우저는 `.env`를 읽을 수 없습니다. 대신 Node 스크립트로 **배포 직전에만** `config.json`을 생성할 수 있습니다.
-
-1. [`.env.example`](./.env.example)를 복사해 `.env`를 만들고 값을 채웁니다. (`.env`는 git에 올리지 마세요.)
-2. 아래 명령을 실행합니다.
-
-```bash
-npm run config:from-env
-```
-
-기본적으로 프로젝트 루트의 [`config.example.json`](./config.example.json)을 베이스로 하여, 환경 변수로 지정한 항목만 덮어써 `config.json`을 씁니다. 출력 경로는 `WAT_CONFIG_OUTPUT`으로 바꿀 수 있습니다.  
-`WAT_DICTIONARY_ENDPOINT`, `WAT_DICTIONARY_TIMEOUT`, `WAT_COPYRIGHT_URL` 중 **하나 이상**이 있어야 실행됩니다(없으면 수동 복사를 안내하고 종료합니다).
+`.env` 파일 없이 **환경 변수만으로도** 동작합니다(환경 변수가 `.env`보다 우선). CI에서는 시크릿이 아닌 설정 값을 환경 변수로 주입하고 `npm run build`만 실행하면 됩니다. 브라우저는 `.env`를 읽을 수 없으므로, 어떤 경우든 배포물에는 생성된 `config.json`이 함께 올라가야 합니다. 출력 경로는 `WAT_CONFIG_OUTPUT`으로 바꿀 수 있습니다.
 
 ---
 
@@ -472,6 +476,24 @@ wat.init();
 ```
 
 > 코드가 실제로 읽는 `config.json` 키는 `api.dictionary.enabled` / `api.dictionary.serverEndpoint` / `api.dictionary.timeout`, `resources.fonts.*`, `branding.copyrightUrl`, `settings.ui.modalWidth`, `settings.ui.showPronunciation` 입니다. 그 외 키(`api.dictionary.retryCount`, `settings.behavior.*`, `settings.accessibility.*`, `settings.ui.autoClose` 등)는 현재 소비되지 않습니다.
+
+#### `.env` 변수 ↔ config 경로 대응표
+
+코드가 소비하는 모든 키는 `.env` 변수 하나로 관리할 수 있습니다 ([`scripts/write-config-from-env.mjs`](./scripts/write-config-from-env.mjs)의 `MAPPINGS` 테이블이 원천 — 새 항목은 거기에 한 줄 추가).
+
+| `.env` 변수 | config 경로 | 타입 |
+|---|---|---|
+| `WAT_DICTIONARY_ENABLED` | `api.dictionary.enabled` | boolean |
+| `WAT_DICTIONARY_ENDPOINT` | `api.dictionary.serverEndpoint` | url (https 전용) |
+| `WAT_DICTIONARY_TIMEOUT` | `api.dictionary.timeout` | number(ms) |
+| `WAT_FONT_NANUM_MYEONGJO` | `resources.fonts.nanumMyeongjo` | url |
+| `WAT_FONT_NOTO_SERIF_KR` | `resources.fonts.notoSerifKR` | url |
+| `WAT_FONT_KODDI_UD_GOTHIC` | `resources.fonts.koddiUdonGothic` | url |
+| `WAT_COPYRIGHT_URL` | `branding.copyrightUrl` | url |
+| `WAT_MODAL_WIDTH` | `settings.ui.modalWidth` | number(px) |
+| `WAT_SHOW_PRONUNCIATION` | `settings.ui.showPronunciation` | boolean |
+
+향후 클라우드 TTS·번역을 붙일 때는 `WAT_TTS_ENDPOINT`(→ `api.tts.serverEndpoint`), `WAT_TRANSLATION_ENDPOINT`(→ `api.translation.serverEndpoint`) 슬롯을 사용할 예정이며, 이때도 **서버 프록시 URL만** 넣습니다 — API 키 자체는 서버에만 둡니다. 생성 스크립트는 변수명에 `API_KEY`/`SECRET`/`TOKEN` 류가 보이면 공개 파일 오염 방지를 위해 **생성을 거부**합니다.
 
 ## API 문서
 
