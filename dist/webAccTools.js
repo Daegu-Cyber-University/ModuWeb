@@ -3152,7 +3152,9 @@ var WATPlugin = (function (exports) {
 					const profile = targetToggle.getAttribute('data-profile');
 					plugin.toggleProfile(profile, targetToggle);
 				});
-				profileItemContainerElement.appendChild(profileToggle);
+				// 토글은 제목바(legend) 안에 배치 — fieldset 직속 절대배치는 legend 아래 익명 콘텐츠
+				// 박스를 기준으로 잡혀 제목바 밖(overflow:hidden 영역)으로 밀려 잘리기 때문 (CSS와 짝)
+				profileItemTitleElement.appendChild(profileToggle);
 				// ***** Button - Profile Toggle Switch .End   *****
 
 				// ***** Container - Profile Options .Start *****

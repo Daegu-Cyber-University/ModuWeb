@@ -521,8 +521,12 @@ html[data-wat-viewmode="icon"] .wat-minimized #wat .setWrap .setTitle {height: 5
 #watWrap .watSet-button.btn-toggleSwitch[aria-pressed="true"] .watSet-button-label	{transform: translateX(60px);}
 */
 #watWrap .watSet-item-container.profile-container	{background-color: none; border: none; padding: 0}
-#watWrap .watSet-profile-item-container			{position: relative; display: grid; grid-template-columns: 1fr; grid-template-rows: 1fr auto; border: #aaa 1px solid; border-radius: 10px; margin: 5px 0; background-color: #ebf3ff; overflow: hidden}
-#watWrap .watSet-profile-title				{width: 100%; line-height: 2em; font-size:var(--wat-font-size); font-weight: bold; padding: 2px 10px; margin: 0; box-sizing: border-box; background-color: #f4f4f4;}
+#watWrap .watSet-profile-item-container			{position: relative; display: grid; grid-template-columns: 1fr; grid-template-rows: auto auto; max-width: 100%; border: #aaa 1px solid; border-radius: 10px; margin: 5px 0; padding: 0; background-color: #ebf3ff; overflow: hidden}
+/* 제목행(legend)이 토글 스위치의 컨테이닝 블록(position:relative). 토글을 fieldset 직속에 두면
+   절대배치 기준이 legend 아래 '익명 콘텐츠 박스'가 되어 제목바 밖(overflow:hidden 영역)으로 밀려
+   잘리므로, 토글을 legend 안에 넣고(JS) legend를 기준으로 배치한다. 우측 패딩으로 토글 자리 확보 +
+   토글(2em)이 들어갈 최소 높이 보장 */
+#watWrap .watSet-profile-title				{position: relative; width: 100%; min-height: calc(2em + 10px); line-height: 2em; font-size:var(--wat-font-size); font-weight: bold; padding: 5px 120px 5px 10px; margin: 0; box-sizing: border-box; background-color: #f4f4f4;}
 /* 프로필 아이콘 — Material Icons CDN 의존 제거: 번들 SVG를 currentColor mask로 표시 (오프라인/폐쇄망 동작) */
 #watWrap .watSet-profile-title-label::before		{display: inline-block; content: ''; width: 24px; height: 24px; background-color: currentColor; -webkit-mask: url('../images/icon_profile_voice.svg') no-repeat center / contain; mask: url('../images/icon_profile_voice.svg') no-repeat center / contain; vertical-align: middle; margin-right: 6px; margin-top: -4px}
 #watWrap .watSet-profile-title-label.lowVision::before		{-webkit-mask-image: url('../images/icon_profile_lowVision.svg'); mask-image: url('../images/icon_profile_lowVision.svg')}

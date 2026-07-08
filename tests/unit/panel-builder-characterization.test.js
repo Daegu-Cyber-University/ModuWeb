@@ -314,6 +314,20 @@ describe('createProfileSettings', () => {
 		expect(lowVision.querySelector('.profileListItemInput[data-key="fontFamily"]')).not.toBeNull();
 	});
 
+	test('토글 스위치는 제목바(legend) 안에 위치한다 — fieldset 절대배치 클리핑 회귀 방지', () => {
+		// fieldset 직속에 두면 절대배치 기준이 legend 아래 익명 콘텐츠 박스가 되어
+		// 제목바 밖(overflow:hidden)으로 밀려 잘리므로, 반드시 legend 안에 있어야 한다.
+		const wat = makeWat();
+		const container = document.createElement('div');
+		document.body.appendChild(container);
+
+		wat.createProfileSettings(container);
+
+		const legend = container.querySelector('.watSet-profile-item-container[data-profile="lowVision"] legend.watSet-profile-title');
+		expect(legend).not.toBeNull();
+		expect(legend.querySelector('#watSet_profile_button_toggle_lowVision')).not.toBeNull();
+	});
+
 	test('프로필 토글 클릭은 toggleProfile로 위임된다', () => {
 		const wat = makeWat();
 		const container = document.createElement('div');
