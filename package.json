@@ -1,6 +1,6 @@
 {
 	"name": "moduweb",
-	"version": "2.0.1",
+	"version": "2.1.0",
 	"description": "ModuWeb (Web Accessibility Tools) - 웹 접근성 향상을 위한 통합 도구",
 	"main": "dist/webAccTools.js",
 	"keywords": [
