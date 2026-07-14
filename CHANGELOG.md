@@ -9,6 +9,31 @@
 
 ## [Unreleased]
 
+---
+
+## [2.1.0] - 2026-07-14
+
+### 추가
+- **standalone 단일 파일 번들**: `webAccTools.standalone.min.js` — CSS·한국어 로케일·이미지를 인라인하여 파일 1개 복사만으로 폐쇄망에서 동작
+- **1줄 설치 지원**: `<script … data-wat-auto>` auto-init, 인라인 config, CSS 자동 주입, 실제 minify 적용
+- **배포 zip 패키징**: `npm run package` → `package-build/moduweb-<버전>.zip` (standalone + dist + 설치 가이드 동봉)
+- **.env 단일 설정 관리 체계**: 선언적 매핑 테이블 기반 `config.json` 빌드 자동 생성, 비밀키 유입 차단 가드, 값 타입 검증
+- **CSS 셀렉터 누수 감사 스크립트** + CI 게이트 (`npm run lint:css`)
+- **특성화 테스트 안전망**: 알림·포커스트랩·config 로드 (Phase 0)
+
+### 변경
+- **WAT.js 모듈 분해 (Phase 6)**: `IframeStyler`, `Dictionary`(JSONP 보안 개선), `PageStructure`, `TextExtractor`, `PanelBuilder`(개인 옵션 18종 데이터 테이블화), `SettingsApplier`(설정 영속화·프로필 적용 분리), `OverlayManager`(모달 오버레이 정리 일원화) 추출
+- 상태·국제화 일원화, 알림 통합, 설정 내보내기/가져오기 추가 (Phase 5)
+- Material Icons CDN 의존 제거
+
+### 수정
+- 코드 리뷰 발견 사항 전면 수정 — Critical 4건 포함 약 110건
+- 접근성 수정 5건 (Phase 1)
+- 프로필 설정 토글 스위치 잘림/레이아웃 깨짐 수정
+
+### 제거
+- 데드코드 약 1,150줄 — 레거시 TTS 클러스터·미호출 함수·탭 이중화 (Phase 4)
+
 ### 문서 (코드-문서 정합성 정정)
 - **README API 문서**: 코드에 존재하지 않던 `show()`, `hide()`, `toggle()`, `setLanguage()`, `setTheme()`, `adjustFontSize()`, `toggleHighContrast()`, `toggleColorInvert()` 메서드 문서를 제거하고, 실제 구현 메서드(`changeFontSize`/`changeFontFamily`/`changeColorTheme`/`changeSaturation`/`changeScreenScale`/`changeReadGuide`/`changeTTSSpeed` 등 `change*` 계열, `togglePanel`/`applyProfileSettings`/`resetWatSettings` 등)와 `ttsManager.toggleAutoTTS()`/`toggleFocusTTS()`, `sttManager.toggleVoiceCommand()` 위임 메서드로 교체
 - **README 생성자 옵션**: 코드가 읽지 않는 `position`/`theme`/`features` 옵션을 제거하고, 실제 소비 옵션(`configPath`, `language`, `containerID`, `containerTargetSelector`, `containerTargetPosition`, `applySelector`, `excludeSelector`, `styleMode`, `styleCssPath`, `fontFamily`, 비율 옵션들)로 교체
@@ -59,6 +84,7 @@
 
 ---
 
-[Unreleased]: https://github.com/Daegu-Cyber-University/ModuWeb/compare/v2.0.1...HEAD
+[Unreleased]: https://github.com/Daegu-Cyber-University/ModuWeb/compare/v2.1.0...HEAD
+[2.1.0]: https://github.com/Daegu-Cyber-University/ModuWeb/compare/v2.0.1...v2.1.0
 [2.0.1]: https://github.com/Daegu-Cyber-University/ModuWeb/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/Daegu-Cyber-University/ModuWeb/releases/tag/v2.0.0
