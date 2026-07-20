@@ -20,13 +20,49 @@ css = css.replace(/\/\*[\s\S]*?\*\//g, '');
 // @media 등 at-rule 껍데기 제거 (내부 규칙은 유지)
 css = css.replace(/@[a-z-]+[^{]*\{/g, '');
 
+/**
+ * 셀렉터 목록을 최상위 쉼표로만 분리한다.
+ * `:is(a, code, span)`이나 `[data-x="a,b"]` 안의 쉼표는 구분자가 아니므로
+ * 괄호·대괄호·따옴표 깊이를 추적해야 한다. (단순 split(',')은 이를 잘못 쪼갠다)
+ */
+function splitSelectorList(group) {
+	const out = [];
+	let buf = '';
+	let paren = 0;
+	let bracket = 0;
+	let quote = null;
+
+	for (const ch of group) {
+		if (quote) {
+			if (ch === quote) quote = null;
+		} else if (ch === '"' || ch === "'") {
+			quote = ch;
+		} else if (ch === '(') {
+			paren++;
+		} else if (ch === ')') {
+			paren--;
+		} else if (ch === '[') {
+			bracket++;
+		} else if (ch === ']') {
+			bracket--;
+		} else if (ch === ',' && paren === 0 && bracket === 0) {
+			out.push(buf);
+			buf = '';
+			continue;
+		}
+		buf += ch;
+	}
+	out.push(buf);
+	return out;
+}
+
 // 규칙 셀렉터 추출: '{' 앞의 텍스트 (선언 블록/닫는 중괄호 제외)
 const selectors = [];
 for (const match of css.matchAll(/(^|\})\s*([^{}]+?)\s*\{/g)) {
 	const group = match[2].trim();
 	if (!group) continue;
-	for (const sel of group.split(',')) {
-		const s = sel.trim();
+	for (const sel of splitSelectorList(group)) {
+		const s = sel.trim().replace(/\s+/g, ' ');
 		if (s) selectors.push(s);
 	}
 }
