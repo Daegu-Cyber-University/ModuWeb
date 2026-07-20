@@ -27,12 +27,19 @@ function inlineAssets() {
 
 	// 텍스트 자산은 LF로 정규화해서 읽는다 — CRLF 체크아웃(Windows)과 LF 체크아웃(CI)이
 	// 서로 다른 번들을 만들어 dist 드리프트 게이트가 깨지는 것을 막는다.
-	const readTextLF = (filePath) => fs.readFileSync(filePath, 'utf8').replace(/\r\n/g, '\n');
+	// CRLF뿐 아니라 단독 CR(구식 Mac)도 LF로 통일한다.
+	const readTextLF = (filePath) => fs.readFileSync(filePath, 'utf8').replace(/\r\n?/g, '\n');
 
 	const toDataUri = (filePath) => {
 		const ext = path.extname(filePath).slice(1).toLowerCase();
 		const mime = ext === 'svg' ? 'image/svg+xml' : `image/${ext}`;
-		return `data:${mime};base64,${fs.readFileSync(filePath).toString('base64')}`;
+		// SVG는 텍스트라 Windows에서 CRLF로 체크아웃된다. raw 바이트를 그대로 base64로
+		// 인코딩하면 개행 차이가 data URI에 그대로 반영돼 번들이 플랫폼마다 달라진다.
+		// (PNG 등 바이너리는 정규화하면 깨지므로 그대로 읽는다.)
+		const buf = ext === 'svg'
+			? Buffer.from(readTextLF(filePath), 'utf8')
+			: fs.readFileSync(filePath);
+		return `data:${mime};base64,${buf.toString('base64')}`;
 	};
 
 	return {
