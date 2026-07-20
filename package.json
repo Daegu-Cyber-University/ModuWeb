@@ -1,8 +1,15 @@
 {
 	"name": "moduweb",
 	"version": "2.1.0",
-	"description": "ModuWeb (Web Accessibility Tools) - 웹 접근성 향상을 위한 통합 도구",
+	"description": "Drop-in web accessibility widget — TTS/STT, magnification, color adjustment, offline standalone bundle (WCAG 2.1 AA · KWCAG 2.1). 웹 접근성 향상을 위한 통합 도구",
 	"main": "dist/webAccTools.js",
+	"exports": {
+		".": "./dist/webAccTools.js",
+		"./min": "./dist/webAccTools.min.js",
+		"./standalone": "./dist/webAccTools.standalone.min.js",
+		"./package.json": "./package.json"
+	},
+	"sideEffects": true,
 	"keywords": [
 		"accessibility",
 		"a11y",
@@ -13,7 +20,11 @@
 		"stt",
 		"screen-reader",
 		"korean",
-		"internationalization"
+		"internationalization",
+		"kwcag",
+		"text-to-speech",
+		"speech-recognition",
+		"accessibility-widget"
 	],
 	"author": {
 		"name": "대구사이버대학교",
@@ -21,7 +32,7 @@
 		"url": "https://www.dcu.ac.kr"
 	},
 	"license": "Apache-2.0",
-	"homepage": "https://github.com/Daegu-Cyber-University/ModuWeb#readme",
+	"homepage": "https://daegu-cyber-university.github.io/ModuWeb/",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/Daegu-Cyber-University/ModuWeb.git"
@@ -31,13 +42,12 @@
 	},
 	"files": [
 		"dist/",
-		"docs/",
-		"examples/",
-		"scripts/",
 		"README.md",
+		"README.en.md",
+		"CHANGELOG.md",
 		"LICENSE",
-		"config.example.json",
-		".env.example"
+		"NOTICE",
+		"config.example.json"
 	],
 	"type": "module",
 	"scripts": {

@@ -77,3 +77,5 @@ coverage/
 
 # 배포 패키지 산출물 (npm run package)
 package-build/
+
+Thumbs.db
