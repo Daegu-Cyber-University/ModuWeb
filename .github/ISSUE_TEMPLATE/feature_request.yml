@@ -1,0 +1,39 @@
+name: "💡 기능 제안 (Feature Request)"
+description: "새 기능이나 개선 아이디어를 제안해주세요 (Suggest an idea)"
+title: "[Feature] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        제안 감사합니다! English suggestions are welcome too.
+  - type: textarea
+    id: problem
+    attributes:
+      label: "어떤 불편/필요에서 나온 제안인가요? (Problem)"
+      placeholder: "예: 키보드만으로 패널 위치를 옮길 수 없어 불편합니다."
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: "원하는 동작 (Desired behavior)"
+      placeholder: "예: 패널 설정에 '위치: 왼쪽/오른쪽' 외에 키보드 단축키가 있으면 좋겠습니다."
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: "고려한 대안 (Alternatives considered)"
+  - type: dropdown
+    id: category
+    attributes:
+      label: "관련 영역 (Category)"
+      options:
+        - "TTS / 화면 낭독"
+        - "STT / 음성 인식"
+        - "시각 지원 (확대·색상·폰트)"
+        - "패널 UI / 사용성"
+        - "설정 / 프로필"
+        - "문서 / 예제"
+        - "기타 (Other)"
