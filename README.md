@@ -1,10 +1,22 @@
 # ModuWeb (Web Accessibility Tools)
 
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![License](https://img.shields.io/github/license/Daegu-Cyber-University/ModuWeb.svg)](LICENSE)
 [![GitHub release](https://img.shields.io/github/release/Daegu-Cyber-University/ModuWeb.svg)](https://github.com/Daegu-Cyber-University/ModuWeb/releases)
+[![CI](https://img.shields.io/github/actions/workflow/status/Daegu-Cyber-University/ModuWeb/ci.yml?branch=main&label=CI)](https://github.com/Daegu-Cyber-University/ModuWeb/actions/workflows/ci.yml)
+[![jsDelivr hits](https://img.shields.io/jsdelivr/gh/hm/Daegu-Cyber-University/ModuWeb)](https://www.jsdelivr.com/package/gh/Daegu-Cyber-University/ModuWeb)
 [![GitHub stars](https://img.shields.io/github/stars/Daegu-Cyber-University/ModuWeb.svg)](https://github.com/Daegu-Cyber-University/ModuWeb/stargazers)
 
 > 모두를 위한 웹 - 웹 접근성 향상을 위한 통합 도구
+>
+> **ModuWeb** is a drop-in web accessibility widget for any website — screen reader (TTS), voice commands (STT), magnification, color adjustment, and an offline-ready single-file bundle. WCAG 2.1 AA · KWCAG 2.1 compliant. — **[English README](README.en.md)**
+
+**🔗 라이브 데모 (Live Demo): <https://daegu-cyber-university.github.io/ModuWeb/>**
+
+[![ModuWeb 접근성 패널 스크린샷](docs/assets/screenshots/panel-main.png)](https://daegu-cyber-university.github.io/ModuWeb/)
+
+| 다크 모드 + 폰트 1.5배 적용 | 장애 유형별 프로필 설정 |
+|---|---|
+| ![다크 모드와 폰트 확대가 적용된 화면](docs/assets/screenshots/panel-styled.png) | ![저시력·색맹·난독증 프로필 설정 화면](docs/assets/screenshots/panel-settings.png) |
 
 ---
 
