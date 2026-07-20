@@ -1,0 +1,72 @@
+name: Deploy Demo (GitHub Pages)
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build static demo site
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Assemble site
+        run: |
+          mkdir -p _site
+          # 예제가 ../dist, ../config.json 상대 경로를 쓰므로 저장소 구조 그대로 유지
+          cp -r examples _site/
+          cp -r dist _site/
+          mkdir -p _site/docs
+          cp docs/*.html _site/docs/
+          cp config.example.json _site/config.json
+          # 루트 → 예제 허브로 리다이렉트
+          cat > _site/index.html <<'EOF'
+          <!DOCTYPE html>
+          <html lang="ko">
+          <head>
+            <meta charset="UTF-8">
+            <meta http-equiv="refresh" content="0; url=./examples/index.html">
+            <link rel="canonical" href="./examples/index.html">
+            <title>ModuWeb Demo</title>
+          </head>
+          <body>
+            <p><a href="./examples/index.html">ModuWeb 데모로 이동</a></p>
+          </body>
+          </html>
+          EOF
+          touch _site/.nojekyll
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
