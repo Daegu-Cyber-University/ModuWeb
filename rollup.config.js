@@ -25,6 +25,10 @@ function inlineAssets() {
 	const VIRTUAL_ID = 'virtual:wat-inline-assets';
 	const RESOLVED_ID = '\0' + VIRTUAL_ID;
 
+	// 텍스트 자산은 LF로 정규화해서 읽는다 — CRLF 체크아웃(Windows)과 LF 체크아웃(CI)이
+	// 서로 다른 번들을 만들어 dist 드리프트 게이트가 깨지는 것을 막는다.
+	const readTextLF = (filePath) => fs.readFileSync(filePath, 'utf8').replace(/\r\n/g, '\n');
+
 	const toDataUri = (filePath) => {
 		const ext = path.extname(filePath).slice(1).toLowerCase();
 		const mime = ext === 'svg' ? 'image/svg+xml' : `image/${ext}`;
@@ -43,7 +47,7 @@ function inlineAssets() {
 			const imagesDir = path.join(__dirname, 'dist/assets/images');
 
 			// CSS의 상대 이미지 참조를 data URI로 재작성 (인라인 <style>은 페이지 URL 기준이라 상대 경로가 깨짐)
-			let css = fs.readFileSync(path.join(__dirname, 'dist/assets/css/webAccTools.css'), 'utf8');
+			let css = readTextLF(path.join(__dirname, 'dist/assets/css/webAccTools.css'));
 			const missing = [];
 			css = css.replace(/url\((['"]?)\.\.\/images\/([^'")]+)\1\)/g, (match, _quote, file) => {
 				const filePath = path.join(imagesDir, file);
@@ -57,7 +61,7 @@ function inlineAssets() {
 				this.warn(`wat-inline-assets: CSS가 참조하는 이미지 누락 — ${missing.join(', ')}`);
 			}
 
-			const koLocaleJson = fs.readFileSync(path.join(__dirname, 'dist/assets/locales/ko.json'), 'utf8');
+			const koLocaleJson = readTextLF(path.join(__dirname, 'dist/assets/locales/ko.json'));
 
 			// JS(WAT._assetUrl)가 참조하는 이미지 — 소스에서 사용처가 늘면 여기에 추가
 			const jsImageFiles = ['icon_image.png', 'icon_pgStructure_marker.svg', 'icon_pgStructure_link.svg'];
