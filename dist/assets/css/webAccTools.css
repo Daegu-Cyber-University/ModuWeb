@@ -552,8 +552,13 @@ html[data-wat-viewmode="icon"] .wat-minimized #wat .setWrap .setTitle {height: 5
 #watWrap .watSet-button.btn-toggleSwitch .watSet-button-label	{display: block; content:""; width: 34px; height: 34px; font-size: var(--wat-font-size); text-align: var(--wat-text-align); background-color: #fff; border-radius: 50%; transition: transform 0.3s;}
 #watWrap .watSet-button.btn-toggleSwitch[aria-pressed="true"] .watSet-button-label	{transform: translateX(60px);}
 */
-#watWrap .watSet-item-container.profile-container	{background-color: none; border: none; padding: 0}
-#watWrap .watSet-profile-item-container			{position: relative; display: grid; grid-template-columns: 1fr; grid-template-rows: auto auto; max-width: 100%; border: #aaa 1px solid; border-radius: 10px; margin: 5px 0; padding: 0; background-color: #ebf3ff; overflow: hidden}
+/* background-color는 'none'을 받지 않아 선언이 무효 처리되고 공통 규칙(#ebf3ff)이 남았었다.
+   불투명 흰색으로 교정 — 패널(aside) 배경이 80% 반투명이라 프로필 행 사이 틈으로
+   호스트 페이지 콘텐츠(코드블록·텍스트)가 회색 조각처럼 비쳐 지저분해 보이던 원인 차단 */
+#watWrap .watSet-item-container.profile-container	{background-color: #fff; border: none; padding: 0}
+/* 행 배경은 제목바(legend, #f4f4f4)와 동일하게 — 배경이 다르면 legend와의 1px 어긋남이
+   하단에 색 띠로 새어 보인다. 옵션 펼침 영역은 자체 흰 배경이라 구분 유지됨 */
+#watWrap .watSet-profile-item-container			{position: relative; display: grid; grid-template-columns: 1fr; grid-template-rows: auto auto; max-width: 100%; border: #aaa 1px solid; border-radius: 10px; margin: 8px 0; padding: 0; background-color: #f4f4f4; overflow: hidden}
 /* 제목행(legend)이 토글 스위치의 컨테이닝 블록(position:relative). 토글을 fieldset 직속에 두면
    절대배치 기준이 legend 아래 '익명 콘텐츠 박스'가 되어 제목바 밖(overflow:hidden 영역)으로 밀려
    잘리므로, 토글을 legend 안에 넣고(JS) legend를 기준으로 배치한다. 우측 패딩으로 토글 자리 확보 +
