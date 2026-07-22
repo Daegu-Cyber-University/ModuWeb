@@ -62,7 +62,7 @@
 				"options": {
 					"visualImpairment": {
 						"title": "Sehbehinderung",
-						"desc": "Einstellungen für Sehbehinderte."
+						"desc": "Einstellungen für stark Sehbehinderte. Zeigt Alternativtexte für Bilder an und startet das Fokus-Vorlesen."
 					},
 					"lowVision": {
 						"title": "Sehschwäche",
@@ -74,7 +74,7 @@
 					},
 					"physicalDisability": {
 						"title": "Körperliche Behinderung",
-						"desc": "Einstellungen für körperlich Behinderte."
+						"desc": "Einstellungen für körperlich Behinderte. Vergrößert den Bildschirm, hebt den Cursor hervor und führt zu Sprachbefehlen."
 					},
 					"colorBlindness": {
 						"title": "Farbblindheit",
@@ -83,7 +83,18 @@
 					"dyslexia": {
 						"title": "Legasthenie",
 						"desc": "Einstellungen für Legastheniker und ADHS-Betroffene."
+					},
+					"senior": {
+						"title": "Senioren",
+						"desc": "Einstellungen für ältere Nutzer. Vergrößert die Schrift, erweitert Zeilen- und Zeichenabstand und hebt den Cursor hervor."
+					},
+					"motionSensitivity": {
+						"title": "Bewegungsempfindlichkeit",
+						"desc": "Für bewegungsempfindliche Nutzer (photosensitive Epilepsie, vestibuläre Störungen). Stoppt Animationen und Medien und verringert die Sättigung."
 					}
+				},
+				"notice": {
+					"stt": "Um Sprachbefehle zu nutzen, drücken Sie die Schaltfläche 'Spracherkennung > Start' in den individuellen Einstellungen."
 				}
 			}
 		},

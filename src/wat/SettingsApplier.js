@@ -134,6 +134,31 @@ export class SettingsApplier {
 		if (effectiveSettings.colorTheme) { plugin.changeColorTheme(effectiveSettings.colorTheme); }
 		if (effectiveSettings.saturation) { plugin.changeSaturation(effectiveSettings.saturation); }
 		if (effectiveSettings.readGuide) { plugin.changeReadGuide(effectiveSettings.readGuide); }
+		if (effectiveSettings.imgDisplayMode) { plugin.changeImgDisplayMode(effectiveSettings.imgDisplayMode); }
+
+		// 토글형(체크박스) 설정 — 체크된 경우에만 켠다. 해제 대칭은 toggleProfile off/resetProfileSettings 담당
+		if (profileData.settings.stopAni !== undefined && profileData.enabled.stopAni) {
+			plugin.toggleDataAttribute('stopAni', true);
+			this._syncToggleCheckbox('stopAni', true);
+		}
+		if (profileData.settings.mediaStop !== undefined && profileData.enabled.mediaStop) {
+			plugin.toggleMediaStop(true);
+			this._syncToggleCheckbox('mediaStop', true);
+		}
+		if (profileData.settings.mediaMute !== undefined && profileData.enabled.mediaMute) {
+			plugin.toggleMediaMute(true);
+			this._syncToggleCheckbox('mediaMute', true);
+		}
+
+		// 동작형 항목 — 설정 저장이 아니라 즉시 실행되는 기능
+		// tts: 'focus' → 포커스 낭독 시작 (프로필 클릭이 사용자 제스처이므로 speechSynthesis 허용)
+		if (profileData.settings.tts === 'focus' && profileData.enabled.tts) {
+			this._setFocusTTS(true);
+		}
+		// stt: 'notice' → 마이크 권한 팝업이 갑자기 뜨지 않도록 자동 시작 대신 사용 안내
+		if (profileData.settings.stt === 'notice' && profileData.enabled.stt) {
+			plugin.showNotification(plugin.getLocalizedText('panel.settings.profile.notice.stt'));
+		}
 
 		// 저장 플래그 복원
 		plugin._skipSavePreferences = originalSkipFlag;
@@ -153,6 +178,37 @@ export class SettingsApplier {
 			enabledSettings: profileData.enabled,
 			appliedSesttings: effectiveSettings
 		}));
+	}
+
+	/**
+	 * 개별 설정 패널의 토글형 체크박스 UI를 프로필 적용 상태와 동기화합니다
+	 * @private
+	 * @param {string} key - 토글 키 ('stopAni' | 'mediaStop' | 'mediaMute')
+	 * @param {boolean} checked - 체크 상태
+	 */
+	_syncToggleCheckbox(key, checked) {
+		const checkbox = document.getElementById(`wat-checkbox-${key}`);
+		if (checkbox) { checkbox.checked = checked; }
+	}
+
+	/**
+	 * 포커스 낭독(TTS)을 원하는 상태로 맞춥니다.
+	 * 상태 판단은 TTSManager의 실제 상태를 기준으로 하고(버튼은 aria-pressed를 쓰지 않음),
+	 * 전환은 버튼 클릭을 재사용해 라벨 등 UI 갱신까지 함께 일어나게 합니다.
+	 * @private
+	 * @param {boolean} on - true면 켜고, false면 끕니다 (이미 그 상태면 아무것도 안 함)
+	 */
+	_setFocusTTS(on) {
+		const ttsManager = this.plugin.ttsManager;
+		if (!ttsManager) return;
+		const isActive = ttsManager.currentState === ttsManager.states.FOCUS_TTS;
+		if (isActive === on) return;
+		const focusBtn = document.getElementById('wat-button-tts_focus_toggle');
+		if (focusBtn) {
+			focusBtn.click();
+		} else {
+			ttsManager.toggleFocusTTS();
+		}
 	}
 
 	/**
@@ -185,6 +241,15 @@ export class SettingsApplier {
 			plugin.changeSaturation(defaults.saturation);
 			plugin.changeReadGuide(defaults.readGuide);
 			document.documentElement.dataset.imgDisplayMode = defaults.imgDisplayMode;
+
+			// 토글형·동작형 항목도 대칭으로 해제 (프로필이 켰을 수 있는 것들)
+			plugin.toggleDataAttribute('stopAni', false);
+			this._syncToggleCheckbox('stopAni', false);
+			plugin.toggleMediaStop(false);
+			this._syncToggleCheckbox('mediaStop', false);
+			plugin.toggleMediaMute(false);
+			this._syncToggleCheckbox('mediaMute', false);
+			this._setFocusTTS(false);
 
 			// 도구 설정들은 현재 사용자 설정 유지
 			const resetSettings = {
@@ -309,6 +374,35 @@ export class SettingsApplier {
 				plugin.changeReadGuide('');
 				resetSettings.fontFamily = 'initial';
 				resetSettings.lineHeight = 'initial';
+				resetSettings.readGuide = 'unset';
+				break;
+			case 'visualImpairment':
+				plugin.changeImgDisplayMode('initial');
+				this._setFocusTTS(false);
+				resetSettings.imgDisplayMode = 'initial';
+				break;
+			case 'senior':
+				plugin.changeFontSize('initial');
+				plugin.changeLineHeight('initial');
+				plugin.changeLetterSpacing('initial');
+				plugin.changeReadGuide('');
+				resetSettings.fontSize = 'initial';
+				resetSettings.lineHeight = 'initial';
+				resetSettings.letterSpacing = 'initial';
+				resetSettings.readGuide = 'unset';
+				break;
+			case 'motionSensitivity':
+				plugin.toggleDataAttribute('stopAni', false);
+				this._syncToggleCheckbox('stopAni', false);
+				plugin.toggleMediaStop(false);
+				this._syncToggleCheckbox('mediaStop', false);
+				plugin.changeSaturation('initial');
+				resetSettings.saturation = 'initial';
+				break;
+			case 'physicalDisability':
+				plugin.changeScreenScale('initial');
+				plugin.changeReadGuide('');
+				resetSettings.screenScale = 'initial';
 				resetSettings.readGuide = 'unset';
 				break;
 		}

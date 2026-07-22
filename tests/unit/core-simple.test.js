@@ -54,10 +54,25 @@ describe('Defaults', () => {
 		expect(Defaults.PROFILES).toHaveProperty('dyslexia');
 	});
 
+	test('PROFILES 에 visualImpairment, senior, motionSensitivity, physicalDisability 존재', () => {
+		expect(Defaults.PROFILES).toHaveProperty('visualImpairment');
+		expect(Defaults.PROFILES).toHaveProperty('senior');
+		expect(Defaults.PROFILES).toHaveProperty('motionSensitivity');
+		expect(Defaults.PROFILES).toHaveProperty('physicalDisability');
+	});
+
 	test('각 프로필에 settings 객체가 존재', () => {
 		for (const profile of Object.values(Defaults.PROFILES)) {
 			expect(profile).toHaveProperty('settings');
 			expect(typeof profile.settings).toBe('object');
+		}
+	});
+
+	test('각 프로필의 settings 키마다 enabled 기본값이 존재', () => {
+		for (const profile of Object.values(Defaults.PROFILES)) {
+			for (const key of Object.keys(profile.settings)) {
+				expect(profile.enabled).toHaveProperty(key);
+			}
 		}
 	});
 });

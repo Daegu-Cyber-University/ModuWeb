@@ -62,7 +62,7 @@
 				"options": {
 					"visualImpairment": {
 						"title": "Visual Impairment",
-						"desc": "Settings for visual impairment."
+						"desc": "Settings for severe visual impairment. Shows image alt text and starts focus screen reading."
 					},
 					"lowVision": {
 						"title": "Low Vision",
@@ -74,7 +74,7 @@
 					},
 					"physicalDisability": {
 						"title": "Physical Disability",
-						"desc": "Settings for physical disabilities."
+						"desc": "Settings for physical disabilities. Enlarges the screen, emphasizes the cursor, and guides you to voice commands."
 					},
 					"colorBlindness": {
 						"title": "Color Blindness",
@@ -83,7 +83,18 @@
 					"dyslexia": {
 						"title": "Dyslexia",
 						"desc": "Settings for dyslexia and ADHD."
+					},
+					"senior": {
+						"title": "Seniors",
+						"desc": "Settings for older users. Enlarges text, widens line and letter spacing, and emphasizes the cursor."
+					},
+					"motionSensitivity": {
+						"title": "Motion Sensitivity",
+						"desc": "For users sensitive to motion (photosensitive epilepsy, vestibular disorders). Stops animations and media, and lowers saturation."
 					}
+				},
+				"notice": {
+					"stt": "To use voice commands, press the 'Voice Recognition > Start' button in Personal settings."
 				}
 			}
 		},

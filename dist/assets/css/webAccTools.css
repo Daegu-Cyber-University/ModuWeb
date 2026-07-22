@@ -564,6 +564,10 @@ html[data-wat-viewmode="icon"] .wat-minimized #wat .setWrap .setTitle {height: 5
 #watWrap .watSet-profile-title-label.lowVision::before		{-webkit-mask-image: url('../images/icon_profile_lowVision.svg'); mask-image: url('../images/icon_profile_lowVision.svg')}
 #watWrap .watSet-profile-title-label.colorBlindness::before	{-webkit-mask-image: url('../images/icon_profile_colorBlindness.svg'); mask-image: url('../images/icon_profile_colorBlindness.svg')}
 #watWrap .watSet-profile-title-label.dyslexia::before		{-webkit-mask-image: url('../images/icon_profile_dyslexia.svg'); mask-image: url('../images/icon_profile_dyslexia.svg')}
+#watWrap .watSet-profile-title-label.visualImpairment::before	{-webkit-mask-image: url('../images/icon_profile_visualImpairment.svg'); mask-image: url('../images/icon_profile_visualImpairment.svg')}
+#watWrap .watSet-profile-title-label.senior::before		{-webkit-mask-image: url('../images/icon_profile_senior.svg'); mask-image: url('../images/icon_profile_senior.svg')}
+#watWrap .watSet-profile-title-label.motionSensitivity::before	{-webkit-mask-image: url('../images/icon_profile_motionSensitivity.svg'); mask-image: url('../images/icon_profile_motionSensitivity.svg')}
+#watWrap .watSet-profile-title-label.physicalDisability::before	{-webkit-mask-image: url('../images/icon_profile_voice.svg'); mask-image: url('../images/icon_profile_voice.svg')}
 #watWrap .watSet-button.btn-toggleSwitch			{position: absolute; display:flex; align-items:center; justify-content:flex-start; width:100px; height: 2em; padding:0 10px; border:none; border-radius:20px; background:#ccc; cursor:pointer; transition:background 0.3s; top: 5px; right: 10px;}
 #watWrap .watSet-button.btn-toggleSwitch:hover			{box-shadow: 0 0 3px 2px rgba(0, 123, 255, 0.6);}
 #watWrap .watSet-button.btn-toggleSwitch:focus			{box-shadow: 0 0 3px 2px rgba(0, 123, 255, 0.6);}
