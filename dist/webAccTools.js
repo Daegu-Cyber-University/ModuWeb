@@ -3566,7 +3566,7 @@ var WATPlugin = (function (exports) {
 			const checkedCheckbox = document.querySelectorAll(`.watSet-profile-item-container[data-profile="${profileName}"] .profileListItemInput[type="checkbox"]:checked`);
 			if (checkedCheckbox.length === 0) {
 				const profileToggle = document.querySelector(`.watSet-profile-item-container[data-profile="${profileName}"] .profileToggle`);
-				alert(plugin.getLocalizedText('msg.warning.noSettingsChecked'));
+				plugin._notify(plugin.getLocalizedText('msg.warning.noSettingsChecked'), { type: 'warning' });
 				// 체크박스가 하나도 렌더링되지 않은 경우(옵션 전체 비활성화) 크래시 방지
 				if (profileCheckboxs.length > 0) {
 					profileCheckboxs[0].focus();
@@ -3651,7 +3651,7 @@ var WATPlugin = (function (exports) {
 			// 프로필 적용 완료 후 저장
 			plugin.savePreferences();
 			// UI 동기화를 확실하게 하기 위해 약간의 지연 후 한 번 더 실행
-			setTimeout(() => {
+			plugin._setTimeout(() => {
 				plugin._syncIndividualSettingsUI(effectiveSettings);
 			}, 50);
 
@@ -3768,7 +3768,7 @@ var WATPlugin = (function (exports) {
 			plugin._syncIndividualSettingsUI(resetSettings);
 
 			// UI 동기화를 확실하게 하기 위해 약간의 지연 후 한 번 더 실행
-			setTimeout(() => {
+			plugin._setTimeout(() => {
 				plugin._syncIndividualSettingsUI(Defaults.SETTINGS);
 			}, 50);
 		}
@@ -3838,7 +3838,7 @@ var WATPlugin = (function (exports) {
 			plugin._syncIndividualSettingsUI(resetSettings);
 
 			// UI 동기화를 확실하게 하기 위해 약간의 지연 후 한 번 더 실행
-			setTimeout(() => {
+			plugin._setTimeout(() => {
 				plugin._syncIndividualSettingsUI(resetSettings);
 			}, 50);
 		}
@@ -4095,7 +4095,7 @@ var WATPlugin = (function (exports) {
 
 			// 초기 설정 로드 후 UI 동기화
 			if (loadedSettings) {
-				setTimeout(() => {
+				plugin._setTimeout(() => {
 					plugin._syncIndividualSettingsUI(loadedSettings);
 				}, 100);
 			}
@@ -10199,9 +10199,8 @@ var WATPlugin = (function (exports) {
 					}, duration);
 
 				} catch (error) {
-					console.error('Error showing notification:', error);
-					// 폴백: 간단한 alert 사용
-					alert(`${type.toUpperCase()}: ${message}`);
+					// 알림 시스템 자체가 실패한 경우 — 블로킹 alert 대신 콘솔로만 남긴다
+					console.error('Error showing notification:', error, `[${type}] ${message}`);
 				}
 			}
 

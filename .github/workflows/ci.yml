@@ -28,7 +28,6 @@ jobs:
 
       - name: Lint (ESLint)
         run: npm run lint
-        continue-on-error: true
 
       - name: Lint CSS selectors (host-page leak audit)
         run: npm run lint:css

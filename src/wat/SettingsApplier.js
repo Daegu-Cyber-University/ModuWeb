@@ -131,7 +131,7 @@ export class SettingsApplier {
 		const checkedCheckbox = document.querySelectorAll(`.watSet-profile-item-container[data-profile="${profileName}"] .profileListItemInput[type="checkbox"]:checked`);
 		if (checkedCheckbox.length === 0) {
 			const profileToggle = document.querySelector(`.watSet-profile-item-container[data-profile="${profileName}"] .profileToggle`);
-			alert(plugin.getLocalizedText('msg.warning.noSettingsChecked'));
+			plugin._notify(plugin.getLocalizedText('msg.warning.noSettingsChecked'), { type: 'warning' });
 			// 체크박스가 하나도 렌더링되지 않은 경우(옵션 전체 비활성화) 크래시 방지
 			if (profileCheckboxs.length > 0) {
 				profileCheckboxs[0].focus();
@@ -216,7 +216,7 @@ export class SettingsApplier {
 		// 프로필 적용 완료 후 저장
 		plugin.savePreferences();
 		// UI 동기화를 확실하게 하기 위해 약간의 지연 후 한 번 더 실행
-		setTimeout(() => {
+		plugin._setTimeout(() => {
 			plugin._syncIndividualSettingsUI(effectiveSettings);
 		}, 50);
 
@@ -333,7 +333,7 @@ export class SettingsApplier {
 		plugin._syncIndividualSettingsUI(resetSettings);
 
 		// UI 동기화를 확실하게 하기 위해 약간의 지연 후 한 번 더 실행
-		setTimeout(() => {
+		plugin._setTimeout(() => {
 			plugin._syncIndividualSettingsUI(Defaults.SETTINGS);
 		}, 50);
 	}
@@ -403,7 +403,7 @@ export class SettingsApplier {
 		plugin._syncIndividualSettingsUI(resetSettings);
 
 		// UI 동기화를 확실하게 하기 위해 약간의 지연 후 한 번 더 실행
-		setTimeout(() => {
+		plugin._setTimeout(() => {
 			plugin._syncIndividualSettingsUI(resetSettings);
 		}, 50);
 	}
@@ -660,7 +660,7 @@ export class SettingsApplier {
 
 		// 초기 설정 로드 후 UI 동기화
 		if (loadedSettings) {
-			setTimeout(() => {
+			plugin._setTimeout(() => {
 				plugin._syncIndividualSettingsUI(loadedSettings);
 			}, 100);
 		}

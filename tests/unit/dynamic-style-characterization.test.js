@@ -19,7 +19,7 @@ function makeWat(overrides = {}) {
 	wat.state = { set: jest.fn(), get: jest.fn() };
 	wat._dispatchStateEvent = jest.fn();
 	wat._notify = jest.fn();
-	wat._setTimeout = jest.fn();
+	wat._setTimeout = jest.fn((cb, delay) => setTimeout(cb, delay));
 	wat._skipSavePreferences = false;
 	wat._syncIndividualSettingsUI = jest.fn();
 	wat._handleError = jest.fn();

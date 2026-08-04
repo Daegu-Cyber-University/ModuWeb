@@ -21,7 +21,7 @@ function makeWat(overrides = {}) {
 	wat.state = { set: jest.fn(), get: jest.fn() };
 	wat._dispatchStateEvent = jest.fn();
 	wat._notify = jest.fn();
-	wat._setTimeout = jest.fn();
+	wat._setTimeout = jest.fn((cb, delay) => setTimeout(cb, delay));
 	wat._skipSavePreferences = false;
 	CHANGE_METHODS.forEach(m => { wat[m] = jest.fn(); });
 	wat.toggleImgTextConversion = jest.fn();
@@ -228,15 +228,14 @@ describe('applyProfileSettings', () => {
 		expect(wat.changeFontFamily).toHaveBeenCalledWith('koddi-udon-gothic');
 	});
 
-	test('하나도 체크되지 않으면 경고 후 적용을 중단한다', () => {
-		const alertSpy = jest.spyOn(window, 'alert').mockImplementation(() => {});
+	test('하나도 체크되지 않으면 경고 알림 후 적용을 중단한다', () => {
 		const wat = makeWat();
 		wat._syncIndividualSettingsUI = jest.fn();
 		const { toggle } = buildProfileDom('colorBlindness', []);
 
 		wat.applyProfileSettings('colorBlindness');
 
-		expect(alertSpy).toHaveBeenCalled();
+		expect(wat._notify).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ type: 'warning' }));
 		expect(wat.changeSaturation).not.toHaveBeenCalled();
 		expect(toggle.getAttribute('aria-pressed')).toBe('false');
 		expect(localStorage.getItem(Constants.STORAGE_KEYS.SELECTED_PROFILE)).toBeNull();

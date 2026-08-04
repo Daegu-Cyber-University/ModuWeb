@@ -3784,9 +3784,8 @@ export class WAT {
 				}, duration);
 
 			} catch (error) {
-				console.error('Error showing notification:', error);
-				// 폴백: 간단한 alert 사용
-				alert(`${type.toUpperCase()}: ${message}`);
+				// 알림 시스템 자체가 실패한 경우 — 블로킹 alert 대신 콘솔로만 남긴다
+				console.error('Error showing notification:', error, `[${type}] ${message}`);
 			}
 		}
 
