@@ -56,7 +56,7 @@ var WATPlugin = (function (exports) {
 		static PATHS = {
 			LOCALES: 'assets/locales/',
 			IMAGES: 'assets/images/',
-			CSS_FILE: 'assets/webAccTools.css'
+			CSS_FILE: 'assets/css/webAccTools.css'
 		};
 
 		static DOM_SELECTORS = {

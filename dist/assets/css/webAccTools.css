@@ -402,7 +402,7 @@ caption.displayNone			{position:static !important; left:auto !important; top:aut
 .wasBlind					{border: #aaa 1px dotted; padding: 10px;}
 body.overlay-active				{overflow: hidden; position: fixed; width: 100vw; height: 100vh}
 body.overlay-active .overlay			{display: block}
-.overlay					{position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); display: flex; justify-content: center; align-items: center; z-index: 1000; display: none;}
+.overlay					{position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); z-index: 1000; display: none;}
 /* 사전 결과 모달 오버레이 — body 스크롤 잠금(overlay-active) 없이 표시 (선택 텍스트 위치 유지), 모달(z-index 9999) 바로 아래 */
 .wat-diction-overlay				{display: block; background-color: rgba(0, 0, 0, 0.4); z-index: 9998;}
 /* ************************* Inside Page Class .End   ************************* */
@@ -1002,25 +1002,25 @@ html[data-wat-viewmode="icon"] #wat .setWrap.radio .setCont .btn_chgOpt.next::be
 }
 
 /* 읽기 가이드와 TTS 하이라이트가 겹칠 때 */
-[data-wat-read-guide="mask"] .wat-tts_highlight {
+[data-read-guide="mask"] .wat-tts_highlight {
 	z-index: 10001 !important;
 }
 
 /* 고대비 모드에서의 TTS 하이라이트 */
-[data-wat-color-theme="reverse"] .wat-tts_highlight {
+[data-color-theme="reverse"] .wat-tts_highlight {
 	background-color: #000 !important;
 	color: #fff !important;
 	outline-color: #fff !important;
 	box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.4) !important;
 }
 
-[data-wat-color-theme="reverse"] .wat-tts_wrapper {
+[data-color-theme="reverse"] .wat-tts_wrapper {
 	background-color: rgba(0, 0, 0, 0.9) !important;
 	color: #fff !important;
 }
 
 /* 화면 배율이 적용된 경우 TTS 하이라이트 보정 */
-[data-wat-screen-scale] .wat-tts_highlight {
+[data-screen-scale] .wat-tts_highlight {
 	outline-width: calc(3px / var(--wat-scale-ratio, 1)) !important;
 	outline-offset: calc(2px / var(--wat-scale-ratio, 1)) !important;
 }
@@ -1081,16 +1081,16 @@ html[data-wat-viewmode="icon"] #wat .setWrap.radio .setCont .btn_chgOpt.next::be
 }
 
 /* 고대비 모드에서의 버튼 스타일 */
-[data-wat-color-theme="reverse"] .wat-tts-toggle,
-[data-wat-color-theme="reverse"] .wat-tts-focus-toggle,
-[data-wat-color-theme="reverse"] .wat-tts-nav {
+[data-color-theme="reverse"] .wat-tts-toggle,
+[data-color-theme="reverse"] .wat-tts-focus-toggle,
+[data-color-theme="reverse"] .wat-tts-nav {
 	background-color: #000 !important;
 	color: #fff !important;
 	border-color: #fff !important;
 }
 
-[data-wat-color-theme="reverse"] .wat-tts-toggle[aria-pressed="true"],
-[data-wat-color-theme="reverse"] .wat-tts-focus-toggle[aria-pressed="true"] {
+[data-color-theme="reverse"] .wat-tts-toggle[aria-pressed="true"],
+[data-color-theme="reverse"] .wat-tts-focus-toggle[aria-pressed="true"] {
 	background-color: #fff !important;
 	color: #000 !important;
 }
@@ -1214,32 +1214,32 @@ html[data-wat-viewmode="icon"] #wat .setWrap.radio .setCont .btn_chgOpt.next::be
 }
 
 /* High contrast mode support */
-[data-wat-color-theme="reverse"] .wat-dictionary-notification {
+[data-color-theme="reverse"] .wat-dictionary-notification {
 	filter: invert(1);
 }
 
 /* Dark mode support */
-[data-wat-color-theme="dark"] .wat-dictionary-notification--info {
+[data-color-theme="dark"] .wat-dictionary-notification--info {
 	background-color: #0d47a1;
 	color: #e3f2fd;
 }
 
-[data-wat-color-theme="dark"] .wat-dictionary-notification--success {
+[data-color-theme="dark"] .wat-dictionary-notification--success {
 	background-color: #1b5e20;
 	color: #e8f5e8;
 }
 
-[data-wat-color-theme="dark"] .wat-dictionary-notification--error {
+[data-color-theme="dark"] .wat-dictionary-notification--error {
 	background-color: #c62828;
 	color: #ffebee;
 }
 
-[data-wat-color-theme="dark"] .wat-diction-result-layer {
+[data-color-theme="dark"] .wat-diction-result-layer {
 	background-color: var(--wat-bgColor-main);
 	color: var(--wat-color-main);
 }
 
-[data-wat-color-theme="dark"] .wat-diction-pronunciation {
+[data-color-theme="dark"] .wat-diction-pronunciation {
 	background-color: #666;
 	color: #fff;
 }
@@ -1361,23 +1361,23 @@ html[data-wat-viewmode="icon"] #wat .setWrap.radio .setCont .btn_chgOpt.next::be
 }
 
 /* Dark theme support */
-[data-wat-color-theme="dark"] .wat-dictionary-notification--info {
+[data-color-theme="dark"] .wat-dictionary-notification--info {
 	background-color: #0d47a1;
 	color: #e3f2fd;
 }
 
-[data-wat-color-theme="dark"] .wat-dictionary-notification--error {
+[data-color-theme="dark"] .wat-dictionary-notification--error {
 	background-color: #c62828;
 	color: #ffebee;
 }
 
-[data-wat-color-theme="dark"] .wat-dictionary-notification--success {
+[data-color-theme="dark"] .wat-dictionary-notification--success {
 	background-color: #2e7d32;
 	color: #e8f5e8;
 }
 
 /* High contrast theme support */
-[data-wat-color-theme="reverse"] .wat-dictionary-notification {
+[data-color-theme="reverse"] .wat-dictionary-notification {
 	background-color: #000 !important;
 	color: #fff !important;
 	border-color: #fff !important;
