@@ -10126,7 +10126,9 @@ var WATPlugin = (function (exports) {
 					}
 
 					const feedback = document.createElement('div');
-					feedback.className = `wat-user-feedback wat-feedback-${type} wat-exclude`;
+					// 알 수 없는 타입은 info로 정규화 (CSS 클래스·아이콘 모두 4종만 존재)
+					const safeType = ['success', 'error', 'warning', 'info'].includes(type) ? type : 'info';
+					feedback.className = `wat-user-feedback wat-feedback-${safeType} wat-exclude`;
 					if (extraClass) {
 						feedback.classList.add(...extraClass.split(' ').filter(Boolean));
 					}
@@ -10169,61 +10171,24 @@ var WATPlugin = (function (exports) {
 						closeButton.className = 'wat-notify-close';
 						closeButton.textContent = '×';
 						closeButton.setAttribute('aria-label', this.getLocalizedText('tags.button.text.close'));
-						Object.assign(closeButton.style, {
-							background: 'none', border: 'none', color: 'inherit',
-							fontSize: '18px', cursor: 'pointer', padding: '0 0 0 4px', flexShrink: '0'
-						});
 						closeButton.addEventListener('click', () => feedback.remove());
 						feedback.appendChild(closeButton);
 					}
 
-					// 스타일 적용
-					Object.assign(feedback.style, {
-						position: 'fixed',
-						top: '20px',
-						right: '20px',
-						display: 'flex',
-						alignItems: 'center',
-						gap: '8px',
-						padding: '12px 16px',
-						borderRadius: '4px',
-						color: '#fff',
-						fontFamily: 'system-ui, -apple-system, sans-serif',
-						fontSize: '14px',
-						fontWeight: '500',
-						zIndex: '999999',
-						maxWidth: '300px',
-						wordWrap: 'break-word',
-						boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-						transform: 'translateX(100%)',
-						transition: 'transform 0.3s ease-in-out',
-						opacity: '0'
-					});
-
-					// 타입별 색상 설정
-					const colors = {
-						success: '#10b981',
-						error: '#ef4444',
-						warning: '#f59e0b',
-						info: '#3b82f6'
-					};
-
-					feedback.style.backgroundColor = colors[type] || colors.info;
+					// 스타일은 CSS(.wat-user-feedback / .wat-feedback-*)가 단일 출처
 
 					// DOM에 추가
 					document.body.appendChild(feedback);
 
-					// 애니메이션 실행
+					// 등장 애니메이션 (transition 기반 — 표시 상태 클래스 토글)
 					requestAnimationFrame(() => {
-						feedback.style.opacity = '1';
-						feedback.style.transform = 'translateX(0)';
+						feedback.classList.add('wat-feedback-visible');
 					});
 
 					// 자동 제거 — 추적형 타이머 사용 (타이머 누수 방지)
 					this._setTimeout(() => {
 						if (feedback.parentNode) {
-							feedback.style.transform = 'translateX(100%)';
-							feedback.style.opacity = '0';
+							feedback.classList.remove('wat-feedback-visible');
 
 							this._setTimeout(() => {
 								if (feedback.parentNode) {

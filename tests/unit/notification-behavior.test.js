@@ -101,15 +101,15 @@ describe('showUserFeedback', () => {
 		expect(el.getAttribute('aria-live')).toBeNull();
 	});
 
-	test('타입별 배경색이 설정된다 (알 수 없는 타입은 info 색상)', () => {
+	test('타입별 배경색 클래스가 부여된다 (알 수 없는 타입은 info로 정규화)', () => {
 		const stub = makeStub();
 		WAT.prototype.showUserFeedback.call(stub, 'success', 'ok');
 		const success = document.querySelector('.wat-user-feedback');
-		expect(success.style.backgroundColor).toBe('rgb(16, 185, 129)'); // #10b981
+		expect(success.classList.contains('wat-feedback-success')).toBe(true);
 
 		WAT.prototype.showUserFeedback.call(stub, 'unknown-type', 'x');
 		const fallback = document.querySelector('.wat-user-feedback');
-		expect(fallback.style.backgroundColor).toBe('rgb(59, 130, 246)'); // #3b82f6 (info)
+		expect(fallback.classList.contains('wat-feedback-info')).toBe(true);
 	});
 
 	test('타입별 아이콘으로 형태 구분을 제공한다 (WCAG 1.4.1 — 색상 단독 의존 금지)', () => {
