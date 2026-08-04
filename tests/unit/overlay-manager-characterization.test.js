@@ -67,11 +67,12 @@ describe('PageStructure 모달', () => {
 		expect(document.body.classList.contains('overlay-active')).toBe(true);
 	});
 
-	test('제목/링크 두 개의 탭(role=tab)과 탭 패널을 만든다', () => {
+	test('제목/랜드마크/링크 세 개의 탭(role=tab)과 탭 패널을 만든다', () => {
 		open();
 		const tabs = document.querySelectorAll('#pgStructure_layer [role="tab"]');
-		expect(tabs.length).toBe(2);
+		expect(tabs.length).toBe(3);
 		expect(document.getElementById('pgStruct_heading_panel')).not.toBeNull();
+		expect(document.getElementById('pgStruct_landmark_panel')).not.toBeNull();
 		expect(document.getElementById('pgStruct_link_panel')).not.toBeNull();
 	});
 

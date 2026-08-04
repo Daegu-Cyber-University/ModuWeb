@@ -2498,6 +2498,7 @@ var WATPlugin = (function (exports) {
 			// 탭 데이터 배열 (필요시 탭 추가 가능)
 			const tabListData = [
 				{ id: 'pgStruct_heading', text: this.plugin.getLocalizedText('panel.personal.options.pageStructure.text.tabList-heading') },
+				{ id: 'pgStruct_landmark', text: this.plugin.getLocalizedText('panel.personal.options.pageStructure.text.tabList-landmark') },
 				{ id: 'pgStruct_link', text: this.plugin.getLocalizedText('panel.personal.options.pageStructure.text.tabList-link') }
 			];
 
@@ -2632,6 +2633,22 @@ var WATPlugin = (function (exports) {
 					});
 					panelList.appendChild(li);
 				});
+			} else if (tab.id === 'pgStruct_landmark') {
+				const landmarks = this._collectLandmarks();
+
+				landmarks.forEach(({ element, role, label }) => {
+					const li = document.createElement('li');
+					li.classList.add('pgStruct_item', 'landmark');
+					// 역할명은 표준 랜드마크 토큰 그대로 표기, 이름이 있으면 병기
+					li.textContent = label ? `${role} — ${label}` : role;
+					li.appendChild(this._createMarkerButton());
+
+					li.addEventListener('click', () => {
+						this.closePageStructure();
+						element.scrollIntoView({ behavior: 'smooth' });
+					});
+					panelList.appendChild(li);
+				});
 			} else if (tab.id === 'pgStruct_link') {
 				// 링크 모아보기: 도구 컨테이너 내부의 링크 제외
 				const allLinks = document.querySelectorAll(`a:not(${selector} a)`);
@@ -2677,6 +2694,69 @@ var WATPlugin = (function (exports) {
 
 			tabPanel.appendChild(panelList);
 			return tabPanel;
+		}
+
+		/**
+		 * 페이지의 랜드마크 영역을 수집합니다 (문서 순서 유지)
+		 * @returns {Array<{element: Element, role: string, label: string}>}
+		 * @private
+		 * @description header/footer는 섹셔닝 콘텐츠 내부에 있으면 랜드마크가 아니므로 제외하고,
+		 *              section/form/[role=region]은 접근 가능한 이름이 있을 때만 랜드마크로 취급한다
+		 */
+		_collectLandmarks() {
+			const roleByTag = { main: 'main', nav: 'navigation', aside: 'complementary', header: 'banner', footer: 'contentinfo', section: 'region', form: 'form' };
+			const candidates = document.querySelectorAll(
+				'main, nav, aside, header, footer, section, form, ' +
+				'[role="main"], [role="navigation"], [role="banner"], [role="contentinfo"], ' +
+				'[role="complementary"], [role="search"], [role="region"], [role="form"]'
+			);
+			const selector = this.plugin.selector;
+			const results = [];
+
+			candidates.forEach(element => {
+				// 도구 자신·명시적 제외 영역·숨김 요소 제외
+				if (element.closest(selector) || element.closest('.wat-exclude')) return;
+				if (!this._isVisibleForListing(element)) return;
+
+				const explicitRole = element.getAttribute('role');
+				const tag = element.tagName.toLowerCase();
+				const role = explicitRole || roleByTag[tag];
+				if (!role) return;
+
+				// header/footer는 body 직속 문맥에서만 banner/contentinfo 랜드마크
+				if (!explicitRole && (tag === 'header' || tag === 'footer') &&
+					element.parentElement && element.parentElement.closest('main, article, section, aside, nav')) {
+					return;
+				}
+
+				const label = this._getAccessibleLabel(element);
+				// 이름 없는 region/form은 랜드마크로 안내되지 않으므로 제외
+				if ((role === 'region' || role === 'form') && !label) return;
+
+				results.push({ element, role, label });
+			});
+			return results;
+		}
+
+		/**
+		 * 요소의 접근 가능한 이름(aria-label/aria-labelledby)을 얻습니다
+		 * @param {Element} element
+		 * @returns {string}
+		 * @private
+		 */
+		_getAccessibleLabel(element) {
+			const ariaLabel = element.getAttribute('aria-label');
+			if (ariaLabel && ariaLabel.trim()) return ariaLabel.trim();
+
+			const labelledby = element.getAttribute('aria-labelledby');
+			if (labelledby) {
+				const text = labelledby.split(/\s+/)
+					.map(id => { const el = document.getElementById(id); return el ? el.textContent.trim() : ''; })
+					.filter(Boolean)
+					.join(' ');
+				if (text) return text;
+			}
+			return '';
 		}
 
 		/**
