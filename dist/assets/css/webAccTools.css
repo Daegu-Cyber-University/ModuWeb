@@ -475,17 +475,20 @@ body.overlay-active #pgStructure_layer		{display: flex}
 
 
 
-#watWrap					{position: fixed; width: var(--wat-tool-width); height: calc(100vh - 20px); line-height: 2em; font-size: 16px; letter-spacing: 0; z-index: 9999; top: 10px; right: 10px; background-color: rgba(255,255,255,0.8); border: 1px solid #ccc; padding: 0; overflow: hidden; transition: all 0.3s ease}
+/* 배경은 불투명·기본색 명시 — 반투명이면 아래 호스트 페이지 색에 따라 대비가 비결정적이 된다 (WCAG 1.4.3) */
+#watWrap					{position: fixed; width: var(--wat-tool-width); height: calc(100vh - 20px); line-height: 2em; font-size: 16px; letter-spacing: 0; color: #333; z-index: 9999; top: 10px; right: 10px; background-color: #fff; border: 1px solid #ccc; box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15); padding: 0; overflow: hidden; transition: all 0.3s ease}
 html[data-wat-position="left"] #watWrap		{right: auto; left: 10px;}
 .overlay-active #watWrap			{z-index: 999}
 #wat_header					{position: relative; width: 100%; height: 50px; color: #fff; padding: 10px; background: #012AD2 linear-gradient(180deg, #012AD2 -57.14%, #019EEE 283.52%); display: flex; flex-wrap: wrap; justify-content: space-between}
-#wat_header #wat_btnClose			{position: relative; display: flex; width: 30px; height: 30px; border: none; cursor: pointer; padding: 5px; margin: 0; transition: all 0.2s ease; align-items: center; justify-content: center; background-color: transparent;}
+#wat_header #wat_btnClose			{position: relative; display: flex; width: 36px; height: 36px; border: none; cursor: pointer; padding: 5px; margin: 0; transition: all 0.2s ease; align-items: center; justify-content: center; background-color: transparent;}
+#wat_header #wat_btnClose:focus-visible		{outline: 2px solid #fff; outline-offset: 2px;}
 #wat_header #wat_btnClose::after		{content: ""; display: inline-block; width: 20px; height: 20px; background-image: url('../images/icon_tool.png'); background-size: cover; background-repeat: no-repeat; background-position: -40px 0;}
 #wat_header #wat_btnClose:hover			{background-color: rgba(255, 255, 255, 0.1); box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); transform: scale(1.1);}
 
 
 /* 축소 버튼 스타일 */
-#wat_btnMinimize				{position: relative; display: flex; width: 30px; height: 30px; border: none; cursor: pointer; padding: 5px; margin: 0; transition: all 0.2s ease; align-items: center; justify-content: center; background-color: transparent;}
+#wat_btnMinimize				{position: relative; display: flex; width: 36px; height: 36px; border: none; cursor: pointer; padding: 5px; margin: 0; transition: all 0.2s ease; align-items: center; justify-content: center; background-color: transparent;}
+#wat_btnMinimize:focus-visible			{outline: 2px solid #fff; outline-offset: 2px;}
 #wat_btnMinimize:hover				{background-color: rgba(255, 255, 255, 0.1); box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); transform: scale(1.1);}
 #wat_btnMinimize:active				{transform: scale(0.95);}
 #wat_btnMinimize::before			{position: absolute; content: ''; width: 10px; height: 2px; background-color: #f5f5f5; transition: all 0.2s ease;}
@@ -563,7 +566,7 @@ html[data-wat-viewmode="icon"] .wat-minimized #wat .setWrap .setTitle {height: 5
 #watWrap .watSet-button.btn-toggleSwitch	{display: inline-flex; align-items: center; justify-content: space-between; width: 100px; height: 40px; padding: 0 8px; border: none; border-radius: 20px; background-color: #ccc; cursor: pointer; outline: none; transition: background-color 0.3s;}
 #watWrap .watSet-button.btn-toggleSwitch:focus	{box-shadow: 0 0 3px 2px rgba(0, 123, 255, 0.6);}
 
-#watWrap .watSet-button.btn-toggleSwitch[aria-checked="true"]	{background-color: #4cd964}
+#watWrap .watSet-button.btn-toggleSwitch[aria-checked="true"]	{background-color: #1e9e33}
 */
 /*
 #watWrap .watSet-button.btn-toggleSwitch::before	{display: block; content:""; width: 34px; height: 34px; background-color: #fff; border-radius: 50%; transition: transform 0.3s;}
@@ -595,10 +598,12 @@ html[data-wat-viewmode="icon"] .wat-minimized #wat .setWrap .setTitle {height: 5
 #watWrap .watSet-profile-title-label.senior::before		{-webkit-mask-image: url('../images/icon_profile_senior.svg'); mask-image: url('../images/icon_profile_senior.svg')}
 #watWrap .watSet-profile-title-label.motionSensitivity::before	{-webkit-mask-image: url('../images/icon_profile_motionSensitivity.svg'); mask-image: url('../images/icon_profile_motionSensitivity.svg')}
 #watWrap .watSet-profile-title-label.physicalDisability::before	{-webkit-mask-image: url('../images/icon_profile_voice.svg'); mask-image: url('../images/icon_profile_voice.svg')}
-#watWrap .watSet-button.btn-toggleSwitch			{position: absolute; display:flex; align-items:center; justify-content:flex-start; width:100px; height: 2em; padding:0 10px; border:none; border-radius:20px; background:#ccc; cursor:pointer; transition:background 0.3s; top: 5px; right: 10px;}
+/* 트랙 테두리로 배경(#f4f4f4)과의 경계 확보 (WCAG 1.4.11 비텍스트 대비),
+   켜짐 색은 3:1 이상인 #1e9e33 사용 */
+#watWrap .watSet-button.btn-toggleSwitch			{position: absolute; display:flex; align-items:center; justify-content:flex-start; width:100px; height: 2em; padding:0 10px; border:1px solid #767676; border-radius:20px; background:#ccc; cursor:pointer; transition:background 0.3s; top: 5px; right: 10px;}
 #watWrap .watSet-button.btn-toggleSwitch:hover			{box-shadow: 0 0 3px 2px rgba(0, 123, 255, 0.6);}
-#watWrap .watSet-button.btn-toggleSwitch:focus			{box-shadow: 0 0 3px 2px rgba(0, 123, 255, 0.6);}
-#watWrap .watSet-button.btn-toggleSwitch[aria-checked="true"]	{justify-content:flex-end; background:#4cd964;}
+#watWrap .watSet-button.btn-toggleSwitch:focus-visible		{outline: 2px solid #0D6EFD; outline-offset: 2px;}
+#watWrap .watSet-button.btn-toggleSwitch[aria-checked="true"]	{justify-content:flex-end; background:#1e9e33;}
 #watWrap .watSet-button.btn-toggleSwitch .watSet-button-label	{display:inline-flex; align-items:center; justify-content:center; padding:0 10px; background:#fff; border-radius:9999px; white-space:nowrap; font-size:var(--wat-font-size); text-align:center; transition:all 0.3s;}
 #watWrap .watSet-profile-button-accordion			{position: relative; display: inline-block; width: auto; cursor: pointer; box-sizing: border-box; margin-left: 10px; padding: 0 10px}
 #watWrap .watSet-profile-button-accordion::before		{content: "▼"; position: absolute; display: block; width: 20px; height: 20px; line-height: 20px; font-size: 1em; left: 50%; top: 50%; transform: translate(-50%, -50%); transition: transform 0.3s;}
@@ -615,6 +620,8 @@ html[data-wat-position="left"] #wat_btnOpenWrap	{right: auto; left: 20px;}
 #wat_btnOpen:hover .btn_open			{background-color: #ffffff}
 #wat_btnOpen:focus				{background-color: #6a21e0; color: #fff;}
 #wat_btnOpen:focus .btn_open			{background-color: #ffffff}
+/* 마스크 배경색 변화만으로는 포커스 식별이 어려움 — 래퍼에 뚜렷한 링 표시 (WCAG 2.4.7) */
+#wat_btnOpenWrap:has(#wat_btnOpen:focus-visible)	{outline: 3px solid #0D6EFD; outline-offset: 3px;}
 .wat-container.hide #watWrap			{display: none}
 .wat-container.hide #wat_btnOpenWrap		{display: block}
 
@@ -702,9 +709,10 @@ html[data-wat-viewmode="list"] #wat .setWrap.button .opt_lists .btn_basic {heigh
 #watWrap .setWrap.button.mixCont .setCont			{display: flex; flex-direction: column;}
 
 #watWrap .switch						{position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; border: 0; clip: rect(0, 0, 0, 0); white-space: nowrap; clip-path: inset(50%);}
-#watWrap .switch-label					{position: relative; display: inline-block; width: 40px; height: 20px; font-size: 0; color: transparent; background-color: #ccc; border-radius: 20px; cursor: pointer; transition: background-color 0.3s;}
+/* 24px 높이(WCAG 2.5.8) + 트랙 테두리로 카드 배경과의 경계 확보 */
+#watWrap .switch-label					{position: relative; display: inline-block; width: 44px; height: 24px; font-size: 0; color: transparent; background-color: #ccc; border: 1px solid #767676; border-radius: 24px; cursor: pointer; transition: background-color 0.3s; box-sizing: border-box;}
 #watWrap .switch:focus + .switch-label			{outline: 2px solid #0D6EFD; outline-offset: 4px;}
-#watWrap .switch-label::after				{content: ''; position: absolute; width: 16px; height: 16px; background-color: white; border-radius: 50%; top: 2px; left: 2px; transition: left 0.3s;}
+#watWrap .switch-label::after				{content: ''; position: absolute; width: 18px; height: 18px; background-color: white; border-radius: 50%; top: 2px; left: 2px; transition: left 0.3s;}
 #watWrap .switch:checked + .switch-label			{background-color: #0D6EFD;}
 #watWrap .switch:checked + .switch-label::after		{left: 22px;}
 
@@ -716,20 +724,24 @@ html[data-wat-viewmode="icon"] #wat .setWrap.button .opt_lists			{height: auto}
 html[data-wat-viewmode="icon"] #wat .setWrap .setTitle				{width: 100%; text-align: center; padding: 35px 0 0 0}
 html[data-wat-viewmode="icon"] #wat .setWrap .setTitle::before			{width: 30px; height: 30px; left: 50%; top: 5px; transform: translate(-50%, 0)}
 
-html[data-wat-viewmode="icon"] #wat .setWrap.radio .setCont			{display: grid; grid-template-columns: 16px auto 16px; width: 100%; background-color: #fff; border-radius: 5px; align-items: center}
-html[data-wat-viewmode="icon"] #wat .setWrap.radio .setCont input[type="radio"]	{display: none}
+html[data-wat-viewmode="icon"] #wat .setWrap.radio .setCont			{display: grid; grid-template-columns: 24px auto 24px; width: 100%; background-color: #fff; border-radius: 5px; align-items: center}
+/* 라디오는 display:none 대신 시각적 숨김 — 키보드(화살표 이동)·스크린리더("N개 중 X") 접근 유지 */
+html[data-wat-viewmode="icon"] #wat .setWrap.radio .setCont input[type="radio"]	{position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0;}
 html[data-wat-viewmode="icon"] #wat .setWrap.radio .setCont .opt_lists		{grid-column: 2 / 3; display: flex; flex-wrap: wrap; overflow: hidden; text-align: center; text-overflow: ellipsis; white-space: nowrap;}
-html[data-wat-viewmode="icon"] #wat .setWrap.radio .setCont .opt_lists .opt_item {display: none;}
-html[data-wat-viewmode="icon"] #wat .setWrap.radio .setCont .opt_lists .opt_item.selectOn {display: block; width: 100%; overflow: hidden}
+html[data-wat-viewmode="icon"] #wat .setWrap.radio .setCont .opt_lists .opt_item {display: block; position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); clip-path: inset(50%);}
+html[data-wat-viewmode="icon"] #wat .setWrap.radio .setCont .opt_lists .opt_item.selectOn {position: static; width: 100%; height: auto; margin: 0; clip: auto; clip-path: none; overflow: hidden}
+html[data-wat-viewmode="icon"] #wat .setWrap.radio .setCont input[type="radio"]:focus-visible + label {outline: 2px solid #0D6EFD; outline-offset: 2px}
 html[data-wat-viewmode="icon"] #wat .setWrap.radio .setCont .opt_lists .opt_item.selectOn label {width: 100%; font-size: calc(var(--wat-font-size) * 0.8); cursor: pointer; flex: 1 1 auto; text-align: center; border: none; margin: 0; padding: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;}
 /* 아이콘 모드: 폰트 변경 — 긴 폰트명을 2줄까지 표시(한 줄 말줄임 완화), 중앙 열 폭 수축 허용 */
 html[data-wat-viewmode="icon"] #wat .personalOpt_item.fontFamily .setWrap.radio .setCont .opt_lists		{min-width: 0; white-space: normal; overflow: hidden; text-overflow: unset; align-self: center}
 html[data-wat-viewmode="icon"] #wat .personalOpt_item.fontFamily .setWrap.radio .setCont .opt_lists .opt_item.selectOn	{min-width: 0; overflow: hidden}
 html[data-wat-viewmode="icon"] #wat .personalOpt_item.fontFamily .setWrap.radio .setCont .opt_lists .opt_item.selectOn label	{display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; white-space: normal; overflow: hidden; text-overflow: ellipsis; line-height: 1.3; max-height: calc(1.3em * 2); word-break: keep-all; overflow-wrap: break-word; padding: 0 4px; box-sizing: border-box; font-size: calc(var(--wat-font-size) * 0.72)}
+/* 이전/다음 버튼 — 24px 이상 확보 (WCAG 2.5.8 대상 크기) */
 html[data-wat-viewmode="icon"] #wat .setWrap.radio .setCont .btn_chgOpt		{background-color: #B9C2F6; border: none; cursor: pointer; font-size: 0; color: transparent; margin: 0; padding: 0}
-html[data-wat-viewmode="icon"] #wat .setWrap.radio .setCont .btn_chgOpt.prev	{display: inline-block; width: 20px; height: 20px; line-height: 20px; border-radius: 5px;}
+html[data-wat-viewmode="icon"] #wat .setWrap.radio .setCont .btn_chgOpt:focus-visible	{outline: 2px solid #0D6EFD; outline-offset: 1px}
+html[data-wat-viewmode="icon"] #wat .setWrap.radio .setCont .btn_chgOpt.prev	{display: inline-block; width: 24px; height: 24px; line-height: 24px; border-radius: 5px;}
 html[data-wat-viewmode="icon"] #wat .setWrap.radio .setCont .btn_chgOpt.prev::before	{content: "◀"; font-size: calc(var(--wat-font-size) * 0.8); color: #222222}
-html[data-wat-viewmode="icon"] #wat .setWrap.radio .setCont .btn_chgOpt.next	{display: inline-block; width: 20px; height: 20px; line-height: 20px; border-radius: 5px;}
+html[data-wat-viewmode="icon"] #wat .setWrap.radio .setCont .btn_chgOpt.next	{display: inline-block; width: 24px; height: 24px; line-height: 24px; border-radius: 5px;}
 html[data-wat-viewmode="icon"] #wat .setWrap.radio .setCont .btn_chgOpt.next::before	{content: "▶"; font-size: calc(var(--wat-font-size) * 0.8); color: #222222}
 /* ************************* Web Accessibility Tool Style .End   ************************* */
 
@@ -760,6 +772,29 @@ html[data-wat-viewmode="icon"] #wat .setWrap.radio .setCont .btn_chgOpt.next::be
 :root[data-font-size] #wat {
 	--wat-font-size: 16px !important;
 	--wat-line-height: 1.5 !important;
+}
+
+/* OS 모션 감소 설정 존중 — 위젯 본체의 전환·애니메이션 비활성화 (WCAG 2.3.3) */
+@media (prefers-reduced-motion: reduce) {
+	#watWrap,
+	.wat-minimized,
+	.wat-minimized #wat_panel_Opt,
+	#wat_header #wat_btnClose,
+	#wat_btnMinimize,
+	#wat_btnOpen,
+	#wat_viewModeToggle,
+	#wat_viewModeToggle .toggle-circle,
+	#watWrap .watSet-button.btn-toggleSwitch,
+	#watWrap .watSet-button.btn-toggleSwitch .watSet-button-label,
+	#watWrap .switch-label,
+	#watWrap .switch-label::after,
+	#watWrap .watSet-profile-button-accordion::before,
+	#watWrap .watSet-item-container .watSet-item,
+	.wat-user-feedback,
+	.wat-notification {
+		transition: none !important;
+		animation: none !important;
+	}
 }
 
 /* TTS 관련 스타일 */
