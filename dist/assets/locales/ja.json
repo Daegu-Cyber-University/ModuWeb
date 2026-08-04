@@ -119,7 +119,9 @@
 						"initial": "標準",
 						"high": "高く",
 						"low": "低く",
-						"monochrome": "モノクロ"
+						"monochrome": "モノクロ",
+						"protanopia": "1型色覚補正",
+						"deuteranopia": "2型色覚補正"
 					}
 				},
 				"fontSize": {
@@ -325,7 +327,8 @@
 						"tabList-heading": "見出し",
 						"tabList-section": "構造",
 						"tabList-semantic": "意味",
-						"tabList-link": "リンク"
+						"tabList-link": "リンク",
+						"tabList-landmark": "ランドマーク"
 					}
 				}
 			}

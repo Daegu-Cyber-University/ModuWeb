@@ -2806,7 +2806,8 @@ var WATPlugin = (function (exports) {
 			{ value: 'initial' }, { value: 'light' }, { value: 'dark' }, { value: 'reverse' }
 		] },
 		saturation: { type: 'radio', items: [
-			{ value: 'initial' }, { value: 'low' }, { value: 'high' }, { value: 'monochrome' }
+			{ value: 'initial' }, { value: 'low' }, { value: 'high' }, { value: 'monochrome' },
+			{ value: 'protanopia' }, { value: 'deuteranopia' }
 		] },
 		readGuide: { type: 'radio', items: [
 			{ value: 'unset' }, { value: 'mask' }, { value: 'underline' }, { value: 'bigCursor' }
@@ -11119,11 +11120,52 @@ var WATPlugin = (function (exports) {
 			 * this.changeSaturation('initial');
 			 */
 			changeSaturation(level) {
+				// 색약 보정 값은 SVG 필터를 참조하므로 필터 정의를 먼저 보장
+				if (level === 'protanopia' || level === 'deuteranopia') {
+					this._ensureColorFilterDefs();
+				}
 				document.documentElement.dataset.saturation = level;
 				this.updatePersonalSettingsUI('radio', 'saturation', level);
 				this.savePreferences();
 				// 다른 change* 계열과 동일하게 iframe에도 동기화
 				this.syncStyleToIframes('saturation', level);
+			}
+
+			/**
+			 * 색약 보정용 SVG 필터 정의를 문서에 1회 주입합니다.
+			 * 다이토나이제이션(시뮬레이션 오차를 인접 채널로 재분배)을 단일 행렬로 축약한 값 —
+			 * 행 합이 1이라 흰색·회색은 보존되고 문제 색상만 이동한다.
+			 * @private
+			 */
+			_ensureColorFilterDefs() {
+				if (document.getElementById('wat-colorfilter-defs')) return;
+
+				const svgNS = 'http://www.w3.org/2000/svg';
+				const svg = document.createElementNS(svgNS, 'svg');
+				svg.id = 'wat-colorfilter-defs';
+				svg.setAttribute('aria-hidden', 'true');
+				svg.setAttribute('class', 'wat-exclude');
+				svg.setAttribute('width', '0');
+				svg.setAttribute('height', '0');
+				svg.style.position = 'absolute';
+
+				const filters = {
+					'wat-cb-protanopia': '1 0 0 0 0  -0.2549 1.2549 0 0 0  0.3031 -0.5451 1.242 0 0  0 0 0 1 0',
+					'wat-cb-deuteranopia': '1 0 0 0 0  -0.4375 1.4375 0 0 0  0.2625 -0.5625 1.3 0 0  0 0 0 1 0'
+				};
+
+				const defs = document.createElementNS(svgNS, 'defs');
+				for (const [id, values] of Object.entries(filters)) {
+					const filter = document.createElementNS(svgNS, 'filter');
+					filter.id = id;
+					const matrix = document.createElementNS(svgNS, 'feColorMatrix');
+					matrix.setAttribute('type', 'matrix');
+					matrix.setAttribute('values', values);
+					filter.appendChild(matrix);
+					defs.appendChild(filter);
+				}
+				svg.appendChild(defs);
+				document.body.appendChild(svg);
 			}
 
 			// ========== UI Update           ==========

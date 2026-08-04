@@ -43,7 +43,8 @@ const OPTION_DEFS = {
 		{ value: 'initial' }, { value: 'light' }, { value: 'dark' }, { value: 'reverse' }
 	] },
 	saturation: { type: 'radio', items: [
-		{ value: 'initial' }, { value: 'low' }, { value: 'high' }, { value: 'monochrome' }
+		{ value: 'initial' }, { value: 'low' }, { value: 'high' }, { value: 'monochrome' },
+		{ value: 'protanopia' }, { value: 'deuteranopia' }
 	] },
 	readGuide: { type: 'radio', items: [
 		{ value: 'unset' }, { value: 'mask' }, { value: 'underline' }, { value: 'bigCursor' }

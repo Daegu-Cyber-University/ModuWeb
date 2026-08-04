@@ -119,7 +119,9 @@
 						"initial": "默认",
 						"high": "高",
 						"low": "低",
-						"monochrome": "黑白"
+						"monochrome": "黑白",
+						"protanopia": "红色弱矫正",
+						"deuteranopia": "绿色弱矫正"
 					}
 				},
 				"fontSize": {
@@ -325,7 +327,8 @@
 						"tabList-heading": "标题",
 						"tabList-section": "结构",
 						"tabList-semantic": "语义",
-						"tabList-link": "链接"
+						"tabList-link": "链接",
+						"tabList-landmark": "地标区域"
 					}
 				}
 			}

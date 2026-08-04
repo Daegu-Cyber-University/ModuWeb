@@ -48,7 +48,7 @@ describe('개인 옵션 팩토리 — 라디오 계열', () => {
 	// [메서드명, name 속성, 기대 값 목록, 비활성 값 목록]
 	const radioCases = [
 		['createColorThemeSettings', 'colorTheme', ['initial', 'light', 'dark', 'reverse'], []],
-		['createSaturationSettings', 'saturation', ['initial', 'low', 'high', 'monochrome'], []],
+		['createSaturationSettings', 'saturation', ['initial', 'low', 'high', 'monochrome', 'protanopia', 'deuteranopia'], []],
 		['createScreenScaleSettings', 'screenScale', ['initial', 'scale-1p2x', 'scale-1p5x', 'scale-2x'], []],
 		['createTxtAlignSettings', 'txtAlign', ['initial', 'left', 'center', 'right'], []],
 		['createReadGuideSettings', 'readGuide', ['unset', 'mask', 'underline', 'bigCursor'], []],

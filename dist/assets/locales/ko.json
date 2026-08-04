@@ -119,7 +119,9 @@
 						"initial": "기본",
 						"high": "높게",
 						"low": "낮게",
-						"monochrome": "흑백"
+						"monochrome": "흑백",
+						"protanopia": "적색약 보정",
+						"deuteranopia": "녹색약 보정"
 					}
 				},
 				"fontSize": {
@@ -325,7 +327,8 @@
 						"tabList-heading": "제목",
 						"tabList-section": "구조",
 						"tabList-semantic": "의미",
-						"tabList-link": "링크"
+						"tabList-link": "링크",
+						"tabList-landmark": "랜드마크"
 					}
 				}
 			}

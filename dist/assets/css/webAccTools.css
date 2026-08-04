@@ -155,6 +155,13 @@ mark, q, s, samp, small, span, strong, sub, sup, time, u, var):not(.designWrap):
 :root[data-saturation="monochrome"] {
 	filter: grayscale(100%);
 }
+/* 색약 보정 — JS가 주입하는 SVG feColorMatrix 필터 참조 (#wat-colorfilter-defs) */
+:root[data-saturation="protanopia"] {
+	filter: url(#wat-cb-protanopia);
+}
+:root[data-saturation="deuteranopia"] {
+	filter: url(#wat-cb-deuteranopia);
+}
 :root[data-media-mute="true"] audio, video {
 	muted: true;
 }

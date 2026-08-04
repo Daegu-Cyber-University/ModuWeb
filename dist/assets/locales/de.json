@@ -119,7 +119,9 @@
 						"initial": "Standard",
 						"high": "Hoch",
 						"low": "Niedrig",
-						"monochrome": "Monochrom"
+						"monochrome": "Monochrom",
+						"protanopia": "Protanopie-Korrektur",
+						"deuteranopia": "Deuteranopie-Korrektur"
 					}
 				},
 				"fontSize": {
@@ -325,7 +327,8 @@
 						"tabList-heading": "Überschriften",
 						"tabList-section": "Abschnitte",
 						"tabList-semantic": "Semantik",
-						"tabList-link": "Links"
+						"tabList-link": "Links",
+						"tabList-landmark": "Landmarken"
 					}
 				}
 			}
