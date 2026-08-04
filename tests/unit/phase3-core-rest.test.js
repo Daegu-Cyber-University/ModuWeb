@@ -36,6 +36,37 @@ describe('OptionsProcessor - processRatioOptions()', () => {
 	});
 });
 
+describe('OptionsProcessor - detectBrowserLanguage()', () => {
+	const supported = ['ko', 'en-US', 'en-GB', 'de', 'ja', 'zh'];
+	const originalLanguages = Object.getOwnPropertyDescriptor(Navigator.prototype, 'languages');
+
+	function mockNavigatorLanguages(languages) {
+		Object.defineProperty(navigator, 'languages', { value: languages, configurable: true });
+	}
+
+	afterEach(() => {
+		delete navigator.languages;
+		if (originalLanguages) Object.defineProperty(Navigator.prototype, 'languages', originalLanguages);
+	});
+
+	test('정확 일치를 우선한다', () => {
+		mockNavigatorLanguages(['ja', 'en-US']);
+		expect(OptionsProcessor.detectBrowserLanguage(supported)).toBe('ja');
+	});
+
+	test('지역 변형은 기본 코드로 매칭한다 (en-CA → en-US, zh-CN → zh)', () => {
+		mockNavigatorLanguages(['en-CA']);
+		expect(OptionsProcessor.detectBrowserLanguage(supported)).toBe('en-US');
+		mockNavigatorLanguages(['zh-CN']);
+		expect(OptionsProcessor.detectBrowserLanguage(supported)).toBe('zh');
+	});
+
+	test('매칭 실패 시 null을 반환한다', () => {
+		mockNavigatorLanguages(['fr-FR', 'es']);
+		expect(OptionsProcessor.detectBrowserLanguage(supported)).toBeNull();
+	});
+});
+
 describe('OptionsProcessor - processLanguageOptions()', () => {
 	const supported = ['ko', 'en-US', 'en-GB', 'de', 'ja', 'zh'];
 
@@ -167,6 +198,27 @@ describe('ConfigurationManager', () => {
 	test('지원하지 않는 저장 언어 → 기본 언어 사용', () => {
 		const cm = new ConfigurationManager({}, { language: 'fr' }, '');
 		expect(cm.getLanguage()).toBe('ko');
+	});
+
+	test('저장 언어가 없으면 브라우저 언어를 초기 언어로 사용한다', () => {
+		Object.defineProperty(navigator, 'languages', { value: ['ja'], configurable: true });
+		const cm = new ConfigurationManager({}, {}, '');
+		expect(cm.getLanguage()).toBe('ja');
+		delete navigator.languages;
+	});
+
+	test('저장 언어가 브라우저 언어보다 우선한다', () => {
+		Object.defineProperty(navigator, 'languages', { value: ['ja'], configurable: true });
+		const cm = new ConfigurationManager({}, { language: 'de' }, '');
+		expect(cm.getLanguage()).toBe('de');
+		delete navigator.languages;
+	});
+
+	test('language.autoDetect: false면 브라우저 언어를 무시한다', () => {
+		Object.defineProperty(navigator, 'languages', { value: ['ja'], configurable: true });
+		const cm = new ConfigurationManager({ language: { autoDetect: false, defaultLanguage: 'ko' } }, {}, '');
+		expect(cm.getLanguage()).toBe('ko');
+		delete navigator.languages;
 	});
 
 	test('비율 설정 객체 포함', () => {

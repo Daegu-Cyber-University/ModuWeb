@@ -782,6 +782,31 @@ var WATPlugin = (function (exports) {
 		 * @param {string} selectedLang - Currently selected/saved language
 		 * @returns {Object} Processed language configuration
 		 */
+		/**
+		 * 브라우저 언어를 지원 언어 목록에 매칭합니다 (정확 일치 → 기본 코드 일치)
+		 * @param {Array<string>} supportedLanguages - 지원 언어 목록
+		 * @returns {string|null} 매칭된 언어 코드, 없으면 null
+		 */
+		static detectBrowserLanguage(supportedLanguages) {
+			if (typeof navigator === 'undefined' || !Array.isArray(supportedLanguages)) return null;
+			const candidates = Array.isArray(navigator.languages) && navigator.languages.length
+				? navigator.languages
+				: (navigator.language ? [navigator.language] : []);
+
+			for (const raw of candidates) {
+				if (!raw) continue;
+				const lower = String(raw).toLowerCase();
+				const exact = supportedLanguages.find(lang => lang.toLowerCase() === lower);
+				if (exact) return exact;
+				// 지역 변형 매칭: 'en-CA' → 'en-US', 'zh-CN' → 'zh'
+				const base = lower.split('-')[0];
+				const baseMatch = supportedLanguages.find(lang => lang.toLowerCase() === base) ||
+					supportedLanguages.find(lang => lang.toLowerCase().split('-')[0] === base);
+				if (baseMatch) return baseMatch;
+			}
+			return null;
+		}
+
 		static processLanguageOptions(inputLang, supportedLanguages, selectedLang = 'ko') {
 			// localStorage 유래 selectedLang 검증 - 지원 언어 목록에 없으면 'ko'로 폴백
 			if (typeof selectedLang !== 'string' || !Localization.SUPPORTED_LANGUAGES.includes(selectedLang)) {
@@ -943,10 +968,17 @@ var WATPlugin = (function (exports) {
 
 				const savedLang = this.savedPrefs.language;
 				const inputLang = this.options.language;
+				// 언어 우선순위: 저장된 사용자 선택 > 브라우저 언어(autoDetect: false로 끄기 가능) > defaultLanguage
+				const autoDetectDisabled = inputLang && typeof inputLang === 'object' &&
+					!Array.isArray(inputLang) && inputLang.autoDetect === false;
+				const detectedLang = (!savedLang && !autoDetectDisabled)
+					? OptionsProcessor.detectBrowserLanguage(this.supportedLanguages)
+					: null;
+				const preferredLang = savedLang || detectedLang;
 				const langResult = OptionsProcessor.processLanguageOptions(
 					inputLang,
 					this.supportedLanguages,
-					savedLang
+					preferredLang
 				);
 
 				const isForcedLanguageMode = (
@@ -959,8 +991,8 @@ var WATPlugin = (function (exports) {
 				);
 
 				if (!isForcedLanguageMode) {
-					if (this.savedPrefs.language && langResult.options.includes(this.savedPrefs.language)) {
-						langResult.language = this.savedPrefs.language;
+					if (preferredLang && langResult.options.includes(preferredLang)) {
+						langResult.language = preferredLang;
 					} else if (langResult.defaultLanguage && langResult.options.includes(langResult.defaultLanguage)) {
 						langResult.language = langResult.defaultLanguage;
 					}

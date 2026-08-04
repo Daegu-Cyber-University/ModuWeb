@@ -38,10 +38,17 @@ export class ConfigurationManager {
 
 			const savedLang = this.savedPrefs.language;
 			const inputLang = this.options.language;
+			// 언어 우선순위: 저장된 사용자 선택 > 브라우저 언어(autoDetect: false로 끄기 가능) > defaultLanguage
+			const autoDetectDisabled = inputLang && typeof inputLang === 'object' &&
+				!Array.isArray(inputLang) && inputLang.autoDetect === false;
+			const detectedLang = (!savedLang && !autoDetectDisabled)
+				? OptionsProcessor.detectBrowserLanguage(this.supportedLanguages)
+				: null;
+			const preferredLang = savedLang || detectedLang;
 			const langResult = OptionsProcessor.processLanguageOptions(
 				inputLang,
 				this.supportedLanguages,
-				savedLang
+				preferredLang
 			);
 
 			const isForcedLanguageMode = (
@@ -54,8 +61,8 @@ export class ConfigurationManager {
 			);
 
 			if (!isForcedLanguageMode) {
-				if (this.savedPrefs.language && langResult.options.includes(this.savedPrefs.language)) {
-					langResult.language = this.savedPrefs.language;
+				if (preferredLang && langResult.options.includes(preferredLang)) {
+					langResult.language = preferredLang;
 				} else if (langResult.defaultLanguage && langResult.options.includes(langResult.defaultLanguage)) {
 					langResult.language = langResult.defaultLanguage;
 				}
