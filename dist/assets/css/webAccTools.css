@@ -476,7 +476,14 @@ body.overlay-active #pgStructure_layer		{display: flex}
 
 
 /* 배경은 불투명·기본색 명시 — 반투명이면 아래 호스트 페이지 색에 따라 대비가 비결정적이 된다 (WCAG 1.4.3) */
-#watWrap					{position: fixed; width: var(--wat-tool-width); height: calc(100vh - 20px); line-height: 2em; font-size: 16px; letter-spacing: 0; color: #333; z-index: 9999; top: 10px; right: 10px; background-color: #fff; border: 1px solid #ccc; box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15); padding: 0; overflow: hidden; transition: all 0.3s ease}
+#watWrap					{position: fixed; width: var(--wat-tool-width); height: calc(100vh - 20px); height: calc(100dvh - 20px); line-height: 2em; font-size: 16px; letter-spacing: 0; color: #333; z-index: 9999; top: 10px; right: 10px; background-color: #fff; border: 1px solid #ccc; box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15); padding: 0; overflow: hidden; transition: all 0.3s ease}
+/* 좁은 화면: 패널 폭을 뷰포트에 맞추고, 본문을 밀어내는 대신 위에 덮는다 */
+@media (max-width: 768px) {
+	:root {
+		--wat-tool-width: min(500px, calc(100vw - 20px));
+		--wat-html-padding: 0px;
+	}
+}
 html[data-wat-position="left"] #watWrap		{right: auto; left: 10px;}
 .overlay-active #watWrap			{z-index: 999}
 #wat_header					{position: relative; width: 100%; height: 50px; color: #fff; padding: 10px; background: #012AD2 linear-gradient(180deg, #012AD2 -57.14%, #019EEE 283.52%); display: flex; flex-wrap: wrap; justify-content: space-between}
@@ -736,6 +743,11 @@ html[data-wat-viewmode="icon"] #wat .setWrap.radio .setCont .opt_lists .opt_item
 html[data-wat-viewmode="icon"] #wat .personalOpt_item.fontFamily .setWrap.radio .setCont .opt_lists		{min-width: 0; white-space: normal; overflow: hidden; text-overflow: unset; align-self: center}
 html[data-wat-viewmode="icon"] #wat .personalOpt_item.fontFamily .setWrap.radio .setCont .opt_lists .opt_item.selectOn	{min-width: 0; overflow: hidden}
 html[data-wat-viewmode="icon"] #wat .personalOpt_item.fontFamily .setWrap.radio .setCont .opt_lists .opt_item.selectOn label	{display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; white-space: normal; overflow: hidden; text-overflow: ellipsis; line-height: 1.3; max-height: calc(1.3em * 2); word-break: keep-all; overflow-wrap: break-word; padding: 0 4px; box-sizing: border-box; font-size: calc(var(--wat-font-size) * 0.72)}
+/* 좁은 화면: 아이콘 그리드 3열 → 2열 (셀 폭 확보) */
+@media (max-width: 480px) {
+	html[data-wat-viewmode="icon"] #wat .personalList	{grid-template-columns: repeat(2, 1fr);}
+}
+
 /* 이전/다음 버튼 — 24px 이상 확보 (WCAG 2.5.8 대상 크기) */
 html[data-wat-viewmode="icon"] #wat .setWrap.radio .setCont .btn_chgOpt		{background-color: #B9C2F6; border: none; cursor: pointer; font-size: 0; color: transparent; margin: 0; padding: 0}
 html[data-wat-viewmode="icon"] #wat .setWrap.radio .setCont .btn_chgOpt:focus-visible	{outline: 2px solid #0D6EFD; outline-offset: 1px}
