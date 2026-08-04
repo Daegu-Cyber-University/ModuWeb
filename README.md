@@ -93,7 +93,7 @@
 ### 키보드 접근성
 - **키보드 내비게이션**: 마우스 없이 모든 기능 접근 가능
 - **포커스 표시기**: 현재 포커스된 요소 강조 표시
-- **단축키**: 빠른 기능 접근을 위한 키보드 단축키
+- **단축키**: `Alt+Shift+T`(선택 영역 낭독) / `Alt+Shift+D`(사전 검색) / `Alt+Shift+S`(음성 명령). `settings.ui.keyboardShortcuts: false`로 비활성화 가능
 
 ### 설정 관리
 - **프로필 기능**: 장애 유형별 프로필 일괄 적용
@@ -477,7 +477,8 @@ wat.init();
   "settings": {
     "ui": {
       "modalWidth": 600,
-      "showPronunciation": true
+      "showPronunciation": true,
+      "keyboardShortcuts": true
     },
     "language": {
       "defaultLanguage": "ko",
@@ -487,7 +488,7 @@ wat.init();
 }
 ```
 
-> 코드가 실제로 읽는 `config.json` 키는 `api.dictionary.enabled` / `api.dictionary.serverEndpoint` / `api.dictionary.timeout`, `resources.fonts.*`, `branding.copyrightUrl`, `settings.ui.modalWidth`, `settings.ui.showPronunciation` 입니다. 그 외 키(`api.dictionary.retryCount`, `settings.behavior.*`, `settings.accessibility.*`, `settings.ui.autoClose` 등)는 현재 소비되지 않습니다.
+> 코드가 실제로 읽는 `config.json` 키는 `api.dictionary.enabled` / `api.dictionary.serverEndpoint` / `api.dictionary.timeout`, `resources.fonts.*`, `branding.copyrightUrl`, `settings.ui.modalWidth`, `settings.ui.showPronunciation`, `settings.ui.keyboardShortcuts` 입니다. 그 외 키(`api.dictionary.retryCount`, `settings.behavior.*`, `settings.accessibility.*`, `settings.ui.autoClose` 등)는 현재 소비되지 않습니다.
 
 #### `.env` 변수 ↔ config 경로 대응표
 
