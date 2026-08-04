@@ -3446,12 +3446,56 @@ var WATPlugin = (function (exports) {
 	 *              (인스턴스 단위 오버라이드·테스트 스텁 호환).
 	 */
 
+	// 접근성 설정 키 → 적용 메서드 매핑. 프로필 적용/해제/전체 리셋이 공유한다.
+	const SETTING_APPLIERS = {
+		fontSize: 'changeFontSize',
+		fontFamily: 'changeFontFamily',
+		screenScale: 'changeScreenScale',
+		txtAlign: 'changeTextAlign',
+		letterSpacing: 'changeLetterSpacing',
+		lineHeight: 'changeLineHeight',
+		colorTheme: 'changeColorTheme',
+		saturation: 'changeSaturation',
+		readGuide: 'changeReadGuide',
+		imgDisplayMode: 'changeImgDisplayMode'
+	};
+	const SETTING_KEYS = Object.keys(SETTING_APPLIERS);
+	// 리셋 경로는 이미지 변환 재실행을 피하려고 imgDisplayMode를 dataset으로만 되돌린다
+	const RESET_METHOD_KEYS = SETTING_KEYS.filter(key => key !== 'imgDisplayMode');
+
 	class SettingsApplier {
 		/**
 		 * @param {Object} plugin - WAT 인스턴스 (change 계열 적용 메서드·상태·로케일 서비스 제공자)
 		 */
 		constructor(plugin) {
 			this.plugin = plugin;
+		}
+
+		/**
+		 * 접근성 설정 객체를 대응 change 메서드로 일괄 적용합니다 (falsy 값은 건너뜀)
+		 * @private
+		 * @param {Object} settings - 키별 설정 값
+		 * @param {Array<string>} [keys=SETTING_KEYS] - 적용할 키 목록
+		 */
+		_applySettings(settings, keys = SETTING_KEYS) {
+			keys.forEach(key => {
+				const value = settings[key];
+				if (value) { this.plugin[SETTING_APPLIERS[key]](value); }
+			});
+		}
+
+		/**
+		 * 접근성 설정은 기본값, 도구 설정(viewMode/toolPosition)은 현재값을 유지한
+		 * 설정 객체를 만듭니다 — 프로필 적용/해제·전체 리셋의 공통 기준 상태
+		 * @private
+		 * @returns {Object}
+		 */
+		_buildResetSettings() {
+			const settings = {};
+			SETTING_KEYS.forEach(key => { settings[key] = Defaults.SETTINGS[key]; });
+			settings.viewMode = document.documentElement.dataset.watViewmode || Defaults.SETTINGS.viewMode;
+			settings.toolPosition = document.documentElement.dataset.watPosition || Defaults.SETTINGS.toolPosition;
+			return settings;
 		}
 
 		/**
@@ -3486,24 +3530,7 @@ var WATPlugin = (function (exports) {
 			};
 
 			// 프로필 전환 시 접근성 설정들을 기본값으로 초기화하고 보기모드/위치는 유지
-			const currentSettings = {
-				// 접근성 설정들은 기본값으로 초기화
-				fontSize: Defaults.SETTINGS.fontSize,
-				fontFamily: Defaults.SETTINGS.fontFamily,
-				screenScale: Defaults.SETTINGS.screenScale,
-				txtAlign: Defaults.SETTINGS.txtAlign,
-				letterSpacing: Defaults.SETTINGS.letterSpacing,
-				lineHeight: Defaults.SETTINGS.lineHeight,
-				colorTheme: Defaults.SETTINGS.colorTheme,
-				saturation: Defaults.SETTINGS.saturation,
-				readGuide: Defaults.SETTINGS.readGuide,
-				imgDisplayMode: Defaults.SETTINGS.imgDisplayMode,
-				// 도구 관련 설정들은 현재 사용자 설정 유지
-				viewMode: document.documentElement.dataset.watViewmode || Defaults.SETTINGS.viewMode,
-				toolPosition: document.documentElement.dataset.watPosition || Defaults.SETTINGS.toolPosition
-			};
-
-			const effectiveSettings = { ...currentSettings };
+			const effectiveSettings = this._buildResetSettings();
 
 			const profileCheckboxs = document.querySelectorAll(`.watSet-profile-item-container[data-profile="${profileName}"] .profileListItemInput[type="checkbox"]`);
 			// ************************* Checkboxes Validation .Start *************************
@@ -3560,16 +3587,7 @@ var WATPlugin = (function (exports) {
 			// 프로필 적용 중 저장 비활성화
 			const originalSkipFlag = plugin._skipSavePreferences;
 			plugin._skipSavePreferences = true;
-			if (effectiveSettings.fontSize) { plugin.changeFontSize(effectiveSettings.fontSize); }
-			if (effectiveSettings.fontFamily) { plugin.changeFontFamily(effectiveSettings.fontFamily); }
-			if (effectiveSettings.screenScale) { plugin.changeScreenScale(effectiveSettings.screenScale); }
-			if (effectiveSettings.txtAlign) { plugin.changeTextAlign(effectiveSettings.txtAlign); }
-			if (effectiveSettings.letterSpacing) { plugin.changeLetterSpacing(effectiveSettings.letterSpacing); }
-			if (effectiveSettings.lineHeight) { plugin.changeLineHeight(effectiveSettings.lineHeight); }
-			if (effectiveSettings.colorTheme) { plugin.changeColorTheme(effectiveSettings.colorTheme); }
-			if (effectiveSettings.saturation) { plugin.changeSaturation(effectiveSettings.saturation); }
-			if (effectiveSettings.readGuide) { plugin.changeReadGuide(effectiveSettings.readGuide); }
-			if (effectiveSettings.imgDisplayMode) { plugin.changeImgDisplayMode(effectiveSettings.imgDisplayMode); }
+			this._applySettings(effectiveSettings);
 
 			// 토글형(체크박스) 설정 — 체크된 경우에만 켠다. 해제 대칭은 toggleProfile off/resetProfileSettings 담당
 			if (profileData.settings.stopAni !== undefined && profileData.enabled.stopAni) {
@@ -3662,19 +3680,9 @@ var WATPlugin = (function (exports) {
 
 			if (isOn) {
 				// 프로필을 끌 때: 접근성 설정만 기본값으로 리셋, 도구 설정은 유지
-				const defaults = Defaults.SETTINGS;
-
-				// 접근성 설정들만 기본값으로 리셋
-				plugin.changeFontSize(defaults.fontSize);
-				plugin.changeFontFamily(defaults.fontFamily);
-				plugin.changeScreenScale(defaults.screenScale);
-				plugin.changeTextAlign(defaults.txtAlign);
-				plugin.changeLetterSpacing(defaults.letterSpacing);
-				plugin.changeLineHeight(defaults.lineHeight);
-				plugin.changeColorTheme(defaults.colorTheme);
-				plugin.changeSaturation(defaults.saturation);
-				plugin.changeReadGuide(defaults.readGuide);
-				document.documentElement.dataset.imgDisplayMode = defaults.imgDisplayMode;
+				const resetSettings = this._buildResetSettings();
+				this._applySettings(resetSettings, RESET_METHOD_KEYS);
+				document.documentElement.dataset.imgDisplayMode = resetSettings.imgDisplayMode;
 
 				// 토글형·동작형 항목도 대칭으로 해제 (프로필이 켰을 수 있는 것들)
 				plugin.toggleDataAttribute('stopAni', false);
@@ -3684,23 +3692,6 @@ var WATPlugin = (function (exports) {
 				plugin.toggleMediaMute(false);
 				this._syncToggleCheckbox('mediaMute', false);
 				this._setFocusTTS(false);
-
-				// 도구 설정들은 현재 사용자 설정 유지
-				const resetSettings = {
-					fontSize: defaults.fontSize,
-					fontFamily: defaults.fontFamily,
-					screenScale: defaults.screenScale,
-					txtAlign: defaults.txtAlign,
-					letterSpacing: defaults.letterSpacing,
-					lineHeight: defaults.lineHeight,
-					colorTheme: defaults.colorTheme,
-					saturation: defaults.saturation,
-					readGuide: defaults.readGuide,
-					imgDisplayMode: defaults.imgDisplayMode,
-					// 현재 사용자 설정 유지
-					viewMode: document.documentElement.dataset.watViewmode || defaults.viewMode,
-					toolPosition: document.documentElement.dataset.watPosition || defaults.toolPosition
-				};
 
 				// UI 동기화
 				plugin._syncIndividualSettingsUI(resetSettings);
@@ -3737,44 +3728,19 @@ var WATPlugin = (function (exports) {
 		 */
 		resetWatSettings() {
 			const plugin = this.plugin;
-			const defaults = Defaults.SETTINGS;
 
-			// 접근성 설정들만 기본값으로 리셋
-			plugin.changeFontSize(defaults.fontSize);
-			plugin.changeFontFamily(defaults.fontFamily);
-			plugin.changeScreenScale(defaults.screenScale);
-			plugin.changeTextAlign(defaults.txtAlign);
-			plugin.changeLetterSpacing(defaults.letterSpacing);
-			plugin.changeLineHeight(defaults.lineHeight);
-			plugin.changeColorTheme(defaults.colorTheme);
-			plugin.changeSaturation(defaults.saturation);
-			plugin.changeReadGuide(defaults.readGuide);
+			// 접근성 설정들만 기본값으로 리셋 (도구 설정 viewMode/toolPosition은 현재 사용자 설정 유지)
+			const resetSettings = this._buildResetSettings();
+			this._applySettings(resetSettings, RESET_METHOD_KEYS);
 			// 이미지 표시 모드도 접근성 설정으로 포함
-			document.documentElement.dataset.imgDisplayMode = defaults.imgDisplayMode;
-
-			// 리셋할 설정들만 포함 (도구 설정 viewMode/toolPosition은 현재 사용자 설정 유지)
-			const resetSettings = {
-				fontSize: defaults.fontSize,
-				fontFamily: defaults.fontFamily,
-				screenScale: defaults.screenScale,
-				txtAlign: defaults.txtAlign,
-				letterSpacing: defaults.letterSpacing,
-				lineHeight: defaults.lineHeight,
-				colorTheme: defaults.colorTheme,
-				saturation: defaults.saturation,
-				readGuide: defaults.readGuide,
-				imgDisplayMode: defaults.imgDisplayMode,
-				// 현재 사용자 설정 유지
-				viewMode: document.documentElement.dataset.watViewmode || defaults.viewMode,
-				toolPosition: document.documentElement.dataset.watPosition || defaults.toolPosition
-			};
+			document.documentElement.dataset.imgDisplayMode = resetSettings.imgDisplayMode;
 
 			// 전체 리셋 후 개별 설정 UI 동기화
 			plugin._syncIndividualSettingsUI(resetSettings);
 
 			// UI 동기화를 확실하게 하기 위해 약간의 지연 후 한 번 더 실행
 			setTimeout(() => {
-				plugin._syncIndividualSettingsUI(defaults);
+				plugin._syncIndividualSettingsUI(Defaults.SETTINGS);
 			}, 50);
 		}
 
@@ -3993,21 +3959,11 @@ var WATPlugin = (function (exports) {
 			const loadedSettings = safeParseJSON(savedSettings, {});
 			const defaultSettings = Defaults.SETTINGS;
 
-			// 초기값 설정
-			const pluginSettings = {
-				fontSize: loadedSettings.fontSize || defaultSettings.fontSize,
-				fontFamily: loadedSettings.fontFamily || defaultSettings.fontFamily,
-				screenScale: loadedSettings.screenScale || defaultSettings.screenScale,
-				txtAlign: loadedSettings.txtAlign || defaultSettings.txtAlign,
-				letterSpacing: loadedSettings.letterSpacing || defaultSettings.letterSpacing,
-				lineHeight: loadedSettings.lineHeight || defaultSettings.lineHeight,
-				colorTheme: loadedSettings.colorTheme || defaultSettings.colorTheme,
-				saturation: loadedSettings.saturation || defaultSettings.saturation,
-				readGuide: loadedSettings.readGuide || defaultSettings.readGuide,
-				imgDisplayMode: loadedSettings.imgDisplayMode || defaultSettings.imgDisplayMode,
-				viewMode: loadedSettings.viewMode || defaultSettings.viewMode,
-				toolPosition: loadedSettings.toolPosition || defaultSettings.toolPosition
-			};
+			// 초기값 설정 — 저장값이 없는 키는 기본값으로 채운다
+			const pluginSettings = {};
+			[...SETTING_KEYS, 'viewMode', 'toolPosition'].forEach(key => {
+				pluginSettings[key] = loadedSettings[key] || defaultSettings[key];
+			});
 
 			const controlItems = ['viewMode', 'toolPosition'];
 
