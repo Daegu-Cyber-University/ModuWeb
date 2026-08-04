@@ -6484,7 +6484,16 @@ var WATPlugin = (function (exports) {
 	 * @module src/wat/WAT
 	 */
 
-	const WAT_DEBUG_ENABLED = false;
+	// 디버그 플래그 — ErrorHandler.debugLog 와 동일한 신호를 사용
+	// (window.WAT_DEBUG_MODE 전역 또는 sessionStorage 'WAT_DEBUG'='true' 설정 후 새로고침)
+	const WAT_DEBUG_ENABLED = (() => {
+		try {
+			return (typeof window !== 'undefined' && window.WAT_DEBUG_MODE === true) ||
+				(typeof sessionStorage !== 'undefined' && sessionStorage.getItem('WAT_DEBUG') === 'true');
+		} catch (e) {
+			return false;
+		}
+	})();
 
 	// 현재 스크립트의 기본 경로를 계산 (브라우저 환경에서만 유효)
 	const _currentScriptSrc = (typeof document !== 'undefined' && document.currentScript)
@@ -7082,7 +7091,9 @@ var WATPlugin = (function (exports) {
 					this.state.set('plugin.isInitialized', true);
 					
 					// Log successful initialization
-					if (WAT_DEBUG_ENABLED) ;
+					if (WAT_DEBUG_ENABLED) {
+						console.log('WAT plugin initialized successfully');
+					}
 					
 				} catch (error) {
 					console.error('Failed to dispatch wat:initialized event:', error);
@@ -7117,7 +7128,9 @@ var WATPlugin = (function (exports) {
 					document.dispatchEvent(stateEvent);
 					
 					// Log event dispatch in debug mode
-					if (WAT_DEBUG_ENABLED) ;
+					if (WAT_DEBUG_ENABLED) {
+						console.log(`WAT event dispatched: wat:${eventType}`, detail);
+					}
 					
 				} catch (error) {
 					console.error(`Failed to dispatch wat:${eventType} event:`, error);
@@ -7335,6 +7348,26 @@ var WATPlugin = (function (exports) {
 			 */
 			_logMemoryUsage(context = '') {
 				const stats = this._getMemoryUsageStats();
+				const contextStr = context ? ` [${context}]` : '';
+				
+				// Memory usage logging (development mode)
+				if (WAT_DEBUG_ENABLED) {
+					console.group(`[WAT] Memory Usage${contextStr}`);
+					console.log('Event Listeners:', stats.eventListeners);
+					console.log('Observers:', stats.observers);
+					console.log('Timers:', stats.timers);
+					console.log('Cache:', stats.cache);
+					console.log('Bound Handlers:', stats.boundHandlers);
+					
+					if (stats.browserMemory) {
+						console.log('Browser Memory:', {
+							used: `${(stats.browserMemory.usedJSHeapSize / 1024 / 1024).toFixed(2)} MB`,
+							total: `${(stats.browserMemory.totalJSHeapSize / 1024 / 1024).toFixed(2)} MB`,
+							limit: `${(stats.browserMemory.jsHeapSizeLimit / 1024 / 1024).toFixed(2)} MB`
+						});
+					}
+					console.groupEnd();
+				}
 
 				return stats;
 			}
@@ -7905,6 +7938,16 @@ var WATPlugin = (function (exports) {
 			_handleRadioChange(e) {
 				const target = e.target;
 				
+				if (WAT_DEBUG_ENABLED) {
+					console.log('=== Radio Change Event ===');
+					console.log('Target:', target);
+					console.log('Name:', target.name);
+					console.log('Value:', target.value);
+					console.log('Checked:', target.checked);
+					console.log('Matches wat-item-type-radio:', target.matches('.wat-item-type-radio[type="radio"]'));
+					console.log('==========================');
+				}
+				
 				if (target.matches('.wat-item-type-radio[type="radio"]')) {
 					this.setRadioListeners(target);
 				} else if (target.matches('.wat-item-type-checkbox[type="checkbox"]')) {
@@ -8186,6 +8229,7 @@ var WATPlugin = (function (exports) {
 				// 키 미존재 시 빈 문자열 반환 — null 반환 시 aria-label="null", TTS "null" 발화 등이 발생함
 				// (호출부의 `|| 폴백` 패턴은 빈 문자열에서도 동일하게 동작)
 				if (!translation) {
+					if (WAT_DEBUG_ENABLED) console.warn(`[WAT] 로케일 키 누락: ${key}`);
 					return '';
 				}
 
@@ -9302,7 +9346,9 @@ var WATPlugin = (function (exports) {
 					// ******************** Set data attribute .End   ********************
 
 					// 성공적으로 완료된 경우 디버그 로그
-					if (WAT_DEBUG_ENABLED) ;
+					if (WAT_DEBUG_ENABLED) {
+						console.log(`Radio setting applied successfully: ${attribute} = ${value}`);
+					}
 					
 				} catch (error) {
 					this._handleError('setRadioListeners', error, { targetData });
@@ -9388,16 +9434,28 @@ var WATPlugin = (function (exports) {
 				}
 				let currentIndex = -1;
 
+				if (WAT_DEBUG_ENABLED) {
+					console.log(`\n=== getRadioTargetIndex ===`);
+					console.log(`Direction: ${direction}`);
+					console.log(`Total radios: ${radios.length}`);
+				}
+
 				// Get Current Index
 				radios.forEach((radio, index) => {
 					if (radio.checked) {
 						currentIndex = index;
+						if (WAT_DEBUG_ENABLED) {
+							console.log(`Current checked radio: ${index} (value: ${radio.value})`);
+						}
 					}
 				});
 
 				// 현재 선택된 라디오가 없는 경우 첫 번째로 설정
 				if (currentIndex === -1) {
 					currentIndex = 0;
+					if (WAT_DEBUG_ENABLED) {
+						console.log(`No radio checked, defaulting to index 0`);
+					}
 				}
 
 				let targetIndex = currentIndex;
@@ -9418,6 +9476,10 @@ var WATPlugin = (function (exports) {
 					// 다음 버튼: 현재 인덱스에서 1 증가, 마지막보다 크면 첫 번째로
 					targetIndex = (currentIndex + 1) % totalRadios;
 					
+					if (WAT_DEBUG_ENABLED) {
+						console.log(`Next calculation: (${currentIndex} + 1) % ${totalRadios} = ${targetIndex}`);
+					}
+					
 					// 비활성화된 버튼 건너뛰기 (최대 전체 개수만큼 시도)
 					let attempts = 0;
 					while (radios[targetIndex] && radios[targetIndex].disabled && attempts < totalRadios) {
@@ -9429,6 +9491,16 @@ var WATPlugin = (function (exports) {
 				// 유효성 검사: 인덱스가 범위를 벗어나면 보정
 				if (targetIndex < 0 || targetIndex >= totalRadios) {
 					targetIndex = 0;
+					if (WAT_DEBUG_ENABLED) {
+						console.log(`Index out of bounds, corrected to 0`);
+					}
+				}
+
+				if (WAT_DEBUG_ENABLED) {
+					console.log(`Final result: current=${currentIndex}, target=${targetIndex}`);
+					if (radios[targetIndex]) {
+						console.log(`Target radio value: ${radios[targetIndex].value}`);
+					}
 				}
 
 				return targetIndex;
@@ -9554,7 +9626,9 @@ var WATPlugin = (function (exports) {
 
 					this._observers.set(type, observer);
 					
-					if (WAT_DEBUG_ENABLED) ;
+					if (WAT_DEBUG_ENABLED) {
+						console.log(`Observer created successfully: ${type}`);
+					}
 					
 					return observer;
 					
@@ -9585,7 +9659,9 @@ var WATPlugin = (function (exports) {
 					}
 					
 					if (!this._observers) {
-						if (WAT_DEBUG_ENABLED) ;
+						if (WAT_DEBUG_ENABLED) {
+							console.warn('No observers map found');
+						}
 						return false;
 					}
 					
@@ -9595,14 +9671,18 @@ var WATPlugin = (function (exports) {
 							observer.disconnect();
 							this._observers.delete(type);
 							
-							if (WAT_DEBUG_ENABLED) ;
+							if (WAT_DEBUG_ENABLED) {
+								console.log(`Observer disconnected successfully: ${type}`);
+							}
 							
 							return true;
 						} else {
 							throw new Error(`Observer ${type} does not have a disconnect method`);
 						}
 					} else {
-						if (WAT_DEBUG_ENABLED) ;
+						if (WAT_DEBUG_ENABLED) {
+							console.warn(`Observer not found: ${type}`);
+						}
 						return false;
 					}
 				} catch (error) {
@@ -9627,7 +9707,9 @@ var WATPlugin = (function (exports) {
 				
 				try {
 					if (!this._observers) {
-						if (WAT_DEBUG_ENABLED) ;
+						if (WAT_DEBUG_ENABLED) {
+							console.warn('No observers map found for cleanup');
+						}
 						return 0;
 					}
 					
@@ -9637,7 +9719,9 @@ var WATPlugin = (function (exports) {
 								observer.disconnect();
 								disconnectedCount++;
 								
-								if (WAT_DEBUG_ENABLED) ;
+								if (WAT_DEBUG_ENABLED) {
+									console.log(`Observer disconnected: ${type}`);
+								}
 							} else {
 								console.warn(`Invalid observer found for type: ${type}`);
 							}
@@ -9648,7 +9732,9 @@ var WATPlugin = (function (exports) {
 					
 					this._observers.clear();
 					
-					if (WAT_DEBUG_ENABLED) ;
+					if (WAT_DEBUG_ENABLED) {
+						console.log(`Successfully disconnected ${disconnectedCount} observers`);
+					}
 					
 				} catch (error) {
 					console.error('Failed to disconnect all observers:', error);
@@ -9708,6 +9794,8 @@ var WATPlugin = (function (exports) {
 				const notSelector = excludeSelectors.length > 0 ? `:not(${excludeSelectors.join('):not(')})` : '';
 				
 				const selector = `${rootSelector} *${notSelector}`;
+				
+				if (WAT_DEBUG_ENABLED) console.log('Dynamic styling selector:', selector);
 
 				// computed 스타일 객체를 재사용해 요소당 getComputedStyle 호출을 1회로 축소 (성능)
 				function getPxValue(el, prop, computed) {
@@ -9794,7 +9882,9 @@ var WATPlugin = (function (exports) {
 				try {
 					// 입력 검증
 					if (!element || !(element instanceof Element)) {
-						if (WAT_DEBUG_ENABLED) ;
+						if (WAT_DEBUG_ENABLED) {
+							console.warn('Invalid element provided to shouldExcludeElement');
+						}
 						return true; // 유효하지 않은 요소는 제외
 					}
 					
@@ -9866,7 +9956,9 @@ var WATPlugin = (function (exports) {
 						// 이미 로드된 스타일시트 확인
 						const existingLink = document.querySelector(`link[href="${path}"]`);
 						if (existingLink) {
-							if (WAT_DEBUG_ENABLED) ;
+							if (WAT_DEBUG_ENABLED) {
+								console.log(`CSS already loaded: ${path}`);
+							}
 							// 링크가 존재해도 아직 로딩 중일 수 있음 — sheet가 준비된 경우에만 즉시 성공 처리
 							if (existingLink.sheet) {
 								resolve(true);
@@ -9885,7 +9977,9 @@ var WATPlugin = (function (exports) {
 						
 						// 로드 완료 이벤트 리스너
 						link.onload = () => {
-							if (WAT_DEBUG_ENABLED) ;
+							if (WAT_DEBUG_ENABLED) {
+								console.log(`CSS loaded successfully: ${path}`);
+							}
 							resolve(true);
 						};
 						
@@ -9957,13 +10051,17 @@ var WATPlugin = (function (exports) {
 					if (targetData instanceof Element) {
 						// input 타입이 radio인지 확인
 						if (targetData.tagName.toLowerCase() !== 'input' || targetData.type !== 'radio') {
-							if (WAT_DEBUG_ENABLED) ;
+							if (WAT_DEBUG_ENABLED) {
+								console.warn('Target element is not a radio input');
+							}
 							return false;
 						}
 						
 						// name과 value 속성 확인
 						if (!targetData.name || !targetData.value) {
-							if (WAT_DEBUG_ENABLED) ;
+							if (WAT_DEBUG_ENABLED) {
+								console.warn('Radio element missing name or value attribute');
+							}
 							return false;
 						}
 						
@@ -9974,13 +10072,17 @@ var WATPlugin = (function (exports) {
 					if (typeof targetData === 'object') {
 						// name과 value 속성 확인
 						if (!targetData.name || !targetData.value) {
-							if (WAT_DEBUG_ENABLED) ;
+							if (WAT_DEBUG_ENABLED) {
+								console.warn('Radio data object missing name or value property');
+							}
 							return false;
 						}
 						
 						// 문자열 타입 확인
 						if (typeof targetData.name !== 'string' || typeof targetData.value !== 'string') {
-							if (WAT_DEBUG_ENABLED) ;
+							if (WAT_DEBUG_ENABLED) {
+								console.warn('Radio data object name and value must be strings');
+							}
 							return false;
 						}
 						
@@ -9988,7 +10090,9 @@ var WATPlugin = (function (exports) {
 					}
 					
 					// 기타 타입은 유효하지 않음
-					if (WAT_DEBUG_ENABLED) ;
+					if (WAT_DEBUG_ENABLED) {
+						console.warn('Invalid target data type:', typeof targetData);
+					}
 					return false;
 					
 				} catch (error) {
@@ -10031,7 +10135,9 @@ var WATPlugin = (function (exports) {
 					console.groupEnd();
 					
 					// 디버그 모드에서 추가 정보
-					if (WAT_DEBUG_ENABLED) ;
+					if (WAT_DEBUG_ENABLED) {
+						console.table(errorInfo);
+					}
 					
 					// 사용자에게 친화적인 피드백 (심각한 에러가 아닌 경우에만)
 					const isCriticalError = error.name === 'TypeError' || error.name === 'ReferenceError';
@@ -10258,6 +10364,7 @@ var WATPlugin = (function (exports) {
 			 * this.applyDynamicFontSize('size-2x');
 			 */
 			applyDynamicFontSize(size = 'initial') {
+				if (WAT_DEBUG_ENABLED) console.time('applyDynamicFontSize');
 				
 				// 캐시된 요소 조회
 				const elements = this._getCachedElements('wat-dyn-fontsize');
@@ -10267,6 +10374,7 @@ var WATPlugin = (function (exports) {
 					elements.forEach(el => {
 						this.styleBatchProcessor.queueStyleUpdate(el, 'font-size', null);
 					});
+					if (WAT_DEBUG_ENABLED) console.timeEnd('applyDynamicFontSize');
 					return;
 				}
 
@@ -10281,6 +10389,8 @@ var WATPlugin = (function (exports) {
 						this.styleBatchProcessor.queueStyleUpdate(el, 'font-size', newValue);
 					}
 				});
+				
+				if (WAT_DEBUG_ENABLED) console.timeEnd('applyDynamicFontSize');
 			}
 
 			/**
@@ -10298,10 +10408,16 @@ var WATPlugin = (function (exports) {
 			 */
 			changeFontFamily(font) {
 				try {
-					if (WAT_DEBUG_ENABLED) ;
+					if (WAT_DEBUG_ENABLED) {
+						console.log(`changeFontFamily called with font: ${font}`);
+					}
 					
 					if (font === 'initial') {
-						if (WAT_DEBUG_ENABLED) ;
+						if (WAT_DEBUG_ENABLED) {
+							console.log('=== INITIAL FONT PROCESSING START ===');
+							console.log('Current document.documentElement.style.fontFamily:', document.documentElement.style.fontFamily);
+							console.log('Current document.documentElement.dataset.fontFamily:', document.documentElement.dataset.fontFamily);
+						}
 						
 						// 기본 폰트로 리셋
 						document.documentElement.dataset.fontFamily = 'initial';
@@ -10310,12 +10426,17 @@ var WATPlugin = (function (exports) {
 						// 강제로 모든 상속을 제거하기 위해 CSS 변수도 초기화
 						document.documentElement.style.setProperty('--wat-font-family', '');
 						
-						if (WAT_DEBUG_ENABLED) ;
+						if (WAT_DEBUG_ENABLED) {
+							console.log('After reset - document.documentElement.style.fontFamily:', document.documentElement.style.fontFamily);
+							console.log('After reset - document.documentElement.dataset.fontFamily:', document.documentElement.dataset.fontFamily);
+						}
 						
 						// 동적 스타일링이 적용된 요소들도 초기화
 						if (this.styleMode === 'dynamic') {
 							const styledElements = document.querySelectorAll('.wat-dyn-fontfamily');
-							if (WAT_DEBUG_ENABLED) ;
+							if (WAT_DEBUG_ENABLED) {
+								console.log(`Found ${styledElements.length} dynamic font elements to reset`);
+							}
 							
 							styledElements.forEach((el, index) => {
 								// !important가 적용된 인라인 스타일도 완전히 제거
@@ -10325,12 +10446,18 @@ var WATPlugin = (function (exports) {
 									const originalStyles = this._originalStyleMap.get(el);
 									if (originalStyles['font-family']) {
 										el.style.fontFamily = originalStyles['font-family'];
-										if (WAT_DEBUG_ENABLED) ;
+										if (WAT_DEBUG_ENABLED) {
+											console.log(`Element ${index}: restored to original font: ${originalStyles['font-family']}`);
+										}
 									} else {
-										if (WAT_DEBUG_ENABLED) ;
+										if (WAT_DEBUG_ENABLED) {
+											console.log(`Element ${index}: cleared font-family (had original but was empty)`);
+										}
 									}
 								} else {
-									if (WAT_DEBUG_ENABLED) ;
+									if (WAT_DEBUG_ENABLED) {
+										console.log(`Element ${index}: no original style found, cleared font-family with removeProperty`);
+									}
 								}
 								
 								// 동적 폰트 클래스도 제거
@@ -10341,7 +10468,9 @@ var WATPlugin = (function (exports) {
 							const allApplyElements = document.querySelectorAll('.wat-apply');
 							allApplyElements.forEach((el, index) => {
 								if (el.style.fontFamily) {
-									if (WAT_DEBUG_ENABLED) ;
+									if (WAT_DEBUG_ENABLED) {
+										console.log(`Clearing font-family from wat-apply element ${index}: ${el.style.fontFamily}`);
+									}
 									// !important가 적용된 스타일도 완전히 제거
 									el.style.removeProperty('font-family');
 								}
@@ -10352,7 +10481,9 @@ var WATPlugin = (function (exports) {
 							// 실제 !important 인라인 제거는 위의 removeProperty 루프가 담당함.
 						}
 						
-						if (WAT_DEBUG_ENABLED) ;
+						if (WAT_DEBUG_ENABLED) {
+							console.log('About to call updatePersonalSettingsUI for initial font');
+						}
 						
 						this.updatePersonalSettingsUI('radio', 'fontFamily', font);
 						this.savePreferences();
@@ -10360,7 +10491,10 @@ var WATPlugin = (function (exports) {
 						// Sync Iframes
 						this.syncStyleToIframes('fontFamily', font);
 						
-						if (WAT_DEBUG_ENABLED) ;
+						if (WAT_DEBUG_ENABLED) {
+							console.log('Font family reset to initial (system default) - COMPLETE');
+							console.log('=== INITIAL FONT PROCESSING END ===');
+						}
 						
 						return;
 					}
@@ -10391,7 +10525,9 @@ var WATPlugin = (function (exports) {
 					// Sync Iframes
 					this.syncStyleToIframes('fontFamily', font);
 					
-					if (WAT_DEBUG_ENABLED) ;
+					if (WAT_DEBUG_ENABLED) {
+						console.log(`Font family changed to: ${font} (${fontConfig.label})`);
+					}
 					
 				} catch (error) {
 					this._handleError('changeFontFamily', error, { font });
@@ -10406,6 +10542,7 @@ var WATPlugin = (function (exports) {
 			 *              (모든 텍스트 요소에 효율적으로 폰트 패밀리 변경을 적용하기 위해 배치 처리를 사용합니다)
 			 */
 			applyDynamicFontFamily(font = 'initial') {
+				if (WAT_DEBUG_ENABLED) console.time('applyDynamicFontFamily');
 				
 				// 폰트 패밀리가 적용될 수 있는 모든 텍스트 요소 조회
 				const elements = this._getCachedElementsBySelector(
@@ -10431,6 +10568,8 @@ var WATPlugin = (function (exports) {
 				// 문서 전체에도 적용
 				document.documentElement.dataset.fontFamily = font;
 				document.documentElement.style.fontFamily = font === 'initial' ? '' : this.getFontFamily(font);
+
+				if (WAT_DEBUG_ENABLED) console.timeEnd('applyDynamicFontFamily');
 			}
 
 			/**
@@ -10766,6 +10905,7 @@ var WATPlugin = (function (exports) {
 			 * this.applyDynamicLineHeight('size-2x');
 			 */
 			applyDynamicLineHeight(height = 'initial') {
+				if (WAT_DEBUG_ENABLED) console.time('applyDynamicLineHeight');
 				
 				const elements = this._getCachedElements('wat-dyn-lineheight');
 				
@@ -10773,6 +10913,7 @@ var WATPlugin = (function (exports) {
 					elements.forEach(el => {
 						this.styleBatchProcessor.queueStyleUpdate(el, 'line-height', null);
 					});
+					if (WAT_DEBUG_ENABLED) console.timeEnd('applyDynamicLineHeight');
 					return;
 				}
 
@@ -10786,6 +10927,8 @@ var WATPlugin = (function (exports) {
 						this.styleBatchProcessor.queueStyleUpdate(el, 'line-height', newValue);
 					}
 				});
+				
+				if (WAT_DEBUG_ENABLED) console.timeEnd('applyDynamicLineHeight');
 			}
 
 			/**
@@ -10851,6 +10994,7 @@ var WATPlugin = (function (exports) {
 			 * this.applyDynamicTextAlign('center');
 			 */
 			applyDynamicTextAlign(align = 'initial') {
+				if (WAT_DEBUG_ENABLED) console.time('applyDynamicTextAlign');
 				
 				const elements = this._getCachedElements('wat-dyn-textalign');
 
@@ -10863,6 +11007,8 @@ var WATPlugin = (function (exports) {
 						this.styleBatchProcessor.queueStyleUpdate(el, 'text-align', align);
 					});
 			}
+
+			if (WAT_DEBUG_ENABLED) console.timeEnd('applyDynamicTextAlign');
 		}		/**
 			 * Changes the letter spacing for text elements (텍스트 요소의 자간을 변경합니다)
 			 * @param {string} spacing - Letter spacing setting key ('initial', 'wide_little', 'wide_normal', etc.) (자간 설정 키)
@@ -10905,6 +11051,7 @@ var WATPlugin = (function (exports) {
 			 * this.applyDynamicLetterSpacing('wide_normal');
 			 */
 			applyDynamicLetterSpacing(spacing = 'initial') {
+				if (WAT_DEBUG_ENABLED) console.time('applyDynamicLetterSpacing');
 				
 				const elements = this._getCachedElements('wat-dyn-letterspacing');
 				
@@ -10912,6 +11059,7 @@ var WATPlugin = (function (exports) {
 					elements.forEach(el => {
 						this.styleBatchProcessor.queueStyleUpdate(el, 'letter-spacing', null);
 					});
+					if (WAT_DEBUG_ENABLED) console.timeEnd('applyDynamicLetterSpacing');
 					return;
 				}
 
@@ -10931,6 +11079,8 @@ var WATPlugin = (function (exports) {
 					}
 					this.styleBatchProcessor.queueStyleUpdate(el, 'letter-spacing', newValue);
 				});
+				
+				if (WAT_DEBUG_ENABLED) console.timeEnd('applyDynamicLetterSpacing');
 			}
 
 			/**
@@ -11023,14 +11173,18 @@ var WATPlugin = (function (exports) {
 			 */
 			updatePersonalSettingsUI(type, key, value) {
 				try {
-					if (WAT_DEBUG_ENABLED) ;
+					if (WAT_DEBUG_ENABLED) {
+						console.log(`updatePersonalSettingsUI called: type=${type}, key=${key}, value=${value}`);
+					}
 					
 					// 옵션에서 해당 key가 꺼져 있으면 무시
 					if (!this.options || this.options[key] === false) return;
 				
 					const inputs = document.querySelectorAll(`.personalOpt_item.${key} input`);
 					if (!inputs.length) {
-						if (WAT_DEBUG_ENABLED) ;
+						if (WAT_DEBUG_ENABLED) {
+							console.warn(`No inputs found for key: ${key}`);
+						}
 						return;
 					}
 				
@@ -11041,7 +11195,9 @@ var WATPlugin = (function (exports) {
 							input.checked = isChecked;
 							if (isChecked) foundMatch = true;
 							
-							if (WAT_DEBUG_ENABLED) ;
+							if (WAT_DEBUG_ENABLED) {
+								console.log(`Radio ${index}: value=${input.value}, checked=${isChecked}, target=${value}`);
+							}
 							
 							// 라디오 버튼의 부모 요소들 상태도 업데이트
 							const parentLi = input.closest('.opt_item');
@@ -11063,7 +11219,9 @@ var WATPlugin = (function (exports) {
 							}
 						});
 						
-						if (WAT_DEBUG_ENABLED) ;
+						if (WAT_DEBUG_ENABLED) {
+							console.log(`Updated radio UI for ${key}=${value}, found match: ${foundMatch}, inputs count: ${inputs.length}`);
+						}
 						
 					} else if (type === 'checkbox') {
 						inputs.forEach(input => {

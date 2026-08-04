@@ -23,7 +23,16 @@ import { TTSManager } from '../tts/TTSManager.js';
 import { TextExtractor } from '../tts/TextExtractor.js';
 import { STTManager } from '../stt/STTManager.js';
 
-const WAT_DEBUG_ENABLED = false;
+// 디버그 플래그 — ErrorHandler.debugLog 와 동일한 신호를 사용
+// (window.WAT_DEBUG_MODE 전역 또는 sessionStorage 'WAT_DEBUG'='true' 설정 후 새로고침)
+const WAT_DEBUG_ENABLED = (() => {
+	try {
+		return (typeof window !== 'undefined' && window.WAT_DEBUG_MODE === true) ||
+			(typeof sessionStorage !== 'undefined' && sessionStorage.getItem('WAT_DEBUG') === 'true');
+	} catch (e) {
+		return false;
+	}
+})();
 
 // 현재 스크립트의 기본 경로를 계산 (브라우저 환경에서만 유효)
 const _currentScriptSrc = (typeof document !== 'undefined' && document.currentScript)
