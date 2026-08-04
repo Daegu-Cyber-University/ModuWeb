@@ -24,8 +24,15 @@
 	--wat-html-padding-left: 0;
 	--wat-html-padding-right: var(--wat-html-padding);
 }
+/* 밝게 모드 — 배경을 희게, 글자를 더 짙게 통일한 고대비 라이트 팔레트.
+   (구 brightness(1.3) 필터는 글자까지 밝아져 대비가 오히려 떨어졌음) */
 :root[data-color-theme="light"] {
-	filter: brightness(1.3);
+	--wat-color-main: #000;
+	--wat-color-sub: #333;
+	--wat-color-link: #0000ee;
+
+	--wat-bgColor-main: #fff;
+	--wat-bgColor-sub: #f0f0f0;
 }
 :root[data-color-theme="dark"] {
 	--wat-color-main: #fff;
@@ -34,47 +41,62 @@
 	--wat-color-point-tp1: #f00;
 
 	--wat-bgColor-main: #333;
-	--wat-bgColor-sub: #666;
+	--wat-bgColor-sub: #4a4a4a; /* #666은 --wat-color-sub(#ccc)와 3.6:1로 AA 미달 */
 }
-:root[data-color-theme="dark"] *:not(.designWrap) {
+/* 다크/밝게 공통 평탄화 — 팔레트만 변수로 갈린다.
+   .designWrap(호스트 페이지용 제외 탈출구)과 .wat-exclude(위젯 자신) 트리는 건드리지 않는다. */
+:root[data-color-theme="dark"] *:not(.designWrap):not(.designWrap *):not(.wat-exclude):not(.wat-exclude *),
+:root[data-color-theme="light"] *:not(.designWrap):not(.designWrap *):not(.wat-exclude):not(.wat-exclude *) {
 	background-color: var(--wat-bgColor-main) !important;
 	color: var(--wat-color-main) !important;
 }
 /* 인라인 요소에 배경을 칠하면 줄마다 배경 상자가 생겨 윗줄 글자를 덮는다.
    (pre/code처럼 여러 줄에 걸친 인라인 요소에서 텍스트가 잘려 보이는 원인)
-   부모 블록이 이미 어두우므로 투명으로 두면 색은 같고 겹침만 사라진다. */
+   부모 블록이 이미 같은 색이므로 투명으로 두면 색은 같고 겹침만 사라진다. */
 :root[data-color-theme="dark"] :is(a, abbr, b, cite, code, dfn, em, i, kbd, label,
-mark, q, s, samp, small, span, strong, sub, sup, time, u, var):not(.designWrap) {
+mark, q, s, samp, small, span, strong, sub, sup, time, u, var):not(.designWrap):not(.designWrap *):not(.wat-exclude):not(.wat-exclude *),
+:root[data-color-theme="light"] :is(a, abbr, b, cite, code, dfn, em, i, kbd, label,
+mark, q, s, samp, small, span, strong, sub, sup, time, u, var):not(.designWrap):not(.designWrap *):not(.wat-exclude):not(.wat-exclude *) {
 	background-color: transparent !important;
 }
 /* 아이콘 글리프는 ::before/::after content로 그려진다. 상속만 믿으면
    자체 color가 선언된 글리프가 배경에 묻으므로 명시적으로 함께 덮는다. */
-:root[data-color-theme="dark"] *:not(.designWrap)::before,
-:root[data-color-theme="dark"] *:not(.designWrap)::after {
+:root[data-color-theme="dark"] *:not(.designWrap):not(.designWrap *):not(.wat-exclude):not(.wat-exclude *)::before,
+:root[data-color-theme="dark"] *:not(.designWrap):not(.designWrap *):not(.wat-exclude):not(.wat-exclude *)::after,
+:root[data-color-theme="light"] *:not(.designWrap):not(.designWrap *):not(.wat-exclude):not(.wat-exclude *)::before,
+:root[data-color-theme="light"] *:not(.designWrap):not(.designWrap *):not(.wat-exclude):not(.wat-exclude *)::after {
 	color: var(--wat-color-main) !important;
 }
 /* 링크는 본문색으로 덮으면 본문과 구분이 사라진다 — 링크색을 유지한다. */
-:root[data-color-theme="dark"] a:not(.designWrap),
-:root[data-color-theme="dark"] a:not(.designWrap) *,
-:root[data-color-theme="dark"] a:not(.designWrap)::before,
-:root[data-color-theme="dark"] a:not(.designWrap)::after {
+:root[data-color-theme="dark"] a:not(.designWrap):not(.designWrap *):not(.wat-exclude):not(.wat-exclude *),
+:root[data-color-theme="dark"] a:not(.designWrap):not(.designWrap *):not(.wat-exclude):not(.wat-exclude *) *,
+:root[data-color-theme="dark"] a:not(.designWrap):not(.designWrap *):not(.wat-exclude):not(.wat-exclude *)::before,
+:root[data-color-theme="dark"] a:not(.designWrap):not(.designWrap *):not(.wat-exclude):not(.wat-exclude *)::after,
+:root[data-color-theme="light"] a:not(.designWrap):not(.designWrap *):not(.wat-exclude):not(.wat-exclude *),
+:root[data-color-theme="light"] a:not(.designWrap):not(.designWrap *):not(.wat-exclude):not(.wat-exclude *) *,
+:root[data-color-theme="light"] a:not(.designWrap):not(.designWrap *):not(.wat-exclude):not(.wat-exclude *)::before,
+:root[data-color-theme="light"] a:not(.designWrap):not(.designWrap *):not(.wat-exclude):not(.wat-exclude *)::after {
 	color: var(--wat-color-link) !important;
 }
-/* 폼 컨트롤은 배경만 어두워지면 입력값·플레이스홀더가 보이지 않는다. */
-:root[data-color-theme="dark"] input:not(.designWrap),
-:root[data-color-theme="dark"] textarea:not(.designWrap),
-:root[data-color-theme="dark"] select:not(.designWrap),
-:root[data-color-theme="dark"] button:not(.designWrap) {
+/* 폼 컨트롤은 배경만 바뀌면 입력값·플레이스홀더가 보이지 않는다. */
+:root[data-color-theme="dark"] :is(input, textarea, select, button):not(.designWrap):not(.designWrap *):not(.wat-exclude):not(.wat-exclude *),
+:root[data-color-theme="light"] :is(input, textarea, select, button):not(.designWrap):not(.designWrap *):not(.wat-exclude):not(.wat-exclude *) {
 	color: var(--wat-color-main) !important;
 }
-:root[data-color-theme="dark"] input:not(.designWrap)::placeholder,
-:root[data-color-theme="dark"] textarea:not(.designWrap)::placeholder {
+:root[data-color-theme="dark"] :is(input, textarea):not(.designWrap):not(.designWrap *):not(.wat-exclude):not(.wat-exclude *)::placeholder,
+:root[data-color-theme="light"] :is(input, textarea):not(.designWrap):not(.designWrap *):not(.wat-exclude):not(.wat-exclude *)::placeholder {
 	color: var(--wat-color-sub) !important;
 }
-:root[data-color-theme="dark"] .designWrap * {
-	background-color: inherit !important;
-}
 :root[data-color-theme="reverse"] {
+	filter: invert(1);
+}
+/* 반전 보정: 사진·영상 등 미디어는 재반전해 원본 색을 유지한다 */
+:root[data-color-theme="reverse"] :is(img, picture, video, canvas, iframe, embed, object):not(.designWrap *):not(.wat-exclude *) {
+	filter: invert(1);
+}
+/* 반전 보정: 위젯 UI는 설계된 모습을 유지한다 (fixed 요소 자신에게만 적용 —
+   부모 컨테이너에 filter를 걸면 fixed 자손의 기준이 바뀌므로 금지) */
+:root[data-color-theme="reverse"] :is(#watWrap, #wat_btnOpenWrap, .wat-user-feedback, #pgStructure_layer, .wat-diction-result-layer, .wat-voice-status) {
 	filter: invert(1);
 }
 :root[data-font-size="size-1p2x"] {

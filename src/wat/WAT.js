@@ -2220,7 +2220,7 @@ export class WAT {
 		 */
 		_createOpenButton() {
 			// 열기 버튼 생성
-			const openButtonWrapElement = this.createElementWithAttrs('div', { id: 'wat_btnOpenWrap' });
+			const openButtonWrapElement = this.createElementWithAttrs('div', { id: 'wat_btnOpenWrap', class: 'wat-exclude' });
 			const openButtonElement = this.createElementWithAttrs('button', { 
 				id: 'wat_btnOpen', 
 				class: 'btn_open', 
@@ -3729,7 +3729,7 @@ export class WAT {
 				}
 
 				const feedback = document.createElement('div');
-				feedback.className = `wat-user-feedback wat-feedback-${type}`;
+				feedback.className = `wat-user-feedback wat-feedback-${type} wat-exclude`;
 				if (extraClass) {
 					feedback.classList.add(...extraClass.split(' ').filter(Boolean));
 				}
@@ -4914,8 +4914,8 @@ export class WAT {
 		 * this.createReadingMask();
 		 */
 		createReadingMask() {
-				const topMask = this.createElementWithClass('div', ['wat-reading-guide', 'reading-mask-top']);
-				const bottomMask = this.createElementWithClass('div', ['wat-reading-guide', 'reading-mask-bottom']);
+				const topMask = this.createElementWithClass('div', ['wat-reading-guide', 'reading-mask-top', 'wat-exclude']);
+				const bottomMask = this.createElementWithClass('div', ['wat-reading-guide', 'reading-mask-bottom', 'wat-exclude']);
 				document.body.appendChild(topMask);
 				document.body.appendChild(bottomMask);
 		}
@@ -4930,7 +4930,7 @@ export class WAT {
 		 * this.createReadingLine();
 		 */
 		createReadingLine() {
-				const line = this.createElementWithClass('div', ['wat-reading-guide', 'reading-line']);
+				const line = this.createElementWithClass('div', ['wat-reading-guide', 'reading-line', 'wat-exclude']);
 				document.body.appendChild(line);
 		}
 

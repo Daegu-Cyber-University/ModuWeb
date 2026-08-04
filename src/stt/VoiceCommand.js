@@ -97,7 +97,7 @@ export class VoiceCommand {
 
 		this.statusDisplay = document.createElement('div');
 		this.statusDisplay.id = 'wat-voice-status';
-		this.statusDisplay.className = 'wat-voice-status';
+		this.statusDisplay.className = 'wat-voice-status wat-exclude';
 		// 스크린 리더가 상태 변화를 자동으로 읽을 수 있도록 라이브 영역으로 지정
 		this.statusDisplay.setAttribute('role', 'status');
 		this.statusDisplay.setAttribute('aria-live', 'polite');

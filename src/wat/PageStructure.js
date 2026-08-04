@@ -30,13 +30,13 @@ export class PageStructure {
 
 		// 오버레이 생성 및 추가 — 호스트 페이지의 .overlay와 구분되도록 플러그인 클래스 병기
 		const overlay = document.createElement('div');
-		overlay.classList.add('overlay', 'wat-overlay');
+		overlay.classList.add('overlay', 'wat-overlay', 'wat-exclude');
 		fragment.appendChild(overlay);
 
 		// 모달 레이어 생성
 		const layer = document.createElement('div');
 		layer.id = 'pgStructure_layer';
-		layer.classList.add('page-structure-layer');
+		layer.classList.add('page-structure-layer', 'wat-exclude');
 		layer.setAttribute('role', 'dialog');
 		layer.setAttribute('aria-modal', 'true');
 		layer.setAttribute('aria-labelledby', 'page-structure-title');

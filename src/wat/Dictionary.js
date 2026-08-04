@@ -254,12 +254,12 @@ export class Dictionary {
 		// 본문 중간(선택 텍스트 위치)에서 열리는 사전 모달에는 사용하지 않는다 — CSS의
 		// .wat-diction-overlay 규칙이 body 클래스 없이도 오버레이를 표시한다
 		const overlay = document.createElement('div');
-		overlay.classList.add('overlay', 'wat-overlay', 'wat-diction-overlay');
+		overlay.classList.add('overlay', 'wat-overlay', 'wat-diction-overlay', 'wat-exclude');
 		document.body.appendChild(overlay);
 
 		// 새로운 레이어 생성
 		const layer = document.createElement('div');
-		layer.classList.add('wat-diction-result-layer');
+		layer.classList.add('wat-diction-result-layer', 'wat-exclude');
 		layer.setAttribute('role', 'dialog');
 		layer.setAttribute('aria-modal', 'true'); // 모달임을 명시 (배경과 분리, WCAG 4.1.2)
 		layer.setAttribute('aria-labelledby', 'diction-result-title');

@@ -2168,12 +2168,12 @@ var WATPlugin = (function (exports) {
 			// 본문 중간(선택 텍스트 위치)에서 열리는 사전 모달에는 사용하지 않는다 — CSS의
 			// .wat-diction-overlay 규칙이 body 클래스 없이도 오버레이를 표시한다
 			const overlay = document.createElement('div');
-			overlay.classList.add('overlay', 'wat-overlay', 'wat-diction-overlay');
+			overlay.classList.add('overlay', 'wat-overlay', 'wat-diction-overlay', 'wat-exclude');
 			document.body.appendChild(overlay);
 
 			// 새로운 레이어 생성
 			const layer = document.createElement('div');
-			layer.classList.add('wat-diction-result-layer');
+			layer.classList.add('wat-diction-result-layer', 'wat-exclude');
 			layer.setAttribute('role', 'dialog');
 			layer.setAttribute('aria-modal', 'true'); // 모달임을 명시 (배경과 분리, WCAG 4.1.2)
 			layer.setAttribute('aria-labelledby', 'diction-result-title');
@@ -2437,13 +2437,13 @@ var WATPlugin = (function (exports) {
 
 			// 오버레이 생성 및 추가 — 호스트 페이지의 .overlay와 구분되도록 플러그인 클래스 병기
 			const overlay = document.createElement('div');
-			overlay.classList.add('overlay', 'wat-overlay');
+			overlay.classList.add('overlay', 'wat-overlay', 'wat-exclude');
 			fragment.appendChild(overlay);
 
 			// 모달 레이어 생성
 			const layer = document.createElement('div');
 			layer.id = 'pgStructure_layer';
-			layer.classList.add('page-structure-layer');
+			layer.classList.add('page-structure-layer', 'wat-exclude');
 			layer.setAttribute('role', 'dialog');
 			layer.setAttribute('aria-modal', 'true');
 			layer.setAttribute('aria-labelledby', 'page-structure-title');
@@ -5843,7 +5843,7 @@ var WATPlugin = (function (exports) {
 
 			this.statusDisplay = document.createElement('div');
 			this.statusDisplay.id = 'wat-voice-status';
-			this.statusDisplay.className = 'wat-voice-status';
+			this.statusDisplay.className = 'wat-voice-status wat-exclude';
 			// 스크린 리더가 상태 변화를 자동으로 읽을 수 있도록 라이브 영역으로 지정
 			this.statusDisplay.setAttribute('role', 'status');
 			this.statusDisplay.setAttribute('aria-live', 'polite');
@@ -8695,7 +8695,7 @@ var WATPlugin = (function (exports) {
 			 */
 			_createOpenButton() {
 				// 열기 버튼 생성
-				const openButtonWrapElement = this.createElementWithAttrs('div', { id: 'wat_btnOpenWrap' });
+				const openButtonWrapElement = this.createElementWithAttrs('div', { id: 'wat_btnOpenWrap', class: 'wat-exclude' });
 				const openButtonElement = this.createElementWithAttrs('button', { 
 					id: 'wat_btnOpen', 
 					class: 'btn_open', 
@@ -10204,7 +10204,7 @@ var WATPlugin = (function (exports) {
 					}
 
 					const feedback = document.createElement('div');
-					feedback.className = `wat-user-feedback wat-feedback-${type}`;
+					feedback.className = `wat-user-feedback wat-feedback-${type} wat-exclude`;
 					if (extraClass) {
 						feedback.classList.add(...extraClass.split(' ').filter(Boolean));
 					}
@@ -11389,8 +11389,8 @@ var WATPlugin = (function (exports) {
 			 * this.createReadingMask();
 			 */
 			createReadingMask() {
-					const topMask = this.createElementWithClass('div', ['wat-reading-guide', 'reading-mask-top']);
-					const bottomMask = this.createElementWithClass('div', ['wat-reading-guide', 'reading-mask-bottom']);
+					const topMask = this.createElementWithClass('div', ['wat-reading-guide', 'reading-mask-top', 'wat-exclude']);
+					const bottomMask = this.createElementWithClass('div', ['wat-reading-guide', 'reading-mask-bottom', 'wat-exclude']);
 					document.body.appendChild(topMask);
 					document.body.appendChild(bottomMask);
 			}
@@ -11405,7 +11405,7 @@ var WATPlugin = (function (exports) {
 			 * this.createReadingLine();
 			 */
 			createReadingLine() {
-					const line = this.createElementWithClass('div', ['wat-reading-guide', 'reading-line']);
+					const line = this.createElementWithClass('div', ['wat-reading-guide', 'reading-line', 'wat-exclude']);
 					document.body.appendChild(line);
 			}
 
