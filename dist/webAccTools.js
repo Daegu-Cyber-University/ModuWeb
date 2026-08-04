@@ -23,16 +23,6 @@ var WATPlugin = (function (exports) {
 			PANEL_STATE: 'watPanelState'
 		};
 
-		static SELECTORS = {
-			CONTAINER: '#watContainer',
-			MAIN_PANEL: '.watMainPnl',
-			SUB_PANEL: '.watSubPnl',
-			OVERLAY: '.wat-overlay',
-			SETTINGS_PANEL: '#watSettingsPnl',
-			LANG_PANEL: '#watLangPnl',
-			PROFILE_PANEL: '#watProfilePnl'
-		};
-
 		static ELEMENT_IDS = {
 			LANGUAGE_SETTING_WRAP: 'watSetWrap_language',
 			PANEL_SET: 'wat_panel_Set',
@@ -48,19 +38,11 @@ var WATPlugin = (function (exports) {
 		};
 
 		static CSS_CLASSES = {
-			APPLY: 'wat-apply',
 			ACTIVE: 'active',
-			SELECTED: 'selected',
-			HIDDEN: 'wat-hidden',
-			HIGHLIGHT: 'wat-highlight',
-			FOCUS_OUTLINE: 'wat-focus-outline',
-			READ_GUIDE: 'wat-read-guide'
+			SELECTED: 'selected'
 		};
 
 		static TIMING = {
-			ANIMATION_DURATION: 300,
-			DEBOUNCE_DELAY: 250,
-			AUTO_HIDE_DELAY: 5000,
 			SCROLL_STEP: 300,
 			NOTIFICATION_DURATION: 3000
 		};
@@ -68,7 +50,6 @@ var WATPlugin = (function (exports) {
 		static PERFORMANCE = {
 			BATCH_SIZE: 50,
 			CACHE_MAX_AGE: 5000,
-			DEV_TOOLS_THRESHOLD: 160,
 			BASE_WIDTH: 500
 		};
 
@@ -1263,15 +1244,6 @@ var WATPlugin = (function (exports) {
 		 */
 		getState() {
 			return JSON.parse(JSON.stringify(this._state));
-		}
-
-		/**
-		 * Validates state structure
-		 * @param {Object} schema - Validation schema
-		 * @returns {boolean} Whether state is valid
-		 */
-		validate(schema) {
-			return true;
 		}
 
 		/**
@@ -3638,8 +3610,7 @@ var WATPlugin = (function (exports) {
 
 			localStorage.setItem(Constants.STORAGE_KEYS.SELECTED_PROFILE, JSON.stringify({
 				profileName: profileName,
-				enabledSettings: profileData.enabled,
-				appliedSesttings: effectiveSettings
+				enabledSettings: profileData.enabled
 			}));
 		}
 
@@ -7367,91 +7338,6 @@ var WATPlugin = (function (exports) {
 
 				return stats;
 			}
-
-			/**
-			 * Performs memory leak detection check (메모리 누수 감지 검사를 수행합니다)
-			 * @returns {Object} Detection results (감지 결과)
-			 * @description Analyzes tracked resources for potential memory leaks
-			 * @private
-			 */
-			_detectMemoryLeaks() {
-				const stats = this._getMemoryUsageStats();
-				const issues = [];
-
-				// Check for excessive event listeners
-				if (stats.eventListeners.total > 100) {
-					issues.push({
-						type: 'excessive_event_listeners',
-						count: stats.eventListeners.total,
-						severity: 'medium'
-					});
-				}
-
-				// Check for unclosed timers
-				if (stats.timers.total > 20) {
-					issues.push({
-						type: 'excessive_timers',
-						count: stats.timers.total,
-						severity: 'high'
-					});
-				}
-
-				// Check for large cache
-				if (stats.cache.sizeBytes > 1024 * 1024) { // 1MB
-					issues.push({
-						type: 'large_cache',
-						sizeBytes: stats.cache.sizeBytes,
-						sizeMB: (stats.cache.sizeBytes / 1024 / 1024).toFixed(2),
-						severity: 'medium'
-					});
-				}
-
-				// Check browser memory if available
-				if (stats.browserMemory) {
-					const memoryUsagePercent = (stats.browserMemory.usedJSHeapSize / stats.browserMemory.jsHeapSizeLimit) * 100;
-					if (memoryUsagePercent > 80) {
-						issues.push({
-							type: 'high_memory_usage',
-							percentage: memoryUsagePercent.toFixed(2),
-							severity: 'high'
-						});
-					}
-				}
-
-				if (issues.length > 0) {
-					console.warn('[WAT] Potential memory leaks detected:', issues);
-				}
-
-				return {
-					issues,
-					stats,
-					hasLeaks: issues.length > 0
-				};
-			}
-
-			/**
-			 * Migrates storage keys from legacy format to new format (레거시 형식에서 새 형식으로 스토리지 키를 마이그레이션합니다)
-			 * 
-			 * @private
-			 * @since 2025-07-01
-			 * @author Jo Yongcheol
-			 */
-			_migrateStorageKeys() {
-				const { STORAGE_KEYS } = Constants;
-				
-				// Migrate settings from legacy key to new key
-				const legacySettings = localStorage.getItem(STORAGE_KEYS.LEGACY_SETTINGS);
-				if (legacySettings && !localStorage.getItem(STORAGE_KEYS.SETTINGS)) {
-					localStorage.setItem(STORAGE_KEYS.SETTINGS, legacySettings);
-				}
-				
-				// Migrate container from legacy key to new key
-				const legacyContainer = localStorage.getItem(STORAGE_KEYS.LEGACY_CONTAINER);
-				if (legacyContainer && !localStorage.getItem(STORAGE_KEYS.CONTAINER)) {
-					localStorage.setItem(STORAGE_KEYS.CONTAINER, legacyContainer);
-				}
-			}
-
 
 			/**
 			 * Gets cached elements by class name with optional cache control
@@ -12532,24 +12418,6 @@ var WATPlugin = (function (exports) {
 			}
 
 			/**
-			 * Detects if browser developer tools are open (브라우저 개발자 도구가 열려있는지 감지합니다)
-			 * @returns {boolean} True if developer tools are likely open, false otherwise (개발자 도구가 열려있을 가능성이 높으면 true, 그렇지 않으면 false)
-			 * @description Uses window size differences to detect developer tools, with configurable threshold
-			 *              (창 크기 차이를 사용하여 개발자 도구를 감지하며, 설정 가능한 임계값 사용)
-			 * @example
-			 * // Check if dev tools are open (개발자 도구가 열려있는지 확인)
-			 * if (this._isDevToolsOpen()) {
-			 *   console.log('Developer tools detected');
-			 * }
-			 * @private
-			 */
-			_isDevToolsOpen() {
-				const threshold = Constants.PERFORMANCE.DEV_TOOLS_THRESHOLD;
-				return window.outerHeight - window.innerHeight > threshold || 
-					window.outerWidth - window.innerWidth > threshold;
-			}
-
-			/**
 			 * Cleans up DOM elements created by the plugin (플러그인에 의해 생성된 DOM 요소들을 정리합니다)
 			 * @returns {void}
 			 * @description Removes all dynamically created elements like notifications, layers, guides, and temporary styling elements
@@ -12606,107 +12474,6 @@ var WATPlugin = (function (exports) {
 			}
 
 			/**
-			 * Validates if an element exists and is valid
-			 * @param {HTMLElement|string} element - Element or selector to validate
-			 * @param {string} context - Context for error messages
-			 * @returns {HTMLElement|null} Valid element or null
-			 * @private
-			 */
-			_validateElement(element, context = 'element validation') {
-				if (typeof element === 'string') {
-					const found = document.querySelector(element);
-					if (!found) {
-						this._log('warn', `Element not found in ${context}: ${element}`);
-						return null;
-					}
-					return found;
-				}
-				
-				if (!(element instanceof HTMLElement)) {
-					this._log('warn', `Invalid element in ${context}`, element);
-					return null;
-				}
-				
-				return element;
-			}
-
-			/**
-			 * Debounced function execution
-			 * @param {Function} func - Function to debounce
-			 * @param {number} delay - Delay in milliseconds
-			 * @returns {Function} Debounced function
-			 * @private
-			 */
-			_debounce(func, delay = Constants.TIMING.DEBOUNCE_DELAY) {
-				let timeoutId;
-				return (...args) => {
-					if (timeoutId) {
-						this._clearTimeout(timeoutId);
-					}
-					timeoutId = this._setTimeout(() => func.apply(this, args), delay);
-				};
-			}
-
-			/**
-			 * Throttled function execution
-			 * @param {Function} func - Function to throttle
-			 * @param {number} limit - Time limit in milliseconds
-			 * @returns {Function} Throttled function
-			 * @private
-			 */
-			_throttle(func, limit = Constants.TIMING.DEBOUNCE_DELAY) {
-				let inThrottle;
-				return (...args) => {
-					if (!inThrottle) {
-						func.apply(this, args);
-						inThrottle = true;
-						this._setTimeout(() => inThrottle = false, limit);
-					}
-				};
-			}
-
-			/**
-			 * Creates multiple elements with attributes in batch
-			 * @param {Array} elementsConfig - Array of element configurations
-			 * @returns {Array} Array of created elements
-			 * @private
-			 */
-			_createElementsBatch(elementsConfig) {
-				return elementsConfig.map(config => {
-					const { tag, attrs, content, parent } = config;
-					const element = this.createElementWithAttrs(tag, attrs);
-					
-					if (content) {
-						element.textContent = content;
-					}
-					
-					if (parent && parent instanceof HTMLElement) {
-						parent.appendChild(element);
-					}
-					
-					return element;
-				});
-			}
-
-			/**
-			 * Safely removes event listeners
-			 * @param {HTMLElement} element - Element to remove listeners from
-			 * @param {Object} listeners - Object containing event type and handler pairs
-			 * @private
-			 */
-			_removeEventListenersSafe(element, listeners) {
-				if (!element || !listeners) return;
-				
-				Object.entries(listeners).forEach(([eventType, handler]) => {
-					try {
-						element.removeEventListener(eventType, handler);
-					} catch (error) {
-						console.warn(`[WAT] Error removing ${eventType} listener:`, error);
-					}
-				});
-			}
-
-			/**
 			 * Centralized logging utility
 			 * @param {string} level - Log level ('error', 'warn', 'info', 'debug')
 			 * @param {string} message - Log message
@@ -12723,61 +12490,6 @@ var WATPlugin = (function (exports) {
 					logMethod(`${prefix} ${message}`);
 				}
 			}
-
-			// ErrorHandler Usage Examples
-			
-			/*
-			// Example 1: Basic error handling
-			ErrorHandler.handle(new Error('Something went wrong'), {
-				category: ErrorHandler.CATEGORIES.DOM_OPERATION,
-				severity: ErrorHandler.SEVERITY.ERROR,
-				method: 'exampleMethod',
-				component: 'ExampleComponent'
-			});
-
-			// Example 2: Safe execution with fallback
-			const result = ErrorHandler.safeExecute(() => {
-				// Risky operation
-				return document.querySelector('#risky-element').value;
-			}, {
-				category: ErrorHandler.CATEGORIES.DOM_OPERATION,
-				severity: ErrorHandler.SEVERITY.WARNING,
-				method: 'getRiskyValue',
-				component: 'ExampleComponent'
-			}, 'default-value'); // fallback return value
-
-			// Example 3: Async safe execution
-			const asyncResult = await ErrorHandler.safeExecuteAsync(async () => {
-				// Async risky operation
-				const response = await fetch('/api/data');
-				return response.json();
-			}, {
-				category: ErrorHandler.CATEGORIES.NETWORK,
-				severity: ErrorHandler.SEVERITY.ERROR,
-				method: 'fetchData',
-				component: 'APIClient'
-			}, {}); // fallback return value
-
-			// Example 4: Custom recovery strategy
-			ErrorHandler.handle(error, {
-				category: ErrorHandler.CATEGORIES.STATE_MANAGEMENT,
-				severity: ErrorHandler.SEVERITY.WARNING,
-				method: 'updateState',
-				component: 'StateManager',
-				recovery: (errorInfo) => {
-					// Custom recovery logic
-					console.log('Recovering from state error:', errorInfo);
-					// Reset state or perform recovery actions
-					return { recovered: true };
-				}
-			});
-
-			// Example 5: Get error metrics
-			const metrics = ErrorHandler.getMetrics();
-			console.log('Total errors:', metrics.total);
-			console.log('Errors by category:', metrics.byCategory);
-			console.log('Recent errors:', metrics.recent);
-			*/
 
 			/**
 			 * TTS 속도 설정

@@ -962,27 +962,6 @@ html[data-wat-viewmode="icon"] #wat .setWrap.radio .setCont .btn_chgOpt.next::be
 	}
 }
 
-/* 알림 타입별 스타일 */
-.wat-notification.success {
-	background: #4caf50 !important;
-	border-left: 4px solid #2e7d32 !important;
-}
-
-.wat-notification.warning {
-	background: #ff9800 !important;
-	border-left: 4px solid #f57c00 !important;
-}
-
-.wat-notification.error {
-	background: #f44336 !important;
-	border-left: 4px solid #d32f2f !important;
-}
-
-.wat-notification.info {
-	background: #2196f3 !important;
-	border-left: 4px solid #1976d2 !important;
-}
-
 /* TTS 컨트롤 그룹 */
 .wat-tts-controls {
 	display: flex !important;

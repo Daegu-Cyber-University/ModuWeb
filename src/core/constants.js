@@ -14,16 +14,6 @@ export class Constants {
 		PANEL_STATE: 'watPanelState'
 	};
 
-	static SELECTORS = {
-		CONTAINER: '#watContainer',
-		MAIN_PANEL: '.watMainPnl',
-		SUB_PANEL: '.watSubPnl',
-		OVERLAY: '.wat-overlay',
-		SETTINGS_PANEL: '#watSettingsPnl',
-		LANG_PANEL: '#watLangPnl',
-		PROFILE_PANEL: '#watProfilePnl'
-	};
-
 	static ELEMENT_IDS = {
 		LANGUAGE_SETTING_WRAP: 'watSetWrap_language',
 		PANEL_SET: 'wat_panel_Set',
@@ -39,19 +29,11 @@ export class Constants {
 	};
 
 	static CSS_CLASSES = {
-		APPLY: 'wat-apply',
 		ACTIVE: 'active',
-		SELECTED: 'selected',
-		HIDDEN: 'wat-hidden',
-		HIGHLIGHT: 'wat-highlight',
-		FOCUS_OUTLINE: 'wat-focus-outline',
-		READ_GUIDE: 'wat-read-guide'
+		SELECTED: 'selected'
 	};
 
 	static TIMING = {
-		ANIMATION_DURATION: 300,
-		DEBOUNCE_DELAY: 250,
-		AUTO_HIDE_DELAY: 5000,
 		SCROLL_STEP: 300,
 		NOTIFICATION_DURATION: 3000
 	};
@@ -59,7 +41,6 @@ export class Constants {
 	static PERFORMANCE = {
 		BATCH_SIZE: 50,
 		CACHE_MAX_AGE: 5000,
-		DEV_TOOLS_THRESHOLD: 160,
 		BASE_WIDTH: 500
 	};
 

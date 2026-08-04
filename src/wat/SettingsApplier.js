@@ -175,8 +175,7 @@ export class SettingsApplier {
 
 		localStorage.setItem(Constants.STORAGE_KEYS.SELECTED_PROFILE, JSON.stringify({
 			profileName: profileName,
-			enabledSettings: profileData.enabled,
-			appliedSesttings: effectiveSettings
+			enabledSettings: profileData.enabled
 		}));
 	}
 

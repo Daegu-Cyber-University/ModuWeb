@@ -195,15 +195,6 @@ export class StateManager {
 	}
 
 	/**
-	 * Validates state structure
-	 * @param {Object} schema - Validation schema
-	 * @returns {boolean} Whether state is valid
-	 */
-	validate(schema) {
-		return true;
-	}
-
-	/**
 	 * Resets state to initial values
 	 * @param {Object} newInitialState - New initial state
 	 */

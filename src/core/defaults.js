@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @fileoverview WAT 기본값 정의
  * @module src/core/defaults
  */
