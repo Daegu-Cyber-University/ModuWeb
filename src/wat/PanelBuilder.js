@@ -40,7 +40,7 @@ const OPTION_DEFS = {
 	letterSpacing: { type: 'radio', ratios: true },
 	lineHeight: { type: 'radio', ratios: true },
 	colorTheme: { type: 'radio', group: 'colorMode', items: [
-		{ value: 'initial' }, { value: 'light' }, { value: 'dark', disabled: true }, { value: 'reverse' }
+		{ value: 'initial' }, { value: 'light' }, { value: 'dark' }, { value: 'reverse' }
 	] },
 	saturation: { type: 'radio', items: [
 		{ value: 'initial' }, { value: 'low' }, { value: 'high' }, { value: 'monochrome' }
