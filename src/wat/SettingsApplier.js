@@ -97,7 +97,7 @@ export class SettingsApplier {
 	 * @returns {string|null} 선택된 프로필명 또는 선택된 것이 없으면 null
 	 */
 	getSelectedProfileName() {
-		const activeButton = document.querySelector('.watSet-item-container.profile-container .profileToggle[aria-pressed="true"]');
+		const activeButton = document.querySelector('.watSet-item-container.profile-container .profileToggle[aria-checked="true"]');
 		if (activeButton) {
 			return activeButton.getAttribute('data-profile') || activeButton.textContent.trim();
 		}
@@ -156,7 +156,7 @@ export class SettingsApplier {
 				} else {
 					profileToggle.textContent = plugin.getLocalizedText('tags.button.text.on');
 				}
-				profileToggle.setAttribute('aria-pressed', 'false');
+				profileToggle.setAttribute('aria-checked', 'false');
 			}
 			return;
 		}
@@ -266,11 +266,11 @@ export class SettingsApplier {
 	 */
 	toggleProfile(profile, targetToggle) {
 		const plugin = this.plugin;
-		const isOn = targetToggle.getAttribute('aria-pressed') === 'true';
+		const isOn = targetToggle.getAttribute('aria-checked') === 'true';
 		const siblingToggles = Array.from(targetToggle.closest('.watSet-item-container.profile-container').querySelectorAll('.profileToggle')).filter(toggle => toggle !== targetToggle);
 		const targetLabel = targetToggle.querySelector('.watSet-button-label');
 		targetLabel.textContent = isOn ? plugin.getLocalizedText('tags.button.text.stateOff') : plugin.getLocalizedText('tags.button.text.stateOn');
-		targetToggle.setAttribute('aria-pressed', isOn ? 'false' : 'true');
+		targetToggle.setAttribute('aria-checked', isOn ? 'false' : 'true');
 
 		if (isOn) {
 			// 프로필을 끌 때: 접근성 설정만 기본값으로 리셋, 도구 설정은 유지
@@ -310,7 +310,7 @@ export class SettingsApplier {
 		siblingToggles.forEach(toggle => {
 			const siblingLabel = toggle.querySelector('.watSet-button-label');
 			siblingLabel.textContent = plugin.getLocalizedText('tags.button.text.stateOff');
-			toggle.setAttribute('aria-pressed', 'false');
+			toggle.setAttribute('aria-checked', 'false');
 			toggle.classList.remove(Constants.CSS_CLASSES.ACTIVE);
 		});
 	}
@@ -691,7 +691,7 @@ export class SettingsApplier {
 
 		const toggle = container.querySelector('.profileToggle');
 		if (toggle) {
-			toggle.setAttribute('aria-pressed', 'true');
+			toggle.setAttribute('aria-checked', 'true');
 			toggle.classList.add(Constants.CSS_CLASSES.ACTIVE);
 			const label = toggle.querySelector('.watSet-button-label');
 			if (label) label.textContent = plugin.getLocalizedText('tags.button.text.stateOn');

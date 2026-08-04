@@ -380,23 +380,25 @@ export class PanelBuilder {
 			const profileItemElement = plugin.createElementWithAttrs('li', { class: 'profileItem' });
 			const profileItemContainerElement = plugin.createElementWithAttrs('fieldset', { class: 'watSet-profile-item-container', 'data-profile': profile });
 			const profileItemTitleElement = plugin.createElementWithAttrs('legend', { class: ['watSet-profile-title', 'profileItemTitle'] });
-			const profileItemTitleLabelElement = plugin.createElementWithAttrs('label', { class: ['watSet-label', 'watSet-profile-title-label', `${profile}`], for: `watSet_profile_button_toggle_${profile}` });
+			const profileItemTitleLabelElement = plugin.createElementWithAttrs('label', { id: `watSet_profile_title_label_${profile}`, class: ['watSet-label', 'watSet-profile-title-label', `${profile}`], for: `watSet_profile_button_toggle_${profile}` });
 			const profileTitleText = plugin.getLocalizedText(`panel.settings.profile.options.${profile}.title`);
 			profileItemTitleLabelElement.textContent = profileTitleText;
 			profileItemTitleElement.appendChild(profileItemTitleLabelElement);
 
 			// ***** Button - Profile Options .Start *****
-			const profileOptionsToggleButtonElement = plugin.createElementWithAttrs('button', { class: ['watSet-button', 'watSet-profile-button-accordion', 'btnType_1'], role: 'switch', 'aria-pressed': 'false', title: `${profileTitleText} ${plugin.getLocalizedText('tags.button.attr.type.option')}`, 'aria-labelledby': `watSet_profile_Opts_Label_${profile}` });
+			// 옵션 열기/닫기는 disclosure 패턴 — aria-expanded + aria-controls,
+			// 접근명은 "프로필명 + 옵션 열기"가 되도록 제목 라벨을 함께 참조
+			const profileOptionsToggleButtonElement = plugin.createElementWithAttrs('button', { class: ['watSet-button', 'watSet-profile-button-accordion', 'btnType_1'], 'aria-expanded': 'false', 'aria-controls': `watSet_profile_items_wrap_${profile}`, title: `${profileTitleText} ${plugin.getLocalizedText('tags.button.attr.type.option')}`, 'aria-labelledby': `watSet_profile_title_label_${profile} watSet_profile_Opts_Label_${profile}` });
 			const profileOptionsToggleLabelElement = plugin.createElementWithAttrs('span', { id: `watSet_profile_Opts_Label_${profile}`, class: 'watSet-button-label' });
 			profileOptionsToggleLabelElement.textContent = plugin.getLocalizedText('tags.button.text.optionsOpen');
 			profileOptionsToggleButtonElement.appendChild(profileOptionsToggleLabelElement);
 			profileOptionsToggleButtonElement.addEventListener('click', (evt) => {
 				const targetToggleElement = evt.target.closest('.watSet-profile-button-accordion');
 				const profile = targetToggleElement.closest('.watSet-profile-item-container').getAttribute('data-profile');
-				const isOn = targetToggleElement.getAttribute('aria-pressed') === 'true';
+				const isOn = targetToggleElement.getAttribute('aria-expanded') === 'true';
 				const targetLabelElement = targetToggleElement.querySelector('.watSet-button-label');
 				targetLabelElement.textContent = isOn ? plugin.getLocalizedText('tags.button.text.optionsOpen') : plugin.getLocalizedText('tags.button.text.optionsClose');
-				targetToggleElement.setAttribute('aria-pressed', isOn ? 'false' : 'true');
+				targetToggleElement.setAttribute('aria-expanded', isOn ? 'false' : 'true');
 				const profileInner = document.getElementById(`watSet_profile_items_wrap_${profile}`);
 				if (isOn) {
 					profileInner.classList.remove(Constants.CSS_CLASSES.ACTIVE);
@@ -417,7 +419,6 @@ export class PanelBuilder {
 					}, 100);
 				}
 				targetToggleElement.classList.toggle(Constants.CSS_CLASSES.ACTIVE, !isOn);
-				targetToggleElement.setAttribute('aria-disabled', isOn ? 'false' : 'true');
 			});
 			profileItemTitleElement.appendChild(profileOptionsToggleButtonElement);
 			// ***** Button - Profile Options .End   *****
@@ -425,14 +426,16 @@ export class PanelBuilder {
 			profileItemContainerElement.appendChild(profileItemTitleElement);
 
 			// ***** Button - Profile Toggle Switch .Start *****
+			// switch 역할의 상태는 aria-checked로 전달하고, 접근명은 프로필 제목 라벨을 참조
+			// (상태 라벨 "꺼짐/켜짐"을 이름으로 쓰면 모든 토글의 접근명이 동일해진다)
 			const profileToggle = plugin.createElementWithAttrs('button', {
 				id: `watSet_profile_button_toggle_${profile}`,
 				class: ['watSet-button', 'btn-toggleSwitch', 'profileToggle'],
 				role: 'switch',
-				'aria-pressed': 'false',
+				'aria-checked': 'false',
 				'data-profile': profile,
 				title: `${profileTitleText} ${plugin.getLocalizedText('tags.button.attr.type.toggle')}`,
-				'aria-labelledby': `watSet_profileToggleLabel_${profile}`
+				'aria-labelledby': `watSet_profile_title_label_${profile}`
 			});
 			const profileToggleLabel = plugin.createElementWithAttrs('span', {
 				id: `watSet_profileToggleLabel_${profile}`,

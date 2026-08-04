@@ -287,10 +287,13 @@ describe('createProfileSettings', () => {
 			const fieldset = container.querySelector(`.watSet-profile-item-container[data-profile="${profile}"]`);
 			expect(fieldset).not.toBeNull();
 
-			// 토글 스위치 (role=switch, 초기 꺼짐)
+			// 토글 스위치 (role=switch는 aria-checked로 상태 전달, 초기 꺼짐)
 			const toggle = fieldset.querySelector(`#watSet_profile_button_toggle_${profile}`);
 			expect(toggle.getAttribute('role')).toBe('switch');
-			expect(toggle.getAttribute('aria-pressed')).toBe('false');
+			expect(toggle.getAttribute('aria-checked')).toBe('false');
+			// 접근명은 상태 라벨("꺼짐")이 아니라 프로필 제목 라벨을 가리킨다
+			expect(toggle.getAttribute('aria-labelledby')).toBe(`watSet_profile_title_label_${profile}`);
+			expect(fieldset.querySelector(`#watSet_profile_title_label_${profile}`)).not.toBeNull();
 
 			// 프로필별 개별 항목 체크박스: 설정 키와 data-key 일치, enabled 초기값 반영
 			const settings = Defaults.PROFILES[profile].settings;
@@ -339,7 +342,7 @@ describe('createProfileSettings', () => {
 		expect(wat.toggleProfile).toHaveBeenCalledWith('lowVision', expect.any(HTMLElement));
 	});
 
-	test('옵션 아코디언 버튼: 클릭 시 aria-pressed·aria-hidden이 토글된다', () => {
+	test('옵션 아코디언 버튼: disclosure 패턴 — aria-expanded·aria-controls·aria-hidden 토글', () => {
 		const wat = makeWat();
 		const container = document.createElement('div');
 		document.body.appendChild(container);
@@ -349,13 +352,18 @@ describe('createProfileSettings', () => {
 		const accordion = fieldset.querySelector('.watSet-profile-button-accordion');
 		const inner = container.querySelector('#watSet_profile_items_wrap_lowVision');
 
-		accordion.click();
-		expect(accordion.getAttribute('aria-pressed')).toBe('true');
-		expect(inner.classList.contains(Constants.CSS_CLASSES.ACTIVE)).toBe(true);
-		expect(inner.getAttribute('aria-hidden')).toBe('false');
+		expect(accordion.getAttribute('role')).toBeNull(); // switch 아님 — 기본 button
+		expect(accordion.getAttribute('aria-controls')).toBe('watSet_profile_items_wrap_lowVision');
 
 		accordion.click();
-		expect(accordion.getAttribute('aria-pressed')).toBe('false');
+		expect(accordion.getAttribute('aria-expanded')).toBe('true');
+		expect(inner.classList.contains(Constants.CSS_CLASSES.ACTIVE)).toBe(true);
+		expect(inner.getAttribute('aria-hidden')).toBe('false');
+		// 열린 버튼이 사용 불가로 안내되던 회귀 방지
+		expect(accordion.getAttribute('aria-disabled')).toBeNull();
+
+		accordion.click();
+		expect(accordion.getAttribute('aria-expanded')).toBe('false');
 		expect(inner.getAttribute('aria-hidden')).toBe('true');
 	});
 });

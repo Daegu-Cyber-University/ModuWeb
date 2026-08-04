@@ -47,7 +47,7 @@ function buildProfileDom(profileName, checkedKeys) {
 
 	const toggle = document.createElement('button');
 	toggle.className = 'profileToggle';
-	toggle.setAttribute('aria-pressed', 'false');
+	toggle.setAttribute('aria-checked', 'false');
 	toggle.setAttribute('data-profile', profileName);
 	const label = document.createElement('span');
 	label.className = 'watSet-button-label';
@@ -237,7 +237,7 @@ describe('applyProfileSettings', () => {
 
 		expect(wat._notify).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ type: 'warning' }));
 		expect(wat.changeSaturation).not.toHaveBeenCalled();
-		expect(toggle.getAttribute('aria-pressed')).toBe('false');
+		expect(toggle.getAttribute('aria-checked')).toBe('false');
 		expect(localStorage.getItem(Constants.STORAGE_KEYS.SELECTED_PROFILE)).toBeNull();
 	});
 
@@ -258,7 +258,7 @@ describe('toggleProfile', () => {
 		// 형제 프로필 추가
 		const sibling = document.createElement('button');
 		sibling.className = 'profileToggle';
-		sibling.setAttribute('aria-pressed', 'true');
+		sibling.setAttribute('aria-checked', 'true');
 		const siblingLabel = document.createElement('span');
 		siblingLabel.className = 'watSet-button-label';
 		sibling.appendChild(siblingLabel);
@@ -267,9 +267,9 @@ describe('toggleProfile', () => {
 		wat.toggleProfile('lowVision', toggle);
 
 		expect(wat.applyProfileSettings).toHaveBeenCalledWith('lowVision');
-		expect(toggle.getAttribute('aria-pressed')).toBe('true');
+		expect(toggle.getAttribute('aria-checked')).toBe('true');
 		expect(toggle.classList.contains(Constants.CSS_CLASSES.ACTIVE)).toBe(true);
-		expect(sibling.getAttribute('aria-pressed')).toBe('false');
+		expect(sibling.getAttribute('aria-checked')).toBe('false');
 	});
 
 	test('켜진 프로필을 끄면 접근성 설정이 기본값으로 리셋되고 선택 기록이 제거된다', () => {
@@ -278,14 +278,14 @@ describe('toggleProfile', () => {
 		wat.savePreferences = jest.fn();
 		localStorage.setItem(Constants.STORAGE_KEYS.SELECTED_PROFILE, '{"profileName":"lowVision"}');
 		const { toggle } = buildProfileDom('lowVision', ['fontSize']);
-		toggle.setAttribute('aria-pressed', 'true');
+		toggle.setAttribute('aria-checked', 'true');
 		toggle.classList.add(Constants.CSS_CLASSES.ACTIVE);
 
 		wat.toggleProfile('lowVision', toggle);
 
 		expect(wat.changeFontSize).toHaveBeenCalledWith(Defaults.SETTINGS.fontSize);
 		expect(wat.changeReadGuide).toHaveBeenCalledWith(Defaults.SETTINGS.readGuide);
-		expect(toggle.getAttribute('aria-pressed')).toBe('false');
+		expect(toggle.getAttribute('aria-checked')).toBe('false');
 		expect(toggle.classList.contains(Constants.CSS_CLASSES.ACTIVE)).toBe(false);
 		expect(localStorage.getItem(Constants.STORAGE_KEYS.SELECTED_PROFILE)).toBeNull();
 		expect(wat.savePreferences).toHaveBeenCalled();
@@ -336,7 +336,7 @@ describe('_restoreSelectedProfileUI', () => {
 
 		wat._restoreSelectedProfileUI();
 
-		expect(toggle.getAttribute('aria-pressed')).toBe('true');
+		expect(toggle.getAttribute('aria-checked')).toBe('true');
 		expect(toggle.classList.contains(Constants.CSS_CLASSES.ACTIVE)).toBe(true);
 		expect(fieldset.querySelector('[data-key="fontSize"]').checked).toBe(true);
 		expect(fieldset.querySelector('[data-key="fontFamily"]').checked).toBe(false);
@@ -427,7 +427,7 @@ describe('setInitialPreferences / getSelectedProfileName', () => {
 		const wat = makeWat();
 		const { toggle } = buildProfileDom('dyslexia', []);
 		expect(wat.getSelectedProfileName()).toBeNull();
-		toggle.setAttribute('aria-pressed', 'true');
+		toggle.setAttribute('aria-checked', 'true');
 		expect(wat.getSelectedProfileName()).toBe('dyslexia');
 	});
 });

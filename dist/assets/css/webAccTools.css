@@ -563,16 +563,16 @@ html[data-wat-viewmode="icon"] .wat-minimized #wat .setWrap .setTitle {height: 5
 #watWrap .watSet-button.btn-toggleSwitch	{display: inline-flex; align-items: center; justify-content: space-between; width: 100px; height: 40px; padding: 0 8px; border: none; border-radius: 20px; background-color: #ccc; cursor: pointer; outline: none; transition: background-color 0.3s;}
 #watWrap .watSet-button.btn-toggleSwitch:focus	{box-shadow: 0 0 3px 2px rgba(0, 123, 255, 0.6);}
 
-#watWrap .watSet-button.btn-toggleSwitch[aria-pressed="true"]	{background-color: #4cd964}
+#watWrap .watSet-button.btn-toggleSwitch[aria-checked="true"]	{background-color: #4cd964}
 */
 /*
 #watWrap .watSet-button.btn-toggleSwitch::before	{display: block; content:""; width: 34px; height: 34px; background-color: #fff; border-radius: 50%; transition: transform 0.3s;}
-#watWrap .watSet-button.btn-toggleSwitch[aria-pressed="true"]::before	{transform: translateX(60px);}
+#watWrap .watSet-button.btn-toggleSwitch[aria-checked="true"]::before	{transform: translateX(60px);}
 #watWrap .watSet-button.btn-toggleSwitch .watSet-button-label	{font-size: var(--wat-font-size); text-align: var(--wat-text-align); margin-left: 8px;}
 */
 /*
 #watWrap .watSet-button.btn-toggleSwitch .watSet-button-label	{display: block; content:""; width: 34px; height: 34px; font-size: var(--wat-font-size); text-align: var(--wat-text-align); background-color: #fff; border-radius: 50%; transition: transform 0.3s;}
-#watWrap .watSet-button.btn-toggleSwitch[aria-pressed="true"] .watSet-button-label	{transform: translateX(60px);}
+#watWrap .watSet-button.btn-toggleSwitch[aria-checked="true"] .watSet-button-label	{transform: translateX(60px);}
 */
 /* background-color는 'none'을 받지 않아 선언이 무효 처리되고 공통 규칙(#ebf3ff)이 남았었다.
    불투명 흰색으로 교정 — 패널(aside) 배경이 80% 반투명이라 프로필 행 사이 틈으로
@@ -598,7 +598,7 @@ html[data-wat-viewmode="icon"] .wat-minimized #wat .setWrap .setTitle {height: 5
 #watWrap .watSet-button.btn-toggleSwitch			{position: absolute; display:flex; align-items:center; justify-content:flex-start; width:100px; height: 2em; padding:0 10px; border:none; border-radius:20px; background:#ccc; cursor:pointer; transition:background 0.3s; top: 5px; right: 10px;}
 #watWrap .watSet-button.btn-toggleSwitch:hover			{box-shadow: 0 0 3px 2px rgba(0, 123, 255, 0.6);}
 #watWrap .watSet-button.btn-toggleSwitch:focus			{box-shadow: 0 0 3px 2px rgba(0, 123, 255, 0.6);}
-#watWrap .watSet-button.btn-toggleSwitch[aria-pressed="true"]	{justify-content:flex-end; background:#4cd964;}
+#watWrap .watSet-button.btn-toggleSwitch[aria-checked="true"]	{justify-content:flex-end; background:#4cd964;}
 #watWrap .watSet-button.btn-toggleSwitch .watSet-button-label	{display:inline-flex; align-items:center; justify-content:center; padding:0 10px; background:#fff; border-radius:9999px; white-space:nowrap; font-size:var(--wat-font-size); text-align:center; transition:all 0.3s;}
 #watWrap .watSet-profile-button-accordion			{position: relative; display: inline-block; width: auto; cursor: pointer; box-sizing: border-box; margin-left: 10px; padding: 0 10px}
 #watWrap .watSet-profile-button-accordion::before		{content: "▼"; position: absolute; display: block; width: 20px; height: 20px; line-height: 20px; font-size: 1em; left: 50%; top: 50%; transform: translate(-50%, -50%); transition: transform 0.3s;}
