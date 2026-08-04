@@ -3903,33 +3903,40 @@ export class WAT {
 		 * this.applyDynamicFontSize('size-2x');
 		 */
 		applyDynamicFontSize(size = 'initial') {
-			if (WAT_DEBUG_ENABLED) console.time('applyDynamicFontSize');
-			
-			// 캐시된 요소 조회
-			const elements = this._getCachedElements('wat-dyn-fontsize');
-			
-			if (size === 'initial' || size === 'unset') {
-				// 배치 처리로 스타일 제거
+			const ratio = this.fontSizeRatios[size] || 1;
+			this._applyDynamicStyle('wat-dyn-fontsize', 'font-size', size, (el, orig) => {
+				if (!orig || !orig['font-size']) return null;
+				return `${parseFloat(orig['font-size']) * ratio}px`;
+			});
+		}
+
+		/**
+		 * 동적 스타일 4종(font-size/line-height/text-align/letter-spacing)의 공통 적용 루틴
+		 * @private
+		 * @param {string} cacheClass - 대상 요소 캐시 클래스 (예: 'wat-dyn-fontsize')
+		 * @param {string} cssProp - 적용할 CSS 속성명
+		 * @param {string} value - 설정 값 ('initial'/'unset'이면 스타일 제거)
+		 * @param {Function} computeValue - (el, originalStyles) => 적용할 값 (null이면 건너뜀)
+		 */
+		_applyDynamicStyle(cacheClass, cssProp, value, computeValue) {
+			if (WAT_DEBUG_ENABLED) console.time(`applyDynamic:${cssProp}`);
+
+			const elements = this._getCachedElements(cacheClass);
+
+			if (value === 'initial' || value === 'unset') {
 				elements.forEach(el => {
-					this.styleBatchProcessor.queueStyleUpdate(el, 'font-size', null);
+					this.styleBatchProcessor.queueStyleUpdate(el, cssProp, null);
 				});
-				if (WAT_DEBUG_ENABLED) console.timeEnd('applyDynamicFontSize');
-				return;
+			} else {
+				elements.forEach(el => {
+					const newValue = computeValue(el, this._originalStyleMap.get(el));
+					if (newValue != null) {
+						this.styleBatchProcessor.queueStyleUpdate(el, cssProp, newValue);
+					}
+				});
 			}
 
-			const ratio = this.fontSizeRatios[size] || 1;
-			
-			// 배치 처리로 스타일 적용
-			elements.forEach(el => {
-				const orig = this._originalStyleMap.get(el);
-				if (orig && orig['font-size']) {
-					const origPx = parseFloat(orig['font-size']);
-					const newValue = `${origPx * ratio}px`;
-					this.styleBatchProcessor.queueStyleUpdate(el, 'font-size', newValue);
-				}
-			});
-			
-			if (WAT_DEBUG_ENABLED) console.timeEnd('applyDynamicFontSize');
+			if (WAT_DEBUG_ENABLED) console.timeEnd(`applyDynamic:${cssProp}`);
 		}
 
 		/**
@@ -4444,30 +4451,11 @@ export class WAT {
 		 * this.applyDynamicLineHeight('size-2x');
 		 */
 		applyDynamicLineHeight(height = 'initial') {
-			if (WAT_DEBUG_ENABLED) console.time('applyDynamicLineHeight');
-			
-			const elements = this._getCachedElements('wat-dyn-lineheight');
-			
-			if (height === 'initial' || height === 'unset') {
-				elements.forEach(el => {
-					this.styleBatchProcessor.queueStyleUpdate(el, 'line-height', null);
-				});
-				if (WAT_DEBUG_ENABLED) console.timeEnd('applyDynamicLineHeight');
-				return;
-			}
-
 			const ratio = this.lineHeightRatios[height] || 1;
-			
-			elements.forEach(el => {
-				const orig = this._originalStyleMap.get(el);
-				if (orig && orig['line-height']) {
-					const origPx = parseFloat(orig['line-height']);
-					const newValue = `${origPx * ratio}px`;
-					this.styleBatchProcessor.queueStyleUpdate(el, 'line-height', newValue);
-				}
+			this._applyDynamicStyle('wat-dyn-lineheight', 'line-height', height, (el, orig) => {
+				if (!orig || !orig['line-height']) return null;
+				return `${parseFloat(orig['line-height']) * ratio}px`;
 			});
-			
-			if (WAT_DEBUG_ENABLED) console.timeEnd('applyDynamicLineHeight');
 		}
 
 		/**
@@ -4533,22 +4521,10 @@ export class WAT {
 		 * this.applyDynamicTextAlign('center');
 		 */
 		applyDynamicTextAlign(align = 'initial') {
-			if (WAT_DEBUG_ENABLED) console.time('applyDynamicTextAlign');
-			
-			const elements = this._getCachedElements('wat-dyn-textalign');
-
-			if (align === 'initial' || align === 'unset') {
-				elements.forEach(el => {
-					this.styleBatchProcessor.queueStyleUpdate(el, 'text-align', null);
-				});
-			} else {
-				elements.forEach(el => {
-					this.styleBatchProcessor.queueStyleUpdate(el, 'text-align', align);
-				});
+			this._applyDynamicStyle('wat-dyn-textalign', 'text-align', align, () => align);
 		}
 
-		if (WAT_DEBUG_ENABLED) console.timeEnd('applyDynamicTextAlign');
-	}		/**
+		/**
 		 * Changes the letter spacing for text elements (텍스트 요소의 자간을 변경합니다)
 		 * @param {string} spacing - Letter spacing setting key ('initial', 'wide_little', 'wide_normal', etc.) (자간 설정 키)
 		 * @returns {void}
@@ -4590,36 +4566,17 @@ export class WAT {
 		 * this.applyDynamicLetterSpacing('wide_normal');
 		 */
 		applyDynamicLetterSpacing(spacing = 'initial') {
-			if (WAT_DEBUG_ENABLED) console.time('applyDynamicLetterSpacing');
-			
-			const elements = this._getCachedElements('wat-dyn-letterspacing');
-			
-			if (spacing === 'initial' || spacing === 'unset') {
-				elements.forEach(el => {
-					this.styleBatchProcessor.queueStyleUpdate(el, 'letter-spacing', null);
-				});
-				if (WAT_DEBUG_ENABLED) console.timeEnd('applyDynamicLetterSpacing');
-				return;
-			}
-
 			const ratio = this.letterSpacingRatios[spacing] || 1;
-			
-			elements.forEach(el => {
-				const orig = this._originalStyleMap.get(el);
+			this._applyDynamicStyle('wat-dyn-letterspacing', 'letter-spacing', spacing, (el, orig) => {
 				const rawLs = orig && orig['letter-spacing'];
 				const origPx = rawLs != null && rawLs !== '' ? parseFloat(String(rawLs)) : NaN;
-				let newValue;
 				if (Number.isFinite(origPx)) {
-					newValue = `${origPx * ratio}px`;
-				} else {
-					const fontSize = parseFloat(window.getComputedStyle(el).fontSize);
-					const baseSpacing = fontSize * 0.05;
-					newValue = `${baseSpacing * ratio}px`;
+					return `${origPx * ratio}px`;
 				}
-				this.styleBatchProcessor.queueStyleUpdate(el, 'letter-spacing', newValue);
+				// 원본 자간이 없으면 글자 크기의 5%를 기준으로 계산
+				const fontSize = parseFloat(window.getComputedStyle(el).fontSize);
+				return `${fontSize * 0.05 * ratio}px`;
 			});
-			
-			if (WAT_DEBUG_ENABLED) console.timeEnd('applyDynamicLetterSpacing');
 		}
 
 		/**
