@@ -4,11 +4,22 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>ModuWeb - 예제 모음</title>
+	<title>ModuWeb — 웹 접근성 위젯 예제·사용 가이드</title>
+	<meta name="description" content="ModuWeb은 스크립트 한 줄로 웹사이트에 TTS 음성 읽기, 화면 확대, 색상·글꼴 조절, 장애 유형별 프로필을 추가하는 오픈소스 웹 접근성 위젯입니다. 예제와 사용 가이드를 제공합니다.">
+	<link rel="canonical" href="https://daegu-cyber-university.github.io/ModuWeb/examples/index.html">
+	<meta property="og:type" content="website">
+	<meta property="og:title" content="ModuWeb — 웹 접근성 위젯 예제·사용 가이드">
+	<meta property="og:description" content="스크립트 한 줄로 웹사이트에 TTS·화면 확대·색상 조절 등 접근성 기능을 추가하는 오픈소스 위젯. 예제와 사용 가이드.">
+	<meta property="og:url" content="https://daegu-cyber-university.github.io/ModuWeb/examples/index.html">
+	<meta property="og:image" content="https://daegu-cyber-university.github.io/ModuWeb/docs/assets/screenshots/social-preview.png">
+	<meta name="twitter:card" content="summary_large_image">
 	<link rel="stylesheet" href="./assets/css/example.css">
 	<style>
 		* { margin: 0; padding: 0; box-sizing: border-box; }
 		body { font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif; line-height: 1.6; color: #333; background: #f5f6fa; min-height: 100vh; }
+		.skip-link { position: absolute; left: -10000px; top: 0; background: #1a2340; color: #fff; padding: 10px 16px; z-index: 100; }
+		.skip-link:focus { left: 0; }
+		.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 		.page-header { background: #1a2340; color: #fff; padding: 48px 24px 40px; text-align: center; }
 		.page-header h1 { font-size: 2rem; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 8px; }
 		.page-header .subtitle { font-size: 1rem; color: #a8b4d0; }
@@ -17,9 +28,14 @@
 		.nav-tab { padding: 10px 20px; background: transparent; border: none; border-bottom: 2px solid transparent; margin-bottom: -2px; cursor: pointer; font-size: 0.95rem; font-weight: 500; color: #6c757d; transition: color 0.2s, border-color 0.2s; }
 		.nav-tab.active { color: #1a2340; border-bottom-color: #1a2340; }
 		.nav-tab:hover { color: #1a2340; }
+		.nav-tab:focus-visible { outline: 2px solid #1a2340; outline-offset: 2px; }
 		.tab-content { display: none; animation: fadeIn 0.25s ease; }
 		.tab-content.active { display: block; }
 		@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+		@media (prefers-reduced-motion: reduce) {
+			.tab-content { animation: none; }
+			.nav-tab, .example-card, .btn-link { transition: none; }
+		}
 		.intro-box { background: #fff; border-radius: 10px; padding: 28px 32px; margin-bottom: 32px; border-left: 4px solid #1a2340; }
 		.intro-box p { color: #555; max-width: 780px; }
 		.steps-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-top: 24px; }
@@ -43,6 +59,7 @@
 		.feature-list li::before { content: "v"; position: absolute; left: 0; color: #43a047; font-weight: bold; }
 		.btn-link { display: inline-block; background: #1a2340; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 6px; font-size: 0.875rem; font-weight: 500; transition: background 0.2s; align-self: flex-start; }
 		.btn-link:hover { background: #2c3a5e; }
+		.btn-link:focus-visible { outline: 2px solid #1a2340; outline-offset: 2px; }
 		.resource-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
 		.resource-card { background: #fff; border-radius: 10px; padding: 24px 20px; border: 1px solid #e2e6ea; }
 		.resource-card h3 { font-size: 0.95rem; font-weight: 600; color: #1a2340; margin-bottom: 12px; }
@@ -57,19 +74,21 @@
 
 <body>
 
-<div class="page-header">
+<a href="#main" class="skip-link">본문 바로가기</a>
+
+<header class="page-header">
 	<h1>ModuWeb — Web Accessibility Tools</h1>
 	<p class="subtitle">웹 접근성 향상을 위한 통합 도구 · 예제 및 사용 가이드</p>
-</div>
+</header>
 
-<div class="container">
-	<div class="nav-tabs">
-		<button class="nav-tab active" onclick="showTab(event, 'quickstart')">빠른 시작</button>
-		<button class="nav-tab" onclick="showTab(event, 'examples')">예제 모음</button>
-		<button class="nav-tab" onclick="showTab(event, 'resources')">리소스</button>
+<main id="main" class="container">
+	<div class="nav-tabs" role="tablist" aria-label="예제 안내">
+		<button class="nav-tab active" id="tab-quickstart" role="tab" aria-selected="true" aria-controls="quickstart">빠른 시작</button>
+		<button class="nav-tab" id="tab-examples" role="tab" aria-selected="false" aria-controls="examples" tabindex="-1">예제 모음</button>
+		<button class="nav-tab" id="tab-resources" role="tab" aria-selected="false" aria-controls="resources" tabindex="-1">리소스</button>
 	</div>
 
-	<div id="quickstart" class="tab-content active">
+	<div id="quickstart" class="tab-content active" role="tabpanel" aria-labelledby="tab-quickstart" tabindex="0">
 		<div class="intro-box">
 			<p>
 				ModuWeb은 웹 접근성을 향상시키기 위한 JavaScript 플러그인입니다.
@@ -78,10 +97,10 @@
 			</p>
 		</div>
 
-		<p class="section-heading">시작 단계</p>
+		<h2 class="section-heading">시작 단계</h2>
 		<div class="steps-grid">
 			<div class="step-card">
-				<span class="step-number">1</span>
+				<span class="step-number" aria-hidden="true">1</span>
 				<h3>라이브러리 추가</h3>
 				<ul>
 					<li>HTML에 CSS 파일을 포함합니다</li>
@@ -89,7 +108,7 @@
 				</ul>
 			</div>
 			<div class="step-card">
-				<span class="step-number">2</span>
+				<span class="step-number" aria-hidden="true">2</span>
 				<h3>설정 파일 준비</h3>
 				<ul>
 					<li>config.example.json을 config.json으로 복사합니다</li>
@@ -97,7 +116,7 @@
 				</ul>
 			</div>
 			<div class="step-card">
-				<span class="step-number">3</span>
+				<span class="step-number" aria-hidden="true">3</span>
 				<h3>인스턴스 생성 및 초기화</h3>
 				<ul>
 					<li>WAT 클래스로 인스턴스를 생성합니다</li>
@@ -105,7 +124,7 @@
 				</ul>
 			</div>
 			<div class="step-card">
-				<span class="step-number">4</span>
+				<span class="step-number" aria-hidden="true">4</span>
 				<h3>기능 활용</h3>
 				<ul>
 					<li>TTS, STT, 포커스 읽기 등 기능을 사용합니다</li>
@@ -115,7 +134,8 @@
 		</div>
 	</div>
 
-	<div id="examples" class="tab-content">
+	<div id="examples" class="tab-content" role="tabpanel" aria-labelledby="tab-examples" tabindex="0" hidden>
+		<h2 class="sr-only">예제 모음</h2>
 		<div class="examples-grid">
 			<div class="example-card">
 				<div class="card-header">
@@ -132,7 +152,7 @@
 					<li>포커스 기반 읽기</li>
 					<li>이벤트 리스너 등록</li>
 				</ul>
-				<a href="basic.html" class="btn-link">예제 보기</a>
+				<a href="basic.html" class="btn-link">예제 보기<span class="sr-only"> — 기본 사용법</span></a>
 			</div>
 
 			<div class="example-card">
@@ -150,7 +170,7 @@
 					<li>상태 관리 시스템</li>
 					<li>이벤트 시스템 활용</li>
 				</ul>
-				<a href="custom-examples.html" class="btn-link">예제 보기</a>
+				<a href="custom-examples.html" class="btn-link">예제 보기<span class="sr-only"> — 커스텀 설정</span></a>
 			</div>
 
 			<div class="example-card">
@@ -166,12 +186,13 @@
 					<li>STT API 함수 테스트</li>
 					<li>사전 검색 테스트</li>
 				</ul>
-				<a href="api-examples.html" class="btn-link">예제 보기</a>
+				<a href="api-examples.html" class="btn-link">예제 보기<span class="sr-only"> — API 함수 테스트</span></a>
 			</div>
 		</div>
 	</div>
 
-	<div id="resources" class="tab-content">
+	<div id="resources" class="tab-content" role="tabpanel" aria-labelledby="tab-resources" tabindex="0" hidden>
+		<h2 class="sr-only">리소스</h2>
 		<div class="resource-grid">
 			<div class="resource-card">
 				<h3>아키텍처 문서</h3>
@@ -202,25 +223,44 @@
 			</div>
 		</div>
 	</div>
+</main>
 
-	<div class="page-footer">
-		<p>Copyright 2025 DAEGU CYBER UNIVERSITY &middot; Apache License 2.0</p>
-	</div>
-</div>
+<footer class="page-footer">
+	<p>Copyright 2025 DAEGU CYBER UNIVERSITY &middot; Apache License 2.0</p>
+</footer>
 
 <script>
-	function showTab(evt, tabName) {
-		const allContents = document.getElementsByClassName('tab-content');
-		for (const content of allContents) {
-			content.classList.remove('active');
+	(function () {
+		const tabs = Array.from(document.querySelectorAll('.nav-tab[role="tab"]'));
+
+		function activate(tab) {
+			tabs.forEach(t => {
+				const selected = t === tab;
+				t.classList.toggle('active', selected);
+				t.setAttribute('aria-selected', String(selected));
+				t.tabIndex = selected ? 0 : -1;
+				const panel = document.getElementById(t.getAttribute('aria-controls'));
+				panel.classList.toggle('active', selected);
+				panel.hidden = !selected;
+			});
+			tab.focus();
 		}
-		const allTabs = document.getElementsByClassName('nav-tab');
-		for (const tab of allTabs) {
-			tab.classList.remove('active');
-		}
-		document.getElementById(tabName).classList.add('active');
-		evt.currentTarget.classList.add('active');
-	}
+
+		tabs.forEach((tab, i) => {
+			tab.addEventListener('click', () => activate(tab));
+			tab.addEventListener('keydown', e => {
+				let target = null;
+				if (e.key === 'ArrowRight') target = tabs[(i + 1) % tabs.length];
+				else if (e.key === 'ArrowLeft') target = tabs[(i - 1 + tabs.length) % tabs.length];
+				else if (e.key === 'Home') target = tabs[0];
+				else if (e.key === 'End') target = tabs[tabs.length - 1];
+				if (target) {
+					e.preventDefault();
+					activate(target);
+				}
+			});
+		});
+	})();
 </script>
 
 </body>

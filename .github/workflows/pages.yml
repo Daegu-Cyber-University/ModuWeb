@@ -32,22 +32,75 @@ jobs:
           cp -r dist _site/
           mkdir -p _site/docs
           cp docs/*.html _site/docs/
+          # og:image 등에서 참조하는 스크린샷 포함
+          cp -r docs/assets _site/docs/assets
           cp config.example.json _site/config.json
-          # 루트 → 예제 허브로 리다이렉트
+          # 루트 랜딩 페이지 (meta refresh 대신 실제 콘텐츠 — 검색엔진 색인 대상)
           cat > _site/index.html <<'EOF'
           <!DOCTYPE html>
           <html lang="ko">
           <head>
             <meta charset="UTF-8">
-            <meta http-equiv="refresh" content="0; url=./examples/index.html">
-            <link rel="canonical" href="./examples/index.html">
-            <title>ModuWeb Demo</title>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>ModuWeb — 오픈소스 웹 접근성 위젯 (TTS·화면 확대·색상 조절)</title>
+            <meta name="description" content="ModuWeb은 스크립트 한 줄로 웹사이트에 TTS 음성 읽기, 화면 확대, 색상·글꼴 조절, 장애 유형별 프로필을 추가하는 오픈소스 웹 접근성 위젯입니다.">
+            <link rel="canonical" href="https://daegu-cyber-university.github.io/ModuWeb/">
+            <meta property="og:type" content="website">
+            <meta property="og:title" content="ModuWeb — 오픈소스 웹 접근성 위젯">
+            <meta property="og:description" content="스크립트 한 줄로 웹사이트에 TTS·화면 확대·색상 조절 등 접근성 기능을 추가하는 오픈소스 위젯.">
+            <meta property="og:url" content="https://daegu-cyber-university.github.io/ModuWeb/">
+            <meta property="og:image" content="https://daegu-cyber-university.github.io/ModuWeb/docs/assets/screenshots/social-preview.png">
+            <meta name="twitter:card" content="summary_large_image">
+            <style>
+              body {font-family: "Segoe UI", -apple-system, sans-serif; line-height: 1.6; color: #333; background: #f5f6fa; margin: 0;}
+              header {background: #1a2340; color: #fff; padding: 56px 24px; text-align: center;}
+              h1 {margin: 0 0 8px; font-size: 2rem;}
+              header p {color: #a8b4d0; margin: 0;}
+              main {max-width: 720px; margin: 0 auto; padding: 40px 24px;}
+              ul {padding-left: 20px;}
+              a.btn {display: inline-block; background: #1a2340; color: #fff; padding: 12px 24px; border-radius: 6px; text-decoration: none; margin: 8px 8px 0 0;}
+              footer {text-align: center; color: #999; font-size: 0.85rem; padding: 24px;}
+            </style>
           </head>
           <body>
-            <p><a href="./examples/index.html">ModuWeb 데모로 이동</a></p>
+            <header>
+              <h1>ModuWeb — Web Accessibility Tools</h1>
+              <p>스크립트 한 줄로 설치하는 오픈소스 웹 접근성 위젯</p>
+            </header>
+            <main>
+              <p>ModuWeb은 웹사이트에 TTS 음성 읽기, STT 음성 명령, 화면 확대, 색상·글꼴 조절,
+              읽기 가이드, 장애 유형별 프로필 등 접근성 기능을 제공하는 JavaScript 위젯입니다.
+              6개 언어를 지원하며 jQuery 없이 동작합니다.</p>
+              <ul>
+                <li>드롭인 설치 — CDN 한 줄 또는 단일 파일(오프라인)</li>
+                <li>장애 유형별 프로필 7종 (저시력·색약·난독증·고령자 등)</li>
+                <li>Apache-2.0 라이선스, 대구사이버대학교 제작</li>
+              </ul>
+              <p>
+                <a class="btn" href="./examples/index.html">데모·예제 보기</a>
+                <a class="btn" href="https://github.com/Daegu-Cyber-University/ModuWeb">GitHub 저장소</a>
+              </p>
+            </main>
+            <footer>Copyright 2025 DAEGU CYBER UNIVERSITY &middot; Apache License 2.0</footer>
           </body>
           </html>
           EOF
+          # robots.txt / sitemap.xml
+          BASE="https://daegu-cyber-university.github.io/ModuWeb"
+          cat > _site/robots.txt <<EOF
+          User-agent: *
+          Allow: /
+
+          Sitemap: ${BASE}/sitemap.xml
+          EOF
+          {
+            echo '<?xml version="1.0" encoding="UTF-8"?>'
+            echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+            for p in "" "examples/index.html" "examples/basic.html" "examples/custom-examples.html" "examples/api-examples.html" "examples/auto-init.html" "examples/standalone.html" "docs/project-overview.html" "docs/architecture-diagram.html"; do
+              echo "  <url><loc>${BASE}/${p}</loc></url>"
+            done
+            echo '</urlset>'
+          } > _site/sitemap.xml
           touch _site/.nojekyll
 
       - name: Setup Pages
