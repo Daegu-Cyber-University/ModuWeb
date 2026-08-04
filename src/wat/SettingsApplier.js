@@ -37,6 +37,35 @@ export class SettingsApplier {
 	}
 
 	/**
+	 * 라디오 선택에 따라 selectOn 표시 클래스를 동기화합니다
+	 * (.opt_item 형제에서 제거 후 현재 항목에 부여, 그룹 컨테이너는 initial/unset이면 해제)
+	 * @param {HTMLElement} radioElement - 선택된 라디오 입력
+	 * @param {string} value - 선택 값
+	 */
+	static syncRadioSelectionUI(radioElement, value) {
+		const parentListItem = radioElement.closest('.opt_item');
+		const parentPersonalOptItem = radioElement.closest('.personalOpt_item');
+
+		if (parentListItem) {
+			const parentList = parentListItem.closest('.opt_lists');
+			if (parentList) {
+				Array.from(parentList.children)
+					.filter(child => child !== parentListItem)
+					.forEach(sibling => sibling.classList.remove('selectOn'));
+				parentListItem.classList.add('selectOn');
+			}
+		}
+
+		if (parentPersonalOptItem) {
+			if (value === 'initial' || value === 'unset') {
+				parentPersonalOptItem.classList.remove('selectOn');
+			} else {
+				parentPersonalOptItem.classList.add('selectOn');
+			}
+		}
+	}
+
+	/**
 	 * 접근성 설정 객체를 대응 change 메서드로 일괄 적용합니다 (falsy 값은 건너뜀)
 	 * @private
 	 * @param {Object} settings - 키별 설정 값
@@ -541,30 +570,7 @@ export class SettingsApplier {
 
 			if (radioElement) {
 				radioElement.checked = true;
-
-				// UI 상태 업데이트 (setRadioListeners와 동일한 로직)
-				const parentListItem = radioElement.closest('.opt_item');
-				const parentPersonalOptItem = radioElement.closest('.personalOpt_item');
-
-				if (parentListItem) {
-					const parentList = parentListItem.closest('.opt_lists');
-					if (parentList) {
-						// 모든 형제 요소에서 selectOn 클래스 제거
-						Array.from(parentList.children)
-							.filter(child => child !== parentListItem)
-							.forEach(sibling => sibling.classList.remove('selectOn'));
-						// 현재 요소에 selectOn 클래스 추가
-						parentListItem.classList.add('selectOn');
-					}
-				}
-
-				if (parentPersonalOptItem) {
-					if (value === 'initial' || value === 'unset') {
-						parentPersonalOptItem.classList.remove('selectOn');
-					} else {
-						parentPersonalOptItem.classList.add('selectOn');
-					}
-				}
+				SettingsApplier.syncRadioSelectionUI(radioElement, value);
 			} else {
 				console.warn(`Radio element not found for ${key}=${value}: ${selector}`);
 			}
@@ -727,29 +733,7 @@ export class SettingsApplier {
 				const changeEvent = new Event('change', { bubbles: true, cancelable: true });
 				radioElement.dispatchEvent(changeEvent);
 
-				// UI 상태 업데이트 (setRadioListeners와 동일한 로직)
-				const parentListItem = radioElement.closest('.opt_item');
-				const parentPersonalOptItem = radioElement.closest('.personalOpt_item');
-
-				if (parentListItem) {
-					const parentList = parentListItem.closest('.opt_lists');
-					if (parentList) {
-						// 모든 형제 요소에서 selectOn 클래스 제거
-						Array.from(parentList.children)
-							.filter(child => child !== parentListItem)
-							.forEach(sibling => sibling.classList.remove('selectOn'));
-						// 현재 요소에 selectOn 클래스 추가
-						parentListItem.classList.add('selectOn');
-					}
-				}
-
-				if (parentPersonalOptItem) {
-					if (value === 'initial' || value === 'unset') {
-						parentPersonalOptItem.classList.remove('selectOn');
-					} else {
-						parentPersonalOptItem.classList.add('selectOn');
-					}
-				}
+				SettingsApplier.syncRadioSelectionUI(radioElement, value);
 			}
 		});
 

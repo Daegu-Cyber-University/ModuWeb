@@ -2828,33 +2828,15 @@ export class WAT {
 					return;
 				}
 				
-				const elm_parent_personalOpt_item = elm_target.closest('.personalOpt_item');
-				const elm_parent_li = elm_target.closest('.opt_item');
-				
 				// elm_parent_li가 null인 경우 처리
-				if (!elm_parent_li) {
+				if (!elm_target.closest('.opt_item')) {
 					console.warn(`Parent .opt_item not found for element with attribute: ${attribute}, value: ${value}`);
 					// 일단 데이터셋만 설정하고 UI 업데이트는 스킵
 					document.documentElement.dataset[attribute] = value;
 					return;
 				}
-				
-				const elm_parent_ul = elm_parent_li.closest('.opt_lists');
-				if (elm_parent_ul) {
-					const elm_parent_li_siblings = Array.from(elm_parent_ul.children).filter(child => child !== elm_parent_li);
-					elm_parent_li_siblings.forEach(sibling => {
-						sibling.classList.remove('selectOn');
-					});
-					elm_parent_li.classList.add('selectOn');
-				}
-				
-				if (elm_parent_personalOpt_item) {
-					if (value === 'initial' || value === 'unset') {
-						elm_parent_personalOpt_item.classList.remove('selectOn');
-					} else {
-						elm_parent_personalOpt_item.classList.add('selectOn');
-					}
-				}
+
+				SettingsApplier.syncRadioSelectionUI(elm_target, value);
 				// ******************** Set target element .End   ********************
 
 				// ******************** Set data attribute .Start ********************
