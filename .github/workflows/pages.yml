@@ -96,7 +96,7 @@ jobs:
           {
             echo '<?xml version="1.0" encoding="UTF-8"?>'
             echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
-            for p in "" "examples/index.html" "examples/basic.html" "examples/custom-examples.html" "examples/api-examples.html" "examples/auto-init.html" "examples/standalone.html" "docs/project-overview.html" "docs/architecture-diagram.html"; do
+            for p in "" "examples/index.html" "examples/basic.html" "examples/custom-examples.html" "examples/api-examples.html" "examples/auto-init.html" "examples/standalone.html" "examples/color-filter.html" "docs/project-overview.html" "docs/architecture-diagram.html"; do
               echo "  <url><loc>${BASE}/${p}</loc></url>"
             done
             echo '</urlset>'

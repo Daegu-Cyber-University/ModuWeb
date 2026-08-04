@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>ModuWeb 색약 보정 필터 예제 — 적색약·녹색약 색상 비교</title>
+	<meta name="description" content="ModuWeb 웹 접근성 위젯의 색약 보정 필터 예제. 색상 표본과 상태 표시로 적색약·녹색약 보정 전후를 비교할 수 있습니다.">
+	<link rel="canonical" href="https://daegu-cyber-university.github.io/ModuWeb/examples/color-filter.html">
+	<meta property="og:type" content="website">
+	<meta property="og:title" content="ModuWeb 색약 보정 필터 예제 — 적색약·녹색약 색상 비교">
+	<meta property="og:description" content="색상 표본과 상태 표시로 적색약·녹색약 보정 전후를 비교하는 예제.">
+	<meta property="og:url" content="https://daegu-cyber-university.github.io/ModuWeb/examples/color-filter.html">
+	<meta property="og:image" content="https://daegu-cyber-university.github.io/ModuWeb/docs/assets/screenshots/social-preview.png">
+	<meta name="twitter:card" content="summary_large_image">
+	<link rel="stylesheet" href="../dist/assets/css/webAccTools.css">
+	<link rel="stylesheet" href="./assets/css/example.css">
+	<script src="../dist/webAccTools.js"></script>
+	<script type="text/javascript">
+		document.addEventListener('DOMContentLoaded', () => {
+			const wat = new WAT({ configPath: '../config.json' });
+			window.watPlugin = wat;
+			wat.init();
+		});
+
+		function setFilter(level, button) {
+			window.watPlugin.changeSaturation(level);
+			document.querySelectorAll('.filter-controls button').forEach(btn => {
+				btn.setAttribute('aria-pressed', String(btn === button));
+			});
+		}
+	</script>
+	<style>
+		.content {max-width: 800px; margin: 0 auto;}
+		.filter-controls {display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 32px;}
+		.filter-controls button {padding: 10px 16px; border: 1px solid #767676; border-radius: 6px; background: #f5f5f5; cursor: pointer; font-size: 0.95rem;}
+		.filter-controls button:hover {background: #e0e0e0;}
+		.filter-controls button:focus-visible {outline: 2px solid #0D6EFD; outline-offset: 2px;}
+		.filter-controls button[aria-pressed="true"] {background: #1a2340; color: #fff; border-color: #1a2340;}
+		.swatch-grid {display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; margin: 16px 0 32px;}
+		.swatch {height: 72px; border-radius: 8px; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 6px; color: #fff; font-size: 0.8rem; text-shadow: 0 1px 2px rgba(0,0,0,0.6);}
+		.status-list {list-style: none; padding: 0; margin: 16px 0 32px;}
+		.status-list li {display: flex; align-items: center; gap: 10px; padding: 8px 0;}
+		.status-dot {width: 16px; height: 16px; border-radius: 50%; flex-shrink: 0;}
+		.legend-bars {margin: 16px 0 32px;}
+		.legend-bars .bar-row {display: flex; align-items: center; gap: 10px; margin-bottom: 8px;}
+		.legend-bars .bar-label {width: 90px; font-size: 0.9rem;}
+		.legend-bars .bar {height: 22px; border-radius: 4px;}
+		.notice-box {background: #f0f4ff; border-left: 4px solid #1a2340; padding: 14px 18px; border-radius: 6px; margin: 16px 0 32px;}
+	</style>
+</head>
+
+<body>
+	<div id="mainContent" class="content">
+		<h1>ModuWeb 색약 보정 필터 예제</h1>
+
+		<nav id="navWrap" class="navWrap" aria-label="예제 탐색">
+			<ul>
+				<li><a href="./index.html">도구 안내</a></li>
+				<li><a href="#filters">필터 전환</a></li>
+				<li><a href="#samples">색상 표본</a></li>
+			</ul>
+		</nav>
+
+		<main>
+			<section id="filters" class="sectWrap">
+				<h2>필터 전환</h2>
+				<p>
+					아래 버튼으로 채도·색약 보정 필터를 전환하며 색상 표본이 어떻게 달라지는지 비교해 보세요.
+					위젯 패널의 「채도」 옵션에서도 동일하게 선택할 수 있습니다.
+				</p>
+				<div class="filter-controls" role="group" aria-label="채도·색약 필터 전환">
+					<button type="button" aria-pressed="true" onclick="setFilter('initial', this)">기본</button>
+					<button type="button" aria-pressed="false" onclick="setFilter('low', this)">저채도</button>
+					<button type="button" aria-pressed="false" onclick="setFilter('high', this)">고채도</button>
+					<button type="button" aria-pressed="false" onclick="setFilter('monochrome', this)">흑백</button>
+					<button type="button" aria-pressed="false" onclick="setFilter('protanopia', this)">적색약 보정</button>
+					<button type="button" aria-pressed="false" onclick="setFilter('deuteranopia', this)">녹색약 보정</button>
+				</div>
+				<div class="notice-box">
+					<p>
+						적록 색약은 빨강·초록 계열의 구분이 어렵습니다. 보정 필터는 구분이 어려운 색 정보를
+						인접 채널로 이동시켜 차이를 키우는 방식이라, 흰색·회색과 글자 대비는 그대로 유지됩니다.
+					</p>
+				</div>
+			</section>
+
+			<section id="samples" class="sectWrap">
+				<h2>색상 표본</h2>
+
+				<h3>기본 색상</h3>
+				<div class="swatch-grid">
+					<div class="swatch" style="background:#d32f2f">빨강</div>
+					<div class="swatch" style="background:#f57c00">주황</div>
+					<div class="swatch" style="background:#fbc02d; color:#333; text-shadow:none">노랑</div>
+					<div class="swatch" style="background:#388e3c">초록</div>
+					<div class="swatch" style="background:#1976d2">파랑</div>
+					<div class="swatch" style="background:#7b1fa2">보라</div>
+				</div>
+
+				<h3>혼동하기 쉬운 조합 (빨강–초록)</h3>
+				<div class="swatch-grid">
+					<div class="swatch" style="background:#c62828">진한 빨강</div>
+					<div class="swatch" style="background:#2e7d32">진한 초록</div>
+					<div class="swatch" style="background:#e57373">연한 빨강</div>
+					<div class="swatch" style="background:#81c784; color:#333; text-shadow:none">연한 초록</div>
+				</div>
+
+				<h3>색상만으로 구분되는 상태 표시</h3>
+				<p>색상 외 단서(텍스트)를 함께 제공하는 것이 원칙이지만, 필터 효과 비교를 위해 색 점을 병기했습니다.</p>
+				<ul class="status-list">
+					<li><span class="status-dot" style="background:#2e7d32" aria-hidden="true"></span>정상 — 서비스가 운영 중입니다</li>
+					<li><span class="status-dot" style="background:#f57c00" aria-hidden="true"></span>주의 — 응답이 지연되고 있습니다</li>
+					<li><span class="status-dot" style="background:#c62828" aria-hidden="true"></span>오류 — 서비스에 접속할 수 없습니다</li>
+				</ul>
+
+				<h3>차트 범례 예시</h3>
+				<div class="legend-bars">
+					<div class="bar-row"><span class="bar-label">1분기</span><div class="bar" style="width:62%; background:#c62828"></div></div>
+					<div class="bar-row"><span class="bar-label">2분기</span><div class="bar" style="width:78%; background:#2e7d32"></div></div>
+					<div class="bar-row"><span class="bar-label">3분기</span><div class="bar" style="width:45%; background:#f57c00"></div></div>
+					<div class="bar-row"><span class="bar-label">4분기</span><div class="bar" style="width:88%; background:#1976d2"></div></div>
+				</div>
+			</section>
+		</main>
+
+		<footer class="page-footer">
+			<p>Copyright 2025 DAEGU CYBER UNIVERSITY &middot; Apache License 2.0</p>
+		</footer>
+	</div>
+</body>
+</html>
