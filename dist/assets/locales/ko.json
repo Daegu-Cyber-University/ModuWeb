@@ -329,6 +329,16 @@
 						"tabList-semantic": "의미",
 						"tabList-link": "링크",
 						"tabList-landmark": "랜드마크"
+					},
+					"landmarks": {
+						"main": "본문",
+						"navigation": "내비게이션",
+						"banner": "헤더",
+						"contentinfo": "푸터",
+						"complementary": "보조 영역",
+						"search": "검색",
+						"region": "영역",
+						"form": "양식"
 					}
 				}
 			}

@@ -4,11 +4,18 @@
 import { jest, describe, test, expect, beforeEach } from '@jest/globals';
 import { PageStructure } from '../../src/wat/PageStructure.js';
 
+// 랜드마크 역할명 로케일 표본 (ko 기준)
+const ROLE_LABELS = { main: '본문', navigation: '내비게이션', banner: '헤더', contentinfo: '푸터' };
+
 function makeStub() {
 	const ps = Object.create(PageStructure.prototype);
 	ps.plugin = {
 		selector: '#watContainer',
-		getLocalizedText: jest.fn((key) => `[${key}]`),
+		getLocalizedText: jest.fn((key) => {
+			const prefix = 'panel.personal.options.pageStructure.landmarks.';
+			if (key.startsWith(prefix)) return ROLE_LABELS[key.slice(prefix.length)] || '';
+			return `[${key}]`;
+		}),
 		_assetUrl: jest.fn((path) => `/${path}`)
 	};
 	return ps;
@@ -73,16 +80,24 @@ describe('PageStructure._collectLandmarks', () => {
 });
 
 describe('PageStructure.createTabPanel (landmark)', () => {
-	test('랜드마크 탭 패널에 역할명·라벨 목록이 만들어진다', () => {
+	test('역할명은 로케일의 자연어로 표시하고 이름이 있으면 병기한다', () => {
 		document.body.innerHTML = '<nav aria-label="주 메뉴"></nav><main></main>';
 		const stub = makeStub();
 		const panel = stub.createTabPanel({ id: 'pgStruct_landmark' }, 0);
 
 		const items = panel.querySelectorAll('.pgStruct_item.landmark');
 		expect(items).toHaveLength(2);
-		expect(items[0].textContent).toContain('navigation — 주 메뉴');
-		expect(items[1].textContent).toContain('main');
+		expect(items[0].textContent).toContain('내비게이션 — 주 메뉴');
+		expect(items[1].textContent).toContain('본문');
 		// 위치 이동 마커 버튼 포함
 		expect(items[0].querySelector('.btn_marker')).not.toBeNull();
+	});
+
+	test('로케일에 없는 역할은 토큰으로 폴백한다', () => {
+		document.body.innerHTML = '<div role="search"></div>';
+		const stub = makeStub();
+		const panel = stub.createTabPanel({ id: 'pgStruct_landmark' }, 0);
+
+		expect(panel.querySelector('.pgStruct_item.landmark').textContent).toContain('search');
 	});
 });

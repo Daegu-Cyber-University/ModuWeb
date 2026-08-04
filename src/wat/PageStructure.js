@@ -200,8 +200,9 @@ export class PageStructure {
 			landmarks.forEach(({ element, role, label }) => {
 				const li = document.createElement('li');
 				li.classList.add('pgStruct_item', 'landmark');
-				// 역할명은 표준 랜드마크 토큰 그대로 표기, 이름이 있으면 병기
-				li.textContent = label ? `${role} — ${label}` : role;
+				// 역할명은 로케일의 자연어 표기 사용 (미정의 역할은 토큰 폴백), 이름이 있으면 병기
+				const roleLabel = this.plugin.getLocalizedText(`panel.personal.options.pageStructure.landmarks.${role}`) || role;
+				li.textContent = label ? `${roleLabel} — ${label}` : roleLabel;
 				li.appendChild(this._createMarkerButton());
 
 				li.addEventListener('click', () => {

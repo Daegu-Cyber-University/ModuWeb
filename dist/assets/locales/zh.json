@@ -329,6 +329,16 @@
 						"tabList-semantic": "语义",
 						"tabList-link": "链接",
 						"tabList-landmark": "地标区域"
+					},
+					"landmarks": {
+						"main": "主要内容",
+						"navigation": "导航",
+						"banner": "页眉",
+						"contentinfo": "页脚",
+						"complementary": "补充区域",
+						"search": "搜索",
+						"region": "区域",
+						"form": "表单"
 					}
 				}
 			}

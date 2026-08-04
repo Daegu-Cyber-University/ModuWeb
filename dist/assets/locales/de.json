@@ -329,6 +329,16 @@
 						"tabList-semantic": "Semantik",
 						"tabList-link": "Links",
 						"tabList-landmark": "Landmarken"
+					},
+					"landmarks": {
+						"main": "Hauptinhalt",
+						"navigation": "Navigation",
+						"banner": "Kopfbereich",
+						"contentinfo": "Fußbereich",
+						"complementary": "Ergänzungsbereich",
+						"search": "Suche",
+						"region": "Bereich",
+						"form": "Formular"
 					}
 				}
 			}

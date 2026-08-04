@@ -329,6 +329,16 @@
 						"tabList-semantic": "意味",
 						"tabList-link": "リンク",
 						"tabList-landmark": "ランドマーク"
+					},
+					"landmarks": {
+						"main": "本文",
+						"navigation": "ナビゲーション",
+						"banner": "ヘッダー",
+						"contentinfo": "フッター",
+						"complementary": "補足領域",
+						"search": "検索",
+						"region": "領域",
+						"form": "フォーム"
 					}
 				}
 			}
