@@ -21,7 +21,8 @@
 		"ui": {
 			"modalWidth": 600,
 			"showPronunciation": true,
-			"keyboardShortcuts": true
+			"keyboardShortcuts": true,
+			"respectOsPreferences": true
 		},
 		"language": {
 			"defaultLanguage": "ko",

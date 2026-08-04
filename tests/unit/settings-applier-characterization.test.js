@@ -431,3 +431,68 @@ describe('setInitialPreferences / getSelectedProfileName', () => {
 		expect(wat.getSelectedProfileName()).toBe('dyslexia');
 	});
 });
+
+describe('applyOsPreferences', () => {
+	/** matchMedia 목 — 쿼리 문자열별 matches 값 지정 */
+	function mockMatchMedia(matchesMap) {
+		window.matchMedia = jest.fn((query) => ({ matches: !!matchesMap[query], media: query }));
+	}
+
+	afterEach(() => {
+		delete window.matchMedia;
+	});
+
+	function makeOsWat(overrides = {}) {
+		const wat = makeWat(overrides);
+		wat.updatePersonalSettingsUI = jest.fn();
+		wat._syncToggleCheckbox = jest.fn();
+		return wat;
+	}
+
+	test('OS 다크 모드면 어둡게 테마를 적용한다', () => {
+		mockMatchMedia({ '(prefers-color-scheme: dark)': true });
+		const wat = makeOsWat();
+		wat.applyOsPreferences();
+		expect(wat.changeColorTheme).toHaveBeenCalledWith('dark');
+	});
+
+	test('OS 모션 감소 설정이면 애니메이션 정지를 켠다', () => {
+		mockMatchMedia({ '(prefers-reduced-motion: reduce)': true });
+		const wat = makeOsWat();
+		wat.applyOsPreferences();
+		expect(wat.toggleDataAttribute).toHaveBeenCalledWith('stopAni', true);
+	});
+
+	test('respectOsPreferences: false면 아무것도 적용하지 않는다', () => {
+		mockMatchMedia({ '(prefers-color-scheme: dark)': true, '(prefers-reduced-motion: reduce)': true });
+		const wat = makeOsWat({ getConfigValue: jest.fn(() => false) });
+		wat.applyOsPreferences();
+		expect(wat.changeColorTheme).not.toHaveBeenCalled();
+		expect(wat.toggleDataAttribute).not.toHaveBeenCalled();
+	});
+
+	test('저장된 설정이 있으면 setInitialPreferences가 OS 설정을 반영하지 않는다', () => {
+		mockMatchMedia({ '(prefers-color-scheme: dark)': true });
+		localStorage.setItem(Constants.STORAGE_KEYS.SETTINGS, JSON.stringify({ colorTheme: 'initial' }));
+		const wat = makeOsWat();
+		wat.loadPreferences = jest.fn(() => ({}));
+		wat._syncIndividualSettingsUI = jest.fn();
+		wat._restoreSelectedProfileUI = jest.fn();
+
+		wat.setInitialPreferences();
+
+		expect(wat.changeColorTheme).not.toHaveBeenCalled();
+	});
+
+	test('첫 방문이면 setInitialPreferences가 OS 설정을 반영한다', () => {
+		mockMatchMedia({ '(prefers-color-scheme: dark)': true });
+		const wat = makeOsWat();
+		wat.loadPreferences = jest.fn(() => ({}));
+		wat._syncIndividualSettingsUI = jest.fn();
+		wat._restoreSelectedProfileUI = jest.fn();
+
+		wat.setInitialPreferences();
+
+		expect(wat.changeColorTheme).toHaveBeenCalledWith('dark');
+	});
+});

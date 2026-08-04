@@ -2692,6 +2692,15 @@ export class WAT {
 		}
 
 		/**
+		 * 첫 방문 시 OS 접근성 설정(다크 모드·모션 감소)을 초기값으로 반영합니다 (SettingsApplier 위임)
+		 * @returns {void}
+		 */
+		applyOsPreferences() {
+			if (!this.settingsApplier) this.settingsApplier = new SettingsApplier(this);
+			return this.settingsApplier.applyOsPreferences();
+		}
+
+		/**
 		 * 저장된 프로필 선택 상태를 토글 UI에 복원합니다 (SettingsApplier 위임)
 		 * @private
 		 */

@@ -656,6 +656,8 @@ export class SettingsApplier {
 	 */
 	setInitialPreferences() {
 		const plugin = this.plugin;
+		// OS 설정 반영 여부는 저장 설정 유무로 판단하므로 로드 전에 확인
+		const isFirstVisit = !localStorage.getItem(Constants.STORAGE_KEYS.SETTINGS);
 		const loadedSettings = plugin.loadPreferences();
 
 		// 초기 설정 로드 후 UI 동기화
@@ -668,6 +670,35 @@ export class SettingsApplier {
 		// 저장된 프로필 선택 상태 복원 (사용성 U-1) —
 		// 설정값 자체는 loadPreferences가 복원하므로 토글·체크박스 UI만 동기화
 		plugin._restoreSelectedProfileUI();
+
+		if (isFirstVisit) {
+			this.applyOsPreferences();
+		}
+	}
+
+	/**
+	 * 첫 방문(저장 설정 없음) 시 OS 접근성 설정을 초기값으로 반영합니다.
+	 * 적용 즉시 savePreferences가 저장하므로 이후 방문에서는 사용자 선택이 우선한다.
+	 * settings.ui.respectOsPreferences: false 로 끌 수 있다.
+	 * @returns {void}
+	 */
+	applyOsPreferences() {
+		const plugin = this.plugin;
+		if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+		if (plugin.getConfigValue && plugin.getConfigValue('settings.ui.respectOsPreferences', true) === false) return;
+
+		try {
+			if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+				plugin.changeColorTheme('dark');
+				plugin.updatePersonalSettingsUI('radio', 'colorTheme', 'dark');
+			}
+			if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+				plugin.toggleDataAttribute('stopAni', true);
+				this._syncToggleCheckbox('stopAni', true);
+			}
+		} catch (e) {
+			console.warn('[WAT] OS 접근성 설정 감지 실패:', e);
+		}
 	}
 
 	/**
