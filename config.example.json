@@ -20,7 +20,8 @@
 	"settings": {
 		"ui": {
 			"modalWidth": 600,
-			"showPronunciation": true
+			"showPronunciation": true,
+			"keyboardShortcuts": true
 		},
 		"language": {
 			"defaultLanguage": "ko",

@@ -13,9 +13,12 @@ import { Constants } from '../../src/core/constants.js';
 function makeStub() {
 	return {
 		_setTimeout: jest.fn((callback, delay) => setTimeout(callback, delay)),
+		// 라이브 리전 갱신을 동기 실행해 단언을 단순화
+		_requestAnimationFrame: jest.fn((callback) => callback()),
 		getLocalizedText: jest.fn((key) => `[${key}]`),
 		// 래퍼들이 단일 디스패처로 위임하므로 스텁 this에도 연결
-		_notify: WAT.prototype._notify
+		_notify: WAT.prototype._notify,
+		_announceToLiveRegion: WAT.prototype._announceToLiveRegion
 	};
 }
 
@@ -37,15 +40,19 @@ afterEach(() => {
 // showNotification — 주 알림 채널 (.wat-notification)
 // ──────────────────────────────────────────────────
 describe('showNotification', () => {
-	test('라이브 리전(role=status, aria-live=polite)으로 메시지를 표시한다', () => {
+	test('메시지를 표시하고 상주 라이브 리전(status)으로 낭독을 전달한다', () => {
 		const stub = makeStub();
 		WAT.prototype.showNotification.call(stub, '저장되었습니다');
 
 		const el = document.querySelector('.wat-notification');
 		expect(el).not.toBeNull();
 		expect(el.textContent).toBe('저장되었습니다');
-		expect(el.getAttribute('role')).toBe('status');
-		expect(el.getAttribute('aria-live')).toBe('polite');
+		// 시각 요소에는 live 시맨틱이 없고, 상주 리전이 낭독을 담당한다
+		expect(el.getAttribute('role')).toBeNull();
+		const region = document.getElementById('wat-live-polite');
+		expect(region.getAttribute('role')).toBe('status');
+		expect(region.getAttribute('aria-live')).toBe('polite');
+		expect(region.textContent).toBe('저장되었습니다');
 	});
 
 	test('추적형 타이머(_setTimeout)를 기본 지속시간으로 사용한다', () => {
@@ -79,7 +86,7 @@ describe('showNotification', () => {
 // ──────────────────────────────────────────────────
 describe('showUserFeedback', () => {
 	test.each(['success', 'warning', 'info'])(
-		'%s 타입은 status 라이브 리전으로 표시된다',
+		'%s 타입은 status 상주 리전으로 낭독된다',
 		(type) => {
 			const stub = makeStub();
 			WAT.prototype.showUserFeedback.call(stub, type, '메시지');
@@ -87,18 +94,17 @@ describe('showUserFeedback', () => {
 			const el = document.querySelector('.wat-user-feedback');
 			expect(el).not.toBeNull();
 			expect(el.classList.contains(`wat-feedback-${type}`)).toBe(true);
-			expect(el.getAttribute('role')).toBe('status');
-			expect(el.getAttribute('aria-live')).toBe('polite');
+			expect(document.getElementById('wat-live-polite').textContent).toBe('메시지');
 		}
 	);
 
-	test('error 타입은 즉시 전달되도록 role=alert를 사용한다 (polite 중복 지정 없음)', () => {
+	test('error 타입은 즉시 전달되도록 assertive(alert) 상주 리전을 사용한다', () => {
 		const stub = makeStub();
 		WAT.prototype.showUserFeedback.call(stub, 'error', '실패');
 
-		const el = document.querySelector('.wat-user-feedback');
-		expect(el.getAttribute('role')).toBe('alert');
-		expect(el.getAttribute('aria-live')).toBeNull();
+		const region = document.getElementById('wat-live-assertive');
+		expect(region.getAttribute('role')).toBe('alert');
+		expect(region.textContent).toBe('실패');
 	});
 
 	test('타입별 배경색 클래스가 부여된다 (알 수 없는 타입은 info로 정규화)', () => {
@@ -176,17 +182,13 @@ describe('_showDictionaryMessage', () => {
 		expect(el.textContent).toContain('단어를 찾을 수 없습니다');
 	});
 
-	test('라이브 리전 semantics가 타입별로 분리된다 (error=alert, 그 외=status)', () => {
+	test('상주 리전 semantics가 타입별로 분리된다 (error=assertive, 그 외=polite)', () => {
 		const stub = makeDictStub();
 		Dictionary.prototype._showDictionaryMessage.call(stub, '오류', 'error');
-		const errorEl = document.querySelector('.wat-dictionary-notification');
-		expect(errorEl.getAttribute('role')).toBe('alert');
-		expect(errorEl.getAttribute('aria-live')).toBeNull(); // alert는 assertive 함의 — polite 중복 지정 금지
+		expect(document.getElementById('wat-live-assertive').textContent).toBe('오류');
 
 		Dictionary.prototype._showDictionaryMessage.call(stub, '안내', 'info');
-		const infoEl = document.querySelector('.wat-dictionary-notification');
-		expect(infoEl.getAttribute('role')).toBe('status');
-		expect(infoEl.getAttribute('aria-live')).toBe('polite');
+		expect(document.getElementById('wat-live-polite').textContent).toBe('안내');
 	});
 
 	test('닫기 버튼이 로컬라이즈된 aria-label을 갖고 클릭 시 알림이 제거된다', () => {

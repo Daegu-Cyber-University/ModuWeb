@@ -8048,27 +8048,48 @@ var WATPlugin = (function (exports) {
 			 * @private
 			 */
 			_handleKeyDown(e) {
-				// 입력 요소에서는 단축키를 가로채지 않음 — 폼에 대문자 T/D/S 입력이 불가능해지는 문제 방지
+				// Escape: 열려 있는 메인 패널을 닫고 포커스를 열기 버튼으로 복원
+				// (사전·페이지구조 모달은 자체 keydown 핸들러가 먼저 처리하므로 여기 도달하지 않음)
+				if (e.key === 'Escape' && this.container && !this.container.classList.contains('hide')) {
+					const closeBtn = document.getElementById('wat_btnClose');
+					if (closeBtn) {
+						e.preventDefault();
+						closeBtn.click();
+						return;
+					}
+				}
+
+				// 입력 요소에서는 단축키를 가로채지 않음
 				const target = e.target;
 				if (target && (target.isContentEditable ||
 					(typeof target.matches === 'function' && target.matches('input, textarea, select')))) {
 					return;
 				}
-				// Shift + T: 키보드 단축어 TTS
-				if (e.shiftKey && e.key.toLowerCase() === 't') {
+
+				// 문자 키 단축키는 config로 끌 수 있어야 함 (WCAG 2.1.4)
+				if (this.getConfigValue && this.getConfigValue('settings.ui.keyboardShortcuts', true) === false) {
+					return;
+				}
+
+				// Alt+Shift 조합 — Shift 단독은 대문자 입력·AT 단축키와 충돌해 WCAG 2.1.4 위반이었음
+				if (!e.altKey || !e.shiftKey) {
+					return;
+				}
+				// Alt + Shift + T: 키보드 단축어 TTS
+				if (e.key.toLowerCase() === 't') {
 					e.preventDefault();
 					this.ttsManager.executeKeyboardTTS();
 				}
-				// Shift + D: 사전 검색
-				else if (e.shiftKey && e.key.toLowerCase() === 'd') {
+				// Alt + Shift + D: 사전 검색
+				else if (e.key.toLowerCase() === 'd') {
 					e.preventDefault();
 					const selectedText = window.getSelection().toString().trim();
 					if (selectedText) {
-					this.performDiction(selectedText);
+						this.performDiction(selectedText);
 					}
 				}
-				// Shift + S: STT
-				else if (e.shiftKey && e.key.toLowerCase() === 's') {
+				// Alt + Shift + S: STT
+				else if (e.key.toLowerCase() === 's') {
 					e.preventDefault();
 					this.stt_start();
 				}
@@ -8347,7 +8368,8 @@ var WATPlugin = (function (exports) {
 			 */
 			_createMainStructure() {
 				// Base Wrap 생성
-				const mainWrapperElement = this.createElementWithAttrs('aside', { id: 'watWrap' });
+				// complementary 랜드마크에 이름 부여 — 호스트 페이지의 다른 aside와 구분 (WCAG 1.3.6)
+				const mainWrapperElement = this.createElementWithAttrs('aside', { id: 'watWrap', 'aria-labelledby': 'wat_title' });
 				mainWrapperElement.classList.add('wat-exclude');
 				
 				// Create main tool panel (메인 도구 패널 생성)
@@ -10114,6 +10136,31 @@ var WATPlugin = (function (exports) {
 			 *              수렴한 공통 프리미티브. 타입별 아이콘(WCAG 1.4.1)·role 분리(error=alert,
 			 *              그 외=status)·로케일 닫기 버튼·추적형 타이머를 일관 적용한다.
 			 */
+			/**
+			 * 상주 라이브 리전에 메시지를 실어 스크린리더에 전달합니다.
+			 * 리전은 첫 사용 시 한 번 생성해 DOM에 유지 — 텍스트만 갱신해야 낭독이 안정적이다.
+			 * @private
+			 * @param {string} message - 낭독할 메시지
+			 * @param {string} [politeness='polite'] - 'polite'(status) 또는 'assertive'(alert)
+			 */
+			_announceToLiveRegion(message, politeness = 'polite') {
+				const id = politeness === 'assertive' ? 'wat-live-assertive' : 'wat-live-polite';
+				let region = document.getElementById(id);
+				if (!region) {
+					region = document.createElement('div');
+					region.id = id;
+					region.className = 'wat-live-region wat-exclude';
+					region.setAttribute('role', politeness === 'assertive' ? 'alert' : 'status');
+					region.setAttribute('aria-live', politeness);
+					document.body.appendChild(region);
+				}
+				// 같은 메시지 연속 전달도 낭독되도록 비운 뒤 다음 프레임에 채운다
+				region.textContent = '';
+				this._requestAnimationFrame(() => {
+					region.textContent = message;
+				});
+			}
+
 			_notify(message, options = {}) {
 				const { type = 'info', duration = 3000, dismissible = false, extraClass = '' } = options;
 				try {
@@ -10135,13 +10182,9 @@ var WATPlugin = (function (exports) {
 					if (extraClass) {
 						feedback.classList.add(...extraClass.split(' ').filter(Boolean));
 					}
-					// 타입별 role 분리 — error는 즉시 전달(alert, assertive 함의), 나머지는 status(polite 함의)
-					if (type === 'error') {
-						feedback.setAttribute('role', 'alert');
-					} else {
-						feedback.setAttribute('role', 'status');
-						feedback.setAttribute('aria-live', 'polite');
-					}
+					// 낭독은 상주 라이브 리전이 담당 — 리전을 텍스트와 함께 삽입하면
+					// 일부 스크린리더가 첫 알림을 놓치므로, 시각 요소에는 live 시맨틱을 두지 않는다
+					this._announceToLiveRegion(message, type === 'error' ? 'assertive' : 'polite');
 
 					// 타입별 아이콘 — 색상만으로 의미를 전달하지 않도록 형태로도 구분 (WCAG 1.4.1)
 					// 장식용이므로 스크린리더에는 숨김 (메시지 텍스트가 이미 낭독됨)
