@@ -229,3 +229,54 @@ describe('displayDictionResult', () => {
 		expect(document.querySelector('.wat-diction-overlay')).toBeNull();
 	});
 });
+
+describe('OverlayManager.trap 요소 수집 시점', () => {
+	test('트랩 설치 후 추가된 요소도 Tab 순환 경계에 포함된다', () => {
+		const { layer, first, last } = buildModalFixture();
+		const om = new OverlayManager();
+		om.trap(layer, null, null);
+
+		const added = document.createElement('button');
+		added.id = 'added-btn';
+		layer.appendChild(added);
+
+		// 실제 마지막 요소(added)에서 Tab → 첫 요소로 순환해야 한다
+		added.focus();
+		const event = pressKey(layer, 'Tab');
+		expect(event.defaultPrevented).toBe(true);
+		expect(document.activeElement).toBe(first);
+	});
+
+	test('disabled 버튼은 순환 경계에서 제외된다', () => {
+		const { layer, first, last } = buildModalFixture();
+		last.disabled = true;
+		const om = new OverlayManager();
+		om.trap(layer, null, null);
+
+		// 마지막 활성 요소는 first — first에서 Tab 시 first로 순환(요소 1개)
+		first.focus();
+		const event = pressKey(layer, 'Tab');
+		expect(event.defaultPrevented).toBe(true);
+		expect(document.activeElement).toBe(first);
+	});
+});
+
+describe('OverlayManager.restoreFocus', () => {
+	test('이전 포커스 요소가 살아 있으면 그 요소로 복원한다', () => {
+		const btn = document.createElement('button');
+		document.body.appendChild(btn);
+		const om = new OverlayManager();
+		om.restoreFocus(btn);
+		expect(document.activeElement).toBe(btn);
+	});
+
+	test('이전 요소가 DOM에서 사라졌으면 포커스가 body로 복원된다', () => {
+		const btn = document.createElement('button');
+		document.body.appendChild(btn);
+		btn.focus();
+		btn.remove();
+		const om = new OverlayManager();
+		om.restoreFocus(btn);
+		expect(document.activeElement).toBe(document.body);
+	});
+});

@@ -148,6 +148,22 @@ describe('loadPreferences', () => {
 		const settings = wat.loadPreferences();
 		expect(settings.fontSize).toBe(Defaults.SETTINGS.fontSize);
 	});
+
+	test('저장된 언어가 dataset에 복원되어 이후 저장 시 유지된다 (저장→로드 왕복)', () => {
+		jest.spyOn(console, 'warn').mockImplementation(() => {});
+		localStorage.setItem(Constants.STORAGE_KEYS.SETTINGS, JSON.stringify({ language: 'en-US' }));
+
+		const wat = makeWat({ language: 'en-US' });
+		const settings = wat.loadPreferences();
+
+		expect(settings.language).toBe('en-US');
+		expect(document.documentElement.dataset.watLanguage).toBe('en-US');
+
+		// 다른 설정을 저장해도 언어가 기본값으로 덮어써지지 않는다
+		wat.savePreferences();
+		const saved = JSON.parse(localStorage.getItem(Constants.STORAGE_KEYS.SETTINGS));
+		expect(saved.language).toBe('en-US');
+	});
 });
 
 describe('_applySettingToPage', () => {
@@ -278,7 +294,7 @@ describe('toggleProfile', () => {
 });
 
 describe('resetProfileSettings', () => {
-	test('dyslexia: 폰트·줄간격·애니메이션·읽기가이드를 리셋한다', () => {
+	test('dyslexia: 프로필이 적용한 폰트·줄간격·읽기가이드만 리셋한다', () => {
 		const wat = makeWat();
 		wat._syncIndividualSettingsUI = jest.fn();
 
@@ -286,21 +302,27 @@ describe('resetProfileSettings', () => {
 
 		expect(wat.changeFontFamily).toHaveBeenCalledWith('initial');
 		expect(wat.changeLineHeight).toHaveBeenCalledWith('initial');
-		expect(wat.toggleDataAttribute).toHaveBeenCalledWith('stopAni', false);
 		expect(wat.changeReadGuide).toHaveBeenCalledWith('');
+		// 프로필이 건드리지 않는 stopAni는 리셋 대상이 아니다
+		expect(wat.toggleDataAttribute).not.toHaveBeenCalled();
 		expect(wat._syncIndividualSettingsUI).toHaveBeenCalledWith(
 			expect.objectContaining({ fontFamily: 'initial', lineHeight: 'initial', readGuide: 'unset' }));
 	});
 
-	test('lowVision: 폰트 크기·패밀리와 이미지 변환을 리셋한다', () => {
+	test('lowVision: 프로필이 적용한 폰트 크기·패밀리·자간을 리셋한다', () => {
 		const wat = makeWat();
 		wat._syncIndividualSettingsUI = jest.fn();
 
 		wat.resetProfileSettings('lowVision');
 
 		expect(wat.changeFontSize).toHaveBeenCalledWith('initial');
-		expect(wat.toggleImgTextConversion).toHaveBeenCalledWith(false);
-		expect(wat.toggleDisplayContents).toHaveBeenCalledWith(false);
+		expect(wat.changeFontFamily).toHaveBeenCalledWith('initial');
+		expect(wat.changeLetterSpacing).toHaveBeenCalledWith('initial');
+		// 프로필이 건드리지 않는 이미지 변환 설정은 리셋 대상이 아니다
+		expect(wat.toggleImgTextConversion).not.toHaveBeenCalled();
+		expect(wat.toggleDisplayContents).not.toHaveBeenCalled();
+		expect(wat._syncIndividualSettingsUI).toHaveBeenCalledWith(
+			expect.objectContaining({ fontSize: 'initial', fontFamily: 'initial', letterSpacing: 'initial' }));
 	});
 });
 

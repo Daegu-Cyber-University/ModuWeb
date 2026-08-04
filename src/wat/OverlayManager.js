@@ -29,20 +29,26 @@ export class OverlayManager {
 	 * @returns {void}
 	 */
 	trap(layer, previousFocusedElement, overlay) {
-		const focusableElements = layer.querySelectorAll(
-			'a, button, input, textarea, select, details, [tabindex]:not([tabindex="-1"])'
-		);
-		const firstFocusableElement = focusableElements[0];
-		const lastFocusableElement = focusableElements[focusableElements.length - 1];
 		const self = this;
+
+		// 탭 전환 등으로 모달 내용이 바뀌므로 keydown 시점에 재조회하고,
+		// disabled/hidden 요소는 순환 경계에서 제외한다
+		function getFocusable() {
+			return Array.from(layer.querySelectorAll(
+				'a[href], button, input, textarea, select, details, [tabindex]:not([tabindex="-1"])'
+			)).filter(el => !el.disabled && !el.hidden && !el.closest('[hidden]'));
+		}
 
 		function handleTab(e) {
 			if (e.key === 'Tab') {
+				const focusableElements = getFocusable();
 				// 포커스 가능 요소가 없으면 Tab을 차단해 포커스가 모달 밖으로 새지 않도록 고정
 				if (focusableElements.length === 0) {
 					e.preventDefault();
 					return;
 				}
+				const firstFocusableElement = focusableElements[0];
+				const lastFocusableElement = focusableElements[focusableElements.length - 1];
 				if (e.shiftKey) { // Shift + Tab
 					if (document.activeElement === firstFocusableElement) {
 						e.preventDefault();
@@ -87,7 +93,12 @@ export class OverlayManager {
 		if (previousFocusedElement && document.contains(previousFocusedElement)) {
 			previousFocusedElement.focus();
 		} else {
-			document.body.focus();
+			// body는 기본적으로 포커스 불가 — 일시적으로 tabindex를 부여해 확실히 이동시킨다
+			const body = document.body;
+			const hadTabindex = body.hasAttribute('tabindex');
+			if (!hadTabindex) body.setAttribute('tabindex', '-1');
+			body.focus();
+			if (!hadTabindex) body.removeAttribute('tabindex');
 		}
 	}
 }

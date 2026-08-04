@@ -3791,20 +3791,18 @@ var WATPlugin = (function (exports) {
 				case 'lowVision': // 실제 프로필 키(Defaults.PROFILES)와 일치시킴 — 구 명칭 'visualImpairment'
 					plugin.changeFontSize('initial');
 					plugin.changeFontFamily('initial');
-					plugin.toggleImgTextConversion(false);
-					plugin.toggleDisplayContents(false);
+					plugin.changeLetterSpacing('initial');
 					resetSettings.fontSize = 'initial';
 					resetSettings.fontFamily = 'initial';
+					resetSettings.letterSpacing = 'initial';
 					break;
 				case 'colorBlindness':
 					plugin.changeSaturation('initial');
-					plugin.toggleDataAttribute('stopAni', false);
 					resetSettings.saturation = 'initial';
 					break;
 				case 'dyslexia':
 					plugin.changeFontFamily('initial');
 					plugin.changeLineHeight('initial');
-					plugin.toggleDataAttribute('stopAni', false);
 					plugin.changeReadGuide('');
 					resetSettings.fontFamily = 'initial';
 					resetSettings.lineHeight = 'initial';
@@ -4057,6 +4055,11 @@ var WATPlugin = (function (exports) {
 				}
 			});
 
+			// 저장된 언어 복원 — dataset에 반영하지 않으면 이후 savePreferences가
+			// 언어를 기본값으로 덮어쓴다 (언어는 라디오 동기화 루프 대상이 아님)
+			pluginSettings.language = plugin.language || loadedSettings.language || defaultSettings.language;
+			document.documentElement.dataset.watLanguage = pluginSettings.language;
+
 			// 설정 로드 이벤트 디스패치
 			plugin._dispatchStateEvent('settings:loaded', {
 				settings: { ...pluginSettings },
@@ -4277,20 +4280,26 @@ var WATPlugin = (function (exports) {
 		 * @returns {void}
 		 */
 		trap(layer, previousFocusedElement, overlay) {
-			const focusableElements = layer.querySelectorAll(
-				'a, button, input, textarea, select, details, [tabindex]:not([tabindex="-1"])'
-			);
-			const firstFocusableElement = focusableElements[0];
-			const lastFocusableElement = focusableElements[focusableElements.length - 1];
 			const self = this;
+
+			// 탭 전환 등으로 모달 내용이 바뀌므로 keydown 시점에 재조회하고,
+			// disabled/hidden 요소는 순환 경계에서 제외한다
+			function getFocusable() {
+				return Array.from(layer.querySelectorAll(
+					'a[href], button, input, textarea, select, details, [tabindex]:not([tabindex="-1"])'
+				)).filter(el => !el.disabled && !el.hidden && !el.closest('[hidden]'));
+			}
 
 			function handleTab(e) {
 				if (e.key === 'Tab') {
+					const focusableElements = getFocusable();
 					// 포커스 가능 요소가 없으면 Tab을 차단해 포커스가 모달 밖으로 새지 않도록 고정
 					if (focusableElements.length === 0) {
 						e.preventDefault();
 						return;
 					}
+					const firstFocusableElement = focusableElements[0];
+					const lastFocusableElement = focusableElements[focusableElements.length - 1];
 					if (e.shiftKey) { // Shift + Tab
 						if (document.activeElement === firstFocusableElement) {
 							e.preventDefault();
@@ -4335,7 +4344,12 @@ var WATPlugin = (function (exports) {
 			if (previousFocusedElement && document.contains(previousFocusedElement)) {
 				previousFocusedElement.focus();
 			} else {
-				document.body.focus();
+				// body는 기본적으로 포커스 불가 — 일시적으로 tabindex를 부여해 확실히 이동시킨다
+				const body = document.body;
+				const hadTabindex = body.hasAttribute('tabindex');
+				if (!hadTabindex) body.setAttribute('tabindex', '-1');
+				body.focus();
+				if (!hadTabindex) body.removeAttribute('tabindex');
 			}
 		}
 	}

@@ -356,20 +356,18 @@ export class SettingsApplier {
 			case 'lowVision': // 실제 프로필 키(Defaults.PROFILES)와 일치시킴 — 구 명칭 'visualImpairment'
 				plugin.changeFontSize('initial');
 				plugin.changeFontFamily('initial');
-				plugin.toggleImgTextConversion(false);
-				plugin.toggleDisplayContents(false);
+				plugin.changeLetterSpacing('initial');
 				resetSettings.fontSize = 'initial';
 				resetSettings.fontFamily = 'initial';
+				resetSettings.letterSpacing = 'initial';
 				break;
 			case 'colorBlindness':
 				plugin.changeSaturation('initial');
-				plugin.toggleDataAttribute('stopAni', false);
 				resetSettings.saturation = 'initial';
 				break;
 			case 'dyslexia':
 				plugin.changeFontFamily('initial');
 				plugin.changeLineHeight('initial');
-				plugin.toggleDataAttribute('stopAni', false);
 				plugin.changeReadGuide('');
 				resetSettings.fontFamily = 'initial';
 				resetSettings.lineHeight = 'initial';
@@ -621,6 +619,11 @@ export class SettingsApplier {
 				plugin.state.set('plugin.currentScreenScale', ratio);
 			}
 		});
+
+		// 저장된 언어 복원 — dataset에 반영하지 않으면 이후 savePreferences가
+		// 언어를 기본값으로 덮어쓴다 (언어는 라디오 동기화 루프 대상이 아님)
+		pluginSettings.language = plugin.language || loadedSettings.language || defaultSettings.language;
+		document.documentElement.dataset.watLanguage = pluginSettings.language;
 
 		// 설정 로드 이벤트 디스패치
 		plugin._dispatchStateEvent('settings:loaded', {
