@@ -22,6 +22,15 @@
 							"desc": "Wird in Symbolform angezeigt."
 						}
 					},
+					"ttsVoice": {
+						"title": "Vorlesestimme",
+						"desc": "Wählen Sie die Stimme für das Vorlesen des Bildschirms.",
+						"options": {
+							"auto": "Standardstimme des Browsers",
+							"groupCurrent": "Aktuelle Sprache",
+							"groupOther": "Weitere Sprachen"
+						}
+					},
 					"language": {
 						"title": "Spracheinstellungen",
 						"desc": "Sie können die Sprache des Tools ändern.",

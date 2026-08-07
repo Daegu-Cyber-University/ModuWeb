@@ -123,7 +123,9 @@ var WATPlugin = (function (exports) {
 			imgDisplayMode: 'initial',
 			viewMode: 'icon',
 			toolPosition: 'right',
-			language: 'ko'
+			language: 'ko',
+			// 낭독 음성은 기기·브라우저마다 목록이 달라 기본값은 '브라우저 기본 음성'
+			ttsVoice: ''
 		};
 
 		static PROFILES = {
@@ -3328,6 +3330,70 @@ var WATPlugin = (function (exports) {
 		}
 
 		/**
+		 * 낭독 음성 선택 목록을 현재 사용 가능한 음성으로 채웁니다
+		 * @returns {void}
+		 * @description 브라우저가 음성 목록을 비동기로 채우므로 voiceschanged 시점에 다시 호출된다.
+		 *              현재 낭독 언어와 일치하는 음성을 먼저 묶어 보여주고, 음성이 하나도 없는
+		 *              환경(미지원 브라우저)에서는 빈 컨트롤 대신 항목 자체를 숨긴다.
+		 */
+		populateVoiceOptions(selectElement) {
+			// 패널 조립 중에는 아직 문서에 붙기 전이므로 요소를 직접 받는다
+			const select = selectElement || document.getElementById('watSet_ttsVoice_select');
+			if (!select) return;
+
+			const plugin = this.plugin;
+			const ttsManager = plugin.ttsManager;
+			const voices = (ttsManager && typeof ttsManager.getAvailableVoices === 'function')
+				? ttsManager.getAvailableVoices()
+				: [];
+
+			const container = select.closest('#watSetWrap_ttsVoice');
+			if (container) container.hidden = voices.length === 0;
+			if (!voices.length) {
+				select.textContent = '';
+				return;
+			}
+
+			const currentURI = typeof ttsManager.getVoice === 'function' ? ttsManager.getVoice() : '';
+			select.textContent = '';
+
+			const autoOption = document.createElement('option');
+			autoOption.value = '';
+			autoOption.textContent = plugin.getLocalizedText('panel.settings.manage.options.ttsVoice.options.auto');
+			select.appendChild(autoOption);
+
+			const speechLang = (typeof ttsManager.getSpeechLang === 'function' ? ttsManager.getSpeechLang() : '') || '';
+			const baseLang = speechLang.toLowerCase().split(/[-_]/)[0];
+			const matched = [];
+			const others = [];
+			voices.forEach(voice => {
+				const voiceBase = (voice.lang || '').toLowerCase().split(/[-_]/)[0];
+				(baseLang && voiceBase === baseLang ? matched : others).push(voice);
+			});
+
+			const appendGroup = (list, labelKey) => {
+				if (!list.length) return;
+				const group = document.createElement('optgroup');
+				group.label = plugin.getLocalizedText(`panel.settings.manage.options.ttsVoice.options.${labelKey}`);
+				list.forEach(voice => {
+					const option = document.createElement('option');
+					option.value = voice.voiceURI;
+					option.textContent = voice.lang ? `${voice.name} (${voice.lang})` : voice.name;
+					group.appendChild(option);
+				});
+				select.appendChild(group);
+			};
+			appendGroup(matched, 'groupCurrent');
+			appendGroup(others, 'groupOther');
+
+			// 저장된 음성이 이 기기에 없으면(기기·브라우저 변경) 표시만 기본 음성으로 둔다.
+			// 저장값 자체는 지우지 않는다 — 원래 기기로 돌아가면 다시 유효하고, 발화는
+			// TTSManager.applyVoice가 기본 음성으로 폴백하므로 동작에 문제가 없다.
+			select.value = currentURI;
+			if (select.value !== currentURI) select.value = '';
+		}
+
+		/**
 		 * 위치, 뷰 모드, 언어, 저장 옵션을 포함한 도구 설정 섹션을 생성합니다
 		 * @param {HTMLElement} container - 도구 설정을 추가할 컨테이너 요소
 		 * @returns {void}
@@ -3468,6 +3534,33 @@ var WATPlugin = (function (exports) {
 				container.appendChild(languageContainer);
 			}
 			// ************************* Language Setting .End   *************************
+
+			// ************************* TTS Voice Setting .Start *************************
+			// 개인 옵션(아이콘 모드 3열 그리드)이 아니라 세로 목록인 환경설정에 두어
+			// 좁은 셀에서 select가 찌그러지지 않게 한다
+			const voiceContainer = plugin.createElementWithAttrs('fieldset', { id: 'watSetWrap_ttsVoice', class: ['watSet-item-container', 'tool-ttsVoice-container'] });
+
+			const voiceSettingTitle = plugin.createElementWithAttrs('legend', { class: 'watSet-title' });
+			const voiceTitleText = plugin.getLocalizedText('panel.settings.manage.options.ttsVoice.title');
+			voiceSettingTitle.textContent = voiceTitleText;
+			voiceContainer.appendChild(voiceSettingTitle);
+
+			const voiceSettingInner = plugin.createElementWithAttrs('div', { class: 'watSet-inner' });
+			const voiceSelect = plugin.createElementWithAttrs('select', {
+				id: 'watSet_ttsVoice_select',
+				class: ['wat-set-items', 'wat-set-item-type-select'],
+				name: 'watSet_ttsVoice',
+				'aria-label': voiceTitleText
+			});
+			voiceSelect.addEventListener('change', () => {
+				plugin.changeTTSVoice(voiceSelect.value);
+			});
+			voiceSettingInner.appendChild(voiceSelect);
+			voiceContainer.appendChild(voiceSettingInner);
+			container.appendChild(voiceContainer);
+
+			this.populateVoiceOptions(voiceSelect);
+			// ************************* TTS Voice Setting .End   *************************
 
 			// ************************* Setting value Storage .Start *************************
 			const storageSettingContainer = plugin.createElementWithAttrs('fieldset', { id: 'watSetWrap_storage', class: ['watSet-item-container', 'storage-container'] });
@@ -3987,7 +4080,8 @@ var WATPlugin = (function (exports) {
 				imgDisplayMode: document.documentElement.dataset.imgDisplayMode || defaultSettings.imgDisplayMode,
 				viewMode: document.documentElement.dataset.watViewmode || defaultSettings.viewMode,
 				toolPosition: document.documentElement.dataset.watPosition || defaultSettings.toolPosition,
-				language: document.documentElement.dataset.watLanguage || defaultSettings.language
+				language: document.documentElement.dataset.watLanguage || defaultSettings.language,
+				ttsVoice: document.documentElement.dataset.watTtsVoice || defaultSettings.ttsVoice
 			};
 
 			localStorage.setItem(Constants.STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
@@ -4138,6 +4232,14 @@ var WATPlugin = (function (exports) {
 			// 언어를 기본값으로 덮어쓴다 (언어는 라디오 동기화 루프 대상이 아님)
 			pluginSettings.language = plugin.language || loadedSettings.language || defaultSettings.language;
 			document.documentElement.dataset.watLanguage = pluginSettings.language;
+
+			// 저장된 낭독 음성 복원 (언어와 동일하게 라디오 루프 대상이 아님).
+			// 목록에 없는 음성이면 발화 시 TTSManager가 기본 음성으로 폴백한다
+			pluginSettings.ttsVoice = loadedSettings.ttsVoice || defaultSettings.ttsVoice;
+			document.documentElement.dataset.watTtsVoice = pluginSettings.ttsVoice;
+			if (plugin.ttsManager && typeof plugin.ttsManager.setVoice === 'function') {
+				plugin.ttsManager.setVoice(pluginSettings.ttsVoice);
+			}
 
 			// 설정 로드 이벤트 디스패치
 			plugin._dispatchStateEvent('settings:loaded', {
@@ -4674,6 +4776,8 @@ var WATPlugin = (function (exports) {
 			if (speechLang) {
 				this.currentUtterance.lang = speechLang;
 			}
+			// 사용자가 고른 음성이 있으면 lang까지 함께 맞춘다 (없으면 브라우저 기본 음성)
+			this.ttsManager.applyVoice(this.currentUtterance);
 
 			this.currentUtterance.onend = () => {
 				this._stopKeepAlive();
@@ -4701,10 +4805,7 @@ var WATPlugin = (function (exports) {
 		 * @returns {string} 언어 코드 (설정이 없으면 빈 문자열)
 		 */
 		_getSpeechLang() {
-			const lang = this.plugin && this.plugin.language;
-			if (!lang) return '';
-			const langMap = { ko: 'ko-KR', ja: 'ja-JP', zh: 'zh-CN', de: 'de-DE' };
-			return langMap[lang] || lang;
+			return this.ttsManager.getSpeechLang();
 		}
 
 		/**
@@ -4900,6 +5001,8 @@ var WATPlugin = (function (exports) {
 			if (speechLang) {
 				this.currentUtterance.lang = speechLang;
 			}
+			// 사용자가 고른 음성이 있으면 lang까지 함께 맞춘다 (없으면 브라우저 기본 음성)
+			this.ttsManager.applyVoice(this.currentUtterance);
 
 			this.currentUtterance.onend = () => {
 				this._stopKeepAlive();
@@ -4922,10 +5025,7 @@ var WATPlugin = (function (exports) {
 		 * @returns {string} 언어 코드 (설정이 없으면 빈 문자열)
 		 */
 		_getSpeechLang() {
-			const lang = this.plugin && this.plugin.language;
-			if (!lang) return '';
-			const langMap = { ko: 'ko-KR', ja: 'ja-JP', zh: 'zh-CN', de: 'de-DE' };
-			return langMap[lang] || lang;
+			return this.ttsManager.getSpeechLang();
 		}
 
 		/**
@@ -5222,16 +5322,108 @@ var WATPlugin = (function (exports) {
 
 			this.config = {
 				autoAdvanceDelay: plugin.options?.ttsAutoAdvanceDelay || 1000,
-				speechRate: plugin.options?.ttsSpeechRate || 1.6
+				speechRate: plugin.options?.ttsSpeechRate || 1.6,
+				voiceURI: plugin.options?.ttsVoice || ''
 			};
 
+			// 음성 목록은 브라우저가 비동기로 채우므로 캐시하고 voiceschanged로 갱신한다
+			this._voices = [];
+			this._onVoicesChanged = null;
+
 			this._initializeModules();
+			this._initializeVoices();
 		}
 
 		_initializeModules() {
 			this.autoTTS = new AutoTTS(this);
 			this.focusTTS = new FocusTTS(this);
 			this.keyboardTTS = new KeyboardTTS(this);
+		}
+
+		/**
+		 * 사용 가능한 음성 목록을 초기화하고 브라우저의 목록 갱신에 대비합니다.
+		 * @private
+		 */
+		_initializeVoices() {
+			if (typeof window === 'undefined' || !window.speechSynthesis) return;
+
+			this._refreshVoices();
+
+			// 크롬 계열은 첫 getVoices() 호출에서 빈 배열을 주고 이후 이벤트로 전달한다
+			if (typeof window.speechSynthesis.addEventListener === 'function') {
+				this._onVoicesChanged = () => {
+					this._refreshVoices();
+					// 패널이 이미 그려져 있으면 목록을 다시 채운다 (없으면 no-op)
+					if (typeof this.plugin.updateTTSVoiceOptions === 'function') {
+						this.plugin.updateTTSVoiceOptions();
+					}
+				};
+				window.speechSynthesis.addEventListener('voiceschanged', this._onVoicesChanged);
+			}
+		}
+
+		/**
+		 * 브라우저에서 음성 목록을 다시 읽어 캐시합니다.
+		 * @private
+		 */
+		_refreshVoices() {
+			try {
+				this._voices = window.speechSynthesis.getVoices() || [];
+			} catch (error) {
+				this._voices = [];
+			}
+		}
+
+		/**
+		 * 사용 가능한 음성 목록을 반환합니다.
+		 * @returns {Array<SpeechSynthesisVoice>} 음성 목록 (미지원 환경에서는 빈 배열)
+		 */
+		getAvailableVoices() {
+			if (!this._voices.length && typeof window !== 'undefined' && window.speechSynthesis) {
+				this._refreshVoices();
+			}
+			return this._voices;
+		}
+
+		/**
+		 * 낭독에 사용할 음성을 지정합니다.
+		 * @param {string} voiceURI - SpeechSynthesisVoice.voiceURI (빈 값이면 브라우저 기본 음성)
+		 */
+		setVoice(voiceURI) {
+			this.config.voiceURI = voiceURI || '';
+		}
+
+		/**
+		 * 현재 선택된 음성의 voiceURI를 반환합니다.
+		 * @returns {string} voiceURI (기본 음성이면 빈 문자열)
+		 */
+		getVoice() {
+			return this.config.voiceURI;
+		}
+
+		/**
+		 * 발화 객체에 선택된 음성을 적용합니다.
+		 * @param {SpeechSynthesisUtterance} utterance - 적용 대상
+		 * @description 선택된 음성이 목록에 없으면(기기 변경 등) 기본 음성으로 조용히 폴백한다.
+		 *              음성과 lang이 어긋나면 브라우저가 음성 지정을 무시하므로 lang도 함께 맞춘다.
+		 */
+		applyVoice(utterance) {
+			if (!utterance || !this.config.voiceURI) return;
+			const voice = this.getAvailableVoices().find(v => v.voiceURI === this.config.voiceURI);
+			if (!voice) return;
+			utterance.voice = voice;
+			if (voice.lang) utterance.lang = voice.lang;
+		}
+
+		/**
+		 * 플러그인 언어 설정을 음성 합성용 BCP-47 언어 코드로 변환합니다.
+		 * @returns {string} 언어 코드 (설정이 없으면 빈 문자열)
+		 */
+		getSpeechLang() {
+			const lang = this.plugin && this.plugin.language;
+			if (!lang) return '';
+			const langMap = { ko: 'ko-KR', ja: 'ja-JP', zh: 'zh-CN', de: 'de-DE' };
+			return langMap[lang] || lang;
 		}
 
 		setSpeechRate(rate) {
@@ -5318,6 +5510,11 @@ var WATPlugin = (function (exports) {
 		 * 플러그인 cleanup(destroy) 시 호출해 리스너, 타이머, 진행 중인 발화를 모두 해제합니다.
 		 */
 		destroy() {
+			if (this._onVoicesChanged && typeof window !== 'undefined' && window.speechSynthesis &&
+				typeof window.speechSynthesis.removeEventListener === 'function') {
+				window.speechSynthesis.removeEventListener('voiceschanged', this._onVoicesChanged);
+				this._onVoicesChanged = null;
+			}
 			try {
 				if (this.autoTTS) this.autoTTS.destroy();
 			} catch (error) {
@@ -12765,6 +12962,36 @@ var WATPlugin = (function (exports) {
 			 */
 			getTTSSpeechRate() {
 				return this.ttsManager ? this.ttsManager.getSpeechRate() : 1.6;
+			}
+
+			/**
+			 * 낭독 음성 변경
+			 * @param {string} voiceURI - SpeechSynthesisVoice.voiceURI (빈 값이면 브라우저 기본 음성)
+			 * @returns {void}
+			 */
+			changeTTSVoice(voiceURI) {
+				const value = voiceURI || '';
+				if (this.ttsManager) {
+					this.ttsManager.setVoice(value);
+				}
+				document.documentElement.dataset.watTtsVoice = value;
+				this.savePreferences();
+			}
+
+			/**
+			 * 현재 선택된 낭독 음성의 voiceURI를 반환합니다
+			 * @returns {string} voiceURI (기본 음성이면 빈 문자열)
+			 */
+			getTTSVoice() {
+				return this.ttsManager ? this.ttsManager.getVoice() : '';
+			}
+
+			/**
+			 * 음성 선택 목록을 다시 채웁니다 (브라우저가 음성을 늦게 로드했을 때 TTSManager가 호출)
+			 * @returns {void}
+			 */
+			updateTTSVoiceOptions() {
+				this._getPanelBuilder().populateVoiceOptions();
 			}
 
 

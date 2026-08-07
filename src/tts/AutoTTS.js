@@ -230,6 +230,8 @@ export class AutoTTS {
 		if (speechLang) {
 			this.currentUtterance.lang = speechLang;
 		}
+		// 사용자가 고른 음성이 있으면 lang까지 함께 맞춘다 (없으면 브라우저 기본 음성)
+		this.ttsManager.applyVoice(this.currentUtterance);
 
 		this.currentUtterance.onend = () => {
 			this._stopKeepAlive();
@@ -257,10 +259,7 @@ export class AutoTTS {
 	 * @returns {string} 언어 코드 (설정이 없으면 빈 문자열)
 	 */
 	_getSpeechLang() {
-		const lang = this.plugin && this.plugin.language;
-		if (!lang) return '';
-		const langMap = { ko: 'ko-KR', ja: 'ja-JP', zh: 'zh-CN', de: 'de-DE' };
-		return langMap[lang] || lang;
+		return this.ttsManager.getSpeechLang();
 	}
 
 	/**

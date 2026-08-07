@@ -6204,6 +6204,36 @@ export class WAT {
 			return this.ttsManager ? this.ttsManager.getSpeechRate() : 1.6;
 		}
 
+		/**
+		 * 낭독 음성 변경
+		 * @param {string} voiceURI - SpeechSynthesisVoice.voiceURI (빈 값이면 브라우저 기본 음성)
+		 * @returns {void}
+		 */
+		changeTTSVoice(voiceURI) {
+			const value = voiceURI || '';
+			if (this.ttsManager) {
+				this.ttsManager.setVoice(value);
+			}
+			document.documentElement.dataset.watTtsVoice = value;
+			this.savePreferences();
+		}
+
+		/**
+		 * 현재 선택된 낭독 음성의 voiceURI를 반환합니다
+		 * @returns {string} voiceURI (기본 음성이면 빈 문자열)
+		 */
+		getTTSVoice() {
+			return this.ttsManager ? this.ttsManager.getVoice() : '';
+		}
+
+		/**
+		 * 음성 선택 목록을 다시 채웁니다 (브라우저가 음성을 늦게 로드했을 때 TTSManager가 호출)
+		 * @returns {void}
+		 */
+		updateTTSVoiceOptions() {
+			this._getPanelBuilder().populateVoiceOptions();
+		}
+
 
 		/**
 		 * STT 언어 설정

@@ -22,6 +22,15 @@
 							"desc": "以图标形式显示。"
 						}
 					},
+					"ttsVoice": {
+						"title": "朗读语音",
+						"desc": "可以选择用于屏幕朗读的语音。",
+						"options": {
+							"auto": "浏览器默认语音",
+							"groupCurrent": "当前语言",
+							"groupOther": "其他语言"
+						}
+					},
 					"language": {
 						"title": "语言设置",
 						"desc": "可以更改工具的语言。",

@@ -17,7 +17,9 @@ export class Defaults {
 		imgDisplayMode: 'initial',
 		viewMode: 'icon',
 		toolPosition: 'right',
-		language: 'ko'
+		language: 'ko',
+		// 낭독 음성은 기기·브라우저마다 목록이 달라 기본값은 '브라우저 기본 음성'
+		ttsVoice: ''
 	};
 
 	static PROFILES = {

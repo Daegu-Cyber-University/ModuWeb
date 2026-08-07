@@ -29,16 +29,108 @@ export class TTSManager {
 
 		this.config = {
 			autoAdvanceDelay: plugin.options?.ttsAutoAdvanceDelay || 1000,
-			speechRate: plugin.options?.ttsSpeechRate || 1.6
+			speechRate: plugin.options?.ttsSpeechRate || 1.6,
+			voiceURI: plugin.options?.ttsVoice || ''
 		};
 
+		// 음성 목록은 브라우저가 비동기로 채우므로 캐시하고 voiceschanged로 갱신한다
+		this._voices = [];
+		this._onVoicesChanged = null;
+
 		this._initializeModules();
+		this._initializeVoices();
 	}
 
 	_initializeModules() {
 		this.autoTTS = new AutoTTS(this);
 		this.focusTTS = new FocusTTS(this);
 		this.keyboardTTS = new KeyboardTTS(this);
+	}
+
+	/**
+	 * 사용 가능한 음성 목록을 초기화하고 브라우저의 목록 갱신에 대비합니다.
+	 * @private
+	 */
+	_initializeVoices() {
+		if (typeof window === 'undefined' || !window.speechSynthesis) return;
+
+		this._refreshVoices();
+
+		// 크롬 계열은 첫 getVoices() 호출에서 빈 배열을 주고 이후 이벤트로 전달한다
+		if (typeof window.speechSynthesis.addEventListener === 'function') {
+			this._onVoicesChanged = () => {
+				this._refreshVoices();
+				// 패널이 이미 그려져 있으면 목록을 다시 채운다 (없으면 no-op)
+				if (typeof this.plugin.updateTTSVoiceOptions === 'function') {
+					this.plugin.updateTTSVoiceOptions();
+				}
+			};
+			window.speechSynthesis.addEventListener('voiceschanged', this._onVoicesChanged);
+		}
+	}
+
+	/**
+	 * 브라우저에서 음성 목록을 다시 읽어 캐시합니다.
+	 * @private
+	 */
+	_refreshVoices() {
+		try {
+			this._voices = window.speechSynthesis.getVoices() || [];
+		} catch (error) {
+			this._voices = [];
+		}
+	}
+
+	/**
+	 * 사용 가능한 음성 목록을 반환합니다.
+	 * @returns {Array<SpeechSynthesisVoice>} 음성 목록 (미지원 환경에서는 빈 배열)
+	 */
+	getAvailableVoices() {
+		if (!this._voices.length && typeof window !== 'undefined' && window.speechSynthesis) {
+			this._refreshVoices();
+		}
+		return this._voices;
+	}
+
+	/**
+	 * 낭독에 사용할 음성을 지정합니다.
+	 * @param {string} voiceURI - SpeechSynthesisVoice.voiceURI (빈 값이면 브라우저 기본 음성)
+	 */
+	setVoice(voiceURI) {
+		this.config.voiceURI = voiceURI || '';
+	}
+
+	/**
+	 * 현재 선택된 음성의 voiceURI를 반환합니다.
+	 * @returns {string} voiceURI (기본 음성이면 빈 문자열)
+	 */
+	getVoice() {
+		return this.config.voiceURI;
+	}
+
+	/**
+	 * 발화 객체에 선택된 음성을 적용합니다.
+	 * @param {SpeechSynthesisUtterance} utterance - 적용 대상
+	 * @description 선택된 음성이 목록에 없으면(기기 변경 등) 기본 음성으로 조용히 폴백한다.
+	 *              음성과 lang이 어긋나면 브라우저가 음성 지정을 무시하므로 lang도 함께 맞춘다.
+	 */
+	applyVoice(utterance) {
+		if (!utterance || !this.config.voiceURI) return;
+		const voice = this.getAvailableVoices().find(v => v.voiceURI === this.config.voiceURI);
+		if (!voice) return;
+		utterance.voice = voice;
+		if (voice.lang) utterance.lang = voice.lang;
+	}
+
+	/**
+	 * 플러그인 언어 설정을 음성 합성용 BCP-47 언어 코드로 변환합니다.
+	 * @returns {string} 언어 코드 (설정이 없으면 빈 문자열)
+	 */
+	getSpeechLang() {
+		const lang = this.plugin && this.plugin.language;
+		if (!lang) return '';
+		const langMap = { ko: 'ko-KR', ja: 'ja-JP', zh: 'zh-CN', de: 'de-DE' };
+		return langMap[lang] || lang;
 	}
 
 	setSpeechRate(rate) {
@@ -125,6 +217,11 @@ export class TTSManager {
 	 * 플러그인 cleanup(destroy) 시 호출해 리스너, 타이머, 진행 중인 발화를 모두 해제합니다.
 	 */
 	destroy() {
+		if (this._onVoicesChanged && typeof window !== 'undefined' && window.speechSynthesis &&
+			typeof window.speechSynthesis.removeEventListener === 'function') {
+			window.speechSynthesis.removeEventListener('voiceschanged', this._onVoicesChanged);
+			this._onVoicesChanged = null;
+		}
 		try {
 			if (this.autoTTS) this.autoTTS.destroy();
 		} catch (error) {

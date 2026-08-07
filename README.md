@@ -82,7 +82,7 @@
 - **미디어 제어**: 미디어 콘텐츠 및 애니메이션 제어
 
 ### 청각적 접근성
-- **TTS (Text-to-Speech)**: 텍스트를 음성으로 변환
+- **TTS (Text-to-Speech)**: 텍스트를 음성으로 변환 (환경설정에서 낭독 음성 선택 가능)
 - **STT (Speech-to-Text)**: 음성을 텍스트로 변환
 
 ### 보조 지원도구
@@ -584,6 +584,11 @@ wat.ttsManager.toggleFocusTTS();
 // 읽기 속도 조절
 wat.changeTTSSpeed(speed);       // 속도 단계 변경
 wat.setTTSSpeechRate(rate);      // speechSynthesis 발화 속도 직접 설정
+
+// 낭독 음성 선택 (voiceURI는 speechSynthesis.getVoices()의 값, 빈 문자열이면 브라우저 기본 음성)
+wat.changeTTSVoice(voiceURI);
+wat.getTTSVoice();               // 현재 선택된 voiceURI
+wat.ttsManager.getAvailableVoices();  // 사용 가능한 음성 목록
 ```
 
 ##### STT 음성 명령 시작/중지

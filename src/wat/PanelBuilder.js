@@ -484,6 +484,70 @@ export class PanelBuilder {
 	}
 
 	/**
+	 * 낭독 음성 선택 목록을 현재 사용 가능한 음성으로 채웁니다
+	 * @returns {void}
+	 * @description 브라우저가 음성 목록을 비동기로 채우므로 voiceschanged 시점에 다시 호출된다.
+	 *              현재 낭독 언어와 일치하는 음성을 먼저 묶어 보여주고, 음성이 하나도 없는
+	 *              환경(미지원 브라우저)에서는 빈 컨트롤 대신 항목 자체를 숨긴다.
+	 */
+	populateVoiceOptions(selectElement) {
+		// 패널 조립 중에는 아직 문서에 붙기 전이므로 요소를 직접 받는다
+		const select = selectElement || document.getElementById('watSet_ttsVoice_select');
+		if (!select) return;
+
+		const plugin = this.plugin;
+		const ttsManager = plugin.ttsManager;
+		const voices = (ttsManager && typeof ttsManager.getAvailableVoices === 'function')
+			? ttsManager.getAvailableVoices()
+			: [];
+
+		const container = select.closest('#watSetWrap_ttsVoice');
+		if (container) container.hidden = voices.length === 0;
+		if (!voices.length) {
+			select.textContent = '';
+			return;
+		}
+
+		const currentURI = typeof ttsManager.getVoice === 'function' ? ttsManager.getVoice() : '';
+		select.textContent = '';
+
+		const autoOption = document.createElement('option');
+		autoOption.value = '';
+		autoOption.textContent = plugin.getLocalizedText('panel.settings.manage.options.ttsVoice.options.auto');
+		select.appendChild(autoOption);
+
+		const speechLang = (typeof ttsManager.getSpeechLang === 'function' ? ttsManager.getSpeechLang() : '') || '';
+		const baseLang = speechLang.toLowerCase().split(/[-_]/)[0];
+		const matched = [];
+		const others = [];
+		voices.forEach(voice => {
+			const voiceBase = (voice.lang || '').toLowerCase().split(/[-_]/)[0];
+			(baseLang && voiceBase === baseLang ? matched : others).push(voice);
+		});
+
+		const appendGroup = (list, labelKey) => {
+			if (!list.length) return;
+			const group = document.createElement('optgroup');
+			group.label = plugin.getLocalizedText(`panel.settings.manage.options.ttsVoice.options.${labelKey}`);
+			list.forEach(voice => {
+				const option = document.createElement('option');
+				option.value = voice.voiceURI;
+				option.textContent = voice.lang ? `${voice.name} (${voice.lang})` : voice.name;
+				group.appendChild(option);
+			});
+			select.appendChild(group);
+		};
+		appendGroup(matched, 'groupCurrent');
+		appendGroup(others, 'groupOther');
+
+		// 저장된 음성이 이 기기에 없으면(기기·브라우저 변경) 표시만 기본 음성으로 둔다.
+		// 저장값 자체는 지우지 않는다 — 원래 기기로 돌아가면 다시 유효하고, 발화는
+		// TTSManager.applyVoice가 기본 음성으로 폴백하므로 동작에 문제가 없다.
+		select.value = currentURI;
+		if (select.value !== currentURI) select.value = '';
+	}
+
+	/**
 	 * 위치, 뷰 모드, 언어, 저장 옵션을 포함한 도구 설정 섹션을 생성합니다
 	 * @param {HTMLElement} container - 도구 설정을 추가할 컨테이너 요소
 	 * @returns {void}
@@ -624,6 +688,33 @@ export class PanelBuilder {
 			container.appendChild(languageContainer);
 		}
 		// ************************* Language Setting .End   *************************
+
+		// ************************* TTS Voice Setting .Start *************************
+		// 개인 옵션(아이콘 모드 3열 그리드)이 아니라 세로 목록인 환경설정에 두어
+		// 좁은 셀에서 select가 찌그러지지 않게 한다
+		const voiceContainer = plugin.createElementWithAttrs('fieldset', { id: 'watSetWrap_ttsVoice', class: ['watSet-item-container', 'tool-ttsVoice-container'] });
+
+		const voiceSettingTitle = plugin.createElementWithAttrs('legend', { class: 'watSet-title' });
+		const voiceTitleText = plugin.getLocalizedText('panel.settings.manage.options.ttsVoice.title');
+		voiceSettingTitle.textContent = voiceTitleText;
+		voiceContainer.appendChild(voiceSettingTitle);
+
+		const voiceSettingInner = plugin.createElementWithAttrs('div', { class: 'watSet-inner' });
+		const voiceSelect = plugin.createElementWithAttrs('select', {
+			id: 'watSet_ttsVoice_select',
+			class: ['wat-set-items', 'wat-set-item-type-select'],
+			name: 'watSet_ttsVoice',
+			'aria-label': voiceTitleText
+		});
+		voiceSelect.addEventListener('change', () => {
+			plugin.changeTTSVoice(voiceSelect.value);
+		});
+		voiceSettingInner.appendChild(voiceSelect);
+		voiceContainer.appendChild(voiceSettingInner);
+		container.appendChild(voiceContainer);
+
+		this.populateVoiceOptions(voiceSelect);
+		// ************************* TTS Voice Setting .End   *************************
 
 		// ************************* Setting value Storage .Start *************************
 		const storageSettingContainer = plugin.createElementWithAttrs('fieldset', { id: 'watSetWrap_storage', class: ['watSet-item-container', 'storage-container'] });

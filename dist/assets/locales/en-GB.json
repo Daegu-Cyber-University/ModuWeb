@@ -22,6 +22,15 @@
 							"desc": "Displays in an icon format."
 						}
 					},
+					"ttsVoice": {
+						"title": "Speech voice",
+						"desc": "Choose the voice used for reading the screen aloud.",
+						"options": {
+							"auto": "Browser default voice",
+							"groupCurrent": "Current language",
+							"groupOther": "Other languages"
+						}
+					},
 					"language": {
 						"title": "Language Settings",
 						"desc": "You can change the language of the tool.",

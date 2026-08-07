@@ -435,7 +435,8 @@ export class SettingsApplier {
 			imgDisplayMode: document.documentElement.dataset.imgDisplayMode || defaultSettings.imgDisplayMode,
 			viewMode: document.documentElement.dataset.watViewmode || defaultSettings.viewMode,
 			toolPosition: document.documentElement.dataset.watPosition || defaultSettings.toolPosition,
-			language: document.documentElement.dataset.watLanguage || defaultSettings.language
+			language: document.documentElement.dataset.watLanguage || defaultSettings.language,
+			ttsVoice: document.documentElement.dataset.watTtsVoice || defaultSettings.ttsVoice
 		};
 
 		localStorage.setItem(Constants.STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
@@ -586,6 +587,14 @@ export class SettingsApplier {
 		// 언어를 기본값으로 덮어쓴다 (언어는 라디오 동기화 루프 대상이 아님)
 		pluginSettings.language = plugin.language || loadedSettings.language || defaultSettings.language;
 		document.documentElement.dataset.watLanguage = pluginSettings.language;
+
+		// 저장된 낭독 음성 복원 (언어와 동일하게 라디오 루프 대상이 아님).
+		// 목록에 없는 음성이면 발화 시 TTSManager가 기본 음성으로 폴백한다
+		pluginSettings.ttsVoice = loadedSettings.ttsVoice || defaultSettings.ttsVoice;
+		document.documentElement.dataset.watTtsVoice = pluginSettings.ttsVoice;
+		if (plugin.ttsManager && typeof plugin.ttsManager.setVoice === 'function') {
+			plugin.ttsManager.setVoice(pluginSettings.ttsVoice);
+		}
 
 		// 설정 로드 이벤트 디스패치
 		plugin._dispatchStateEvent('settings:loaded', {

@@ -658,6 +658,10 @@ html[data-wat-viewmode="list"] #wat .setTitle	{font-size: 0.8em}
 #watWrap .watSet-item-container .watSet-item .wat-set-item-type-radio {width: 20px; flex-shrink: 0;}
 #watWrap .watSet-item-container .watSet-item .wat-set-label {flex: 1 1 auto; padding: 5px 0; font-size: 1em; cursor: pointer;}
 
+/* 낭독 음성 선택 — 음성 이름이 길어도 패널 밖으로 넘치지 않도록 폭을 컨테이너에 가둔다 */
+#watWrap .tool-ttsVoice-container .watSet-inner		{display: block; min-width: 0;}
+#watWrap .wat-set-item-type-select			{display: block; width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box; padding: 6px 8px; margin: 2px 0; font-size: var(--wat-font-size); font-family: inherit; line-height: 1.4; color: #333; background-color: #fff; border: 1px solid #767676; border-radius: 5px; cursor: pointer;}
+#watWrap .wat-set-item-type-select:focus-visible	{outline: 2px solid #0D6EFD; outline-offset: 2px;}
 #watWrap .watSet-item-container .watSet-list-type-button {display: flex; flex-wrap: wrap; justify-content: center;}
 #watWrap .watSet-item-container .watSet-list-type-button .watSet-item {border-bottom: none}
 #watWrap .watSet-item-container .watSet-list-type-button .wat-set-item-type-button {padding: 5px 10px; margin: 5px; border: #aaa 1px solid; border-radius: 5px; cursor: pointer; transition: background-color 0.3s}

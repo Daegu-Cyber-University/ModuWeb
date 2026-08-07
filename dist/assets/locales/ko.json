@@ -22,6 +22,15 @@
 							"desc": "아이콘 형태로 보여줍니다."
 						}
 					},
+					"ttsVoice": {
+						"title": "낭독 음성",
+						"desc": "화면 낭독에 사용할 음성을 선택할 수 있습니다.",
+						"options": {
+							"auto": "브라우저 기본 음성",
+							"groupCurrent": "현재 언어",
+							"groupOther": "기타 언어"
+						}
+					},
 					"language": {
 						"title": "언어 설정",
 						"desc": "도구의 언어를 변경할 수 있습니다.",
