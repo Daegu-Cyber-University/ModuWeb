@@ -597,15 +597,15 @@ html[data-wat-viewmode="icon"] .wat-minimized #wat .setWrap .setTitle {height: 5
 #watWrap .watSet-item-container.profile-container	{background-color: #fff; border: none; padding: 0}
 /* 행 배경은 제목바(legend, #f4f4f4)와 동일하게 — 배경이 다르면 legend와의 1px 어긋남이
    하단에 색 띠로 새어 보인다. 옵션 펼침 영역은 자체 흰 배경이라 구분 유지됨 */
-/* 제목바(legend)가 폭 전체를 차지하면 HTML 명세의 rendered legend 규칙 때문에
-   fieldset 위쪽 테두리가 그 구간만큼 지워진다(= 상단선이 통째로 사라져 박스가 깨져 보임).
-   테두리를 border 대신 box-shadow 링으로 그려 legend 영향을 받지 않게 한다. */
-#watWrap .watSet-profile-item-container			{position: relative; display: grid; grid-template-columns: 1fr; grid-template-rows: auto auto; max-width: calc(100% - 2px); border: none; box-shadow: 0 0 0 1px #aaa; border-radius: 10px; margin: 8px 1px; padding: 0; background-color: #f4f4f4; overflow: hidden}
+#watWrap .watSet-profile-item-container			{position: relative; display: grid; grid-template-columns: 1fr; grid-template-rows: auto auto; max-width: 100%; border: #aaa 1px solid; border-radius: 10px; margin: 8px 0; padding: 0; background-color: #f4f4f4; overflow: hidden}
 /* 제목행(legend)이 토글 스위치의 컨테이닝 블록(position:relative). 토글을 fieldset 직속에 두면
    절대배치 기준이 legend 아래 '익명 콘텐츠 박스'가 되어 제목바 밖(overflow:hidden 영역)으로 밀려
    잘리므로, 토글을 legend 안에 넣고(JS) legend를 기준으로 배치한다. 우측 패딩으로 토글 자리 확보 +
    토글(2em)이 들어갈 최소 높이 보장 */
-#watWrap .watSet-profile-title				{position: relative; width: 100%; min-height: calc(2em + 10px); line-height: 2em; font-size:var(--wat-font-size); font-weight: bold; padding: 5px 120px 5px 10px; margin: 0; box-sizing: border-box; background-color: #f4f4f4;}
+/* float가 없으면 legend가 HTML 명세의 "rendered legend"가 되어 자기 폭만큼 fieldset
+   위쪽 테두리를 지운다. 이 제목바는 폭 100%라 상단선이 통째로 사라져 박스가 깨져 보였다.
+   float를 주면 rendered legend에서 제외되어 테두리 4면이 정상으로 그려진다. */
+#watWrap .watSet-profile-title				{float: left; position: relative; width: 100%; min-height: calc(2em + 10px); line-height: 2em; font-size:var(--wat-font-size); font-weight: bold; padding: 5px 120px 5px 10px; margin: 0; box-sizing: border-box; background-color: #f4f4f4;}
 /* 프로필 아이콘 — Material Icons CDN 의존 제거: 번들 SVG를 currentColor mask로 표시 (오프라인/폐쇄망 동작) */
 #watWrap .watSet-profile-title-label::before		{display: inline-block; content: ''; width: 24px; height: 24px; background-color: currentColor; -webkit-mask: url('../images/icon_profile_voice.svg') no-repeat center / contain; mask: url('../images/icon_profile_voice.svg') no-repeat center / contain; vertical-align: middle; margin-right: 6px; margin-top: -4px}
 #watWrap .watSet-profile-title-label.lowVision::before		{-webkit-mask-image: url('../images/icon_profile_lowVision.svg'); mask-image: url('../images/icon_profile_lowVision.svg')}
