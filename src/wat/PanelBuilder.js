@@ -727,7 +727,6 @@ export class PanelBuilder {
 		const storageSettingItems = [
 			{ id: 'watSet_storage_save', class: 'watSet_storage_save', label: plugin.getLocalizedText('panel.settings.manage.options.storage.options.save'), type: 'button' },
 			{ id: 'watSet_storage_reset', class: 'watSet_storage_reset', label: plugin.getLocalizedText('panel.settings.manage.options.storage.options.delete'), type: 'button' },
-			{ id: 'watSet_storage_check', class: 'watSet_storage_check', label: plugin.getLocalizedText('panel.settings.manage.options.storage.options.check'), type: 'button' },
 			{ id: 'watSet_storage_export', class: 'watSet_storage_export', label: plugin.getLocalizedText('panel.settings.manage.options.storage.options.export') || '설정 내보내기', type: 'button' },
 			{ id: 'watSet_storage_import', class: 'watSet_storage_import', label: plugin.getLocalizedText('panel.settings.manage.options.storage.options.import') || '설정 가져오기', type: 'button' }
 		];
@@ -754,17 +753,6 @@ export class PanelBuilder {
 					plugin.exportSettings();
 				} else if (item.id === 'watSet_storage_import') {
 					plugin._promptImportSettings();
-				} else if (item.id === 'watSet_storage_check') {
-					// WAT 소유 키만 확인 — 호스트 사이트의 전체 localStorage를 덤프하지 않음 (정보 노출 방지)
-					const settings = localStorage.getItem(Constants.STORAGE_KEYS.SETTINGS);
-					const containerValue = localStorage.getItem(Constants.STORAGE_KEYS.CONTAINER);
-					const found = plugin.getLocalizedText('msg.state.saved') || '있음';
-					const notFound = plugin.getLocalizedText('msg.state.notSaved') || '없음';
-					const summary = plugin.getLocalizedText('msg.info.storageCheck', {
-						settings: settings ? found : notFound,
-						container: containerValue ? found : notFound
-					}) || `저장된 설정: ${settings ? found : notFound}, 컨테이너: ${containerValue ? found : notFound}`;
-					plugin.showNotification(summary);
 				}
 			});
 			storageSettingItem.appendChild(input);

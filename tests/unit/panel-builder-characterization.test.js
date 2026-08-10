@@ -389,10 +389,10 @@ describe('createToolsSettings', () => {
 		// 언어: languageOptions 2개 → 셀렉터 노출
 		expect(container.querySelector('#watSetWrap_language')).not.toBeNull();
 
-		// 저장: 저장/삭제/확인/내보내기/가져오기 5종 버튼
+		// 저장: 저장/삭제/내보내기/가져오기 4종 버튼 (개발용이던 '저장 확인'은 제거됨)
 		const storageButtons = Array.from(container.querySelectorAll('input[name="watSet_storage"]'));
 		expect(storageButtons.map(b => b.id)).toEqual([
-			'watSet_storage_save', 'watSet_storage_reset', 'watSet_storage_check',
+			'watSet_storage_save', 'watSet_storage_reset',
 			'watSet_storage_export', 'watSet_storage_import'
 		]);
 	});

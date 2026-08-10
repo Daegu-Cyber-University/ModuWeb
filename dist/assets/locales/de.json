@@ -50,7 +50,6 @@
 							"save": "Speichern",
 							"autoSave": "Automatisches Speichern",
 							"delete": "Zurücksetzen",
-							"check": "Speicherstatus prüfen",
 							"export": "Einstellungen exportieren",
 							"import": "Einstellungen importieren"
 						}
@@ -707,15 +706,10 @@
 			"profileNotFound": "Profil \"{profileName}\" wurde nicht gefunden."
 		},
 		"info": {
-			"dictionaryNotFound": "Keine Ergebnisse für \"{word}\" gefunden.",
-			"storageCheck": "Gespeicherte Einstellungen: {settings}, Container: {container}"
+			"dictionaryNotFound": "Keine Ergebnisse für \"{word}\" gefunden."
 		},
 		"confirm": {
 			"reset": "Alle Barrierefreiheitseinstellungen zurücksetzen?"
-		},
-		"state": {
-			"saved": "gefunden",
-			"notSaved": "nicht gefunden"
 		}
 	},
 	"dictionary": {

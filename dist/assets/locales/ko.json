@@ -50,7 +50,6 @@
 							"save": "저장",
 							"autoSave": "자동 저장",
 							"delete": "초기화",
-							"check": "저장 확인",
 							"export": "설정 내보내기",
 							"import": "설정 가져오기"
 						}
@@ -707,15 +706,10 @@
 			"profileNotFound": "프로필 \"{profileName}\"을(를) 찾을 수 없습니다."
 		},
 		"info": {
-			"dictionaryNotFound": "\"{word}\"에 대한 검색 결과를 찾을 수 없습니다.",
-			"storageCheck": "저장된 설정: {settings}, 컨테이너: {container}"
+			"dictionaryNotFound": "\"{word}\"에 대한 검색 결과를 찾을 수 없습니다."
 		},
 		"confirm": {
 			"reset": "접근성 설정을 모두 초기화하시겠습니까?"
-		},
-		"state": {
-			"saved": "있음",
-			"notSaved": "없음"
 		}
 	},
 	"dictionary": {

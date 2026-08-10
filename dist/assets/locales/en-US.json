@@ -50,7 +50,6 @@
 							"save": "Save",
 							"autoSave": "Auto Save",
 							"delete": "Reset",
-							"check": "Check Save",
 							"export": "Export settings",
 							"import": "Import settings"
 						}
@@ -707,15 +706,10 @@
 			"profileNotFound": "Profile \"{profileName}\" not found."
 		},
 		"info": {
-			"dictionaryNotFound": "No results found for \"{word}\".",
-			"storageCheck": "Saved settings: {settings}, container: {container}"
+			"dictionaryNotFound": "No results found for \"{word}\"."
 		},
 		"confirm": {
 			"reset": "Reset all accessibility settings?"
-		},
-		"state": {
-			"saved": "found",
-			"notSaved": "not found"
 		}
 	},
 	"dictionary": {

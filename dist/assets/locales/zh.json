@@ -50,7 +50,6 @@
 							"save": "保存",
 							"autoSave": "自动保存",
 							"delete": "重置",
-							"check": "检查保存",
 							"export": "导出设置",
 							"import": "导入设置"
 						}
@@ -707,15 +706,10 @@
 			"profileNotFound": "找不到配置文件\"{profileName}\"。"
 		},
 		"info": {
-			"dictionaryNotFound": "未找到\"{word}\"的搜索结果。",
-			"storageCheck": "已保存的设置：{settings}，容器：{container}"
+			"dictionaryNotFound": "未找到\"{word}\"的搜索结果。"
 		},
 		"confirm": {
 			"reset": "要重置所有无障碍设置吗？"
-		},
-		"state": {
-			"saved": "有",
-			"notSaved": "无"
 		}
 	},
 	"dictionary": {

@@ -50,7 +50,6 @@
 							"save": "保存",
 							"autoSave": "自動保存",
 							"delete": "初期化",
-							"check": "保存確認",
 							"export": "設定をエクスポート",
 							"import": "設定をインポート"
 						}
@@ -707,15 +706,10 @@
 			"profileNotFound": "プロファイル「{profileName}」が見つかりません。"
 		},
 		"info": {
-			"dictionaryNotFound": "「{word}」の検索結果が見つかりません。",
-			"storageCheck": "保存された設定: {settings}, コンテナ: {container}"
+			"dictionaryNotFound": "「{word}」の検索結果が見つかりません。"
 		},
 		"confirm": {
 			"reset": "アクセシビリティ設定をすべてリセットしますか？"
-		},
-		"state": {
-			"saved": "あり",
-			"notSaved": "なし"
 		}
 	},
 	"dictionary": {
