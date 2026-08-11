@@ -624,7 +624,8 @@ html[data-wat-viewmode="icon"] .wat-minimized #wat .setWrap .setTitle {height: 5
 #watWrap .watSet-button.btn-toggleSwitch:focus-visible		{outline: 2px solid #0D6EFD; outline-offset: 2px;}
 #watWrap .watSet-button.btn-toggleSwitch[aria-checked="true"]	{justify-content:flex-end; background:#1e9e33;}
 #watWrap .watSet-button.btn-toggleSwitch .watSet-button-label	{display:inline-flex; align-items:center; justify-content:center; padding:0 10px; background:#fff; border-radius:9999px; white-space:nowrap; font-size:var(--wat-font-size); text-align:center; transition:all 0.3s;}
-#watWrap .watSet-profile-button-accordion			{position: relative; display: inline-block; width: auto; cursor: pointer; box-sizing: border-box; margin-left: 10px; padding: 0 10px}
+/* 조작 대상은 24x24 이상 확보 (WCAG 2.2 SC 2.5.8 Target Size) */
+#watWrap .watSet-profile-button-accordion			{position: relative; display: inline-block; width: auto; min-width: 24px; min-height: 24px; cursor: pointer; box-sizing: border-box; margin-left: 10px; padding: 0 10px}
 #watWrap .watSet-profile-button-accordion::before		{content: "▼"; position: absolute; display: block; width: 20px; height: 20px; line-height: 20px; font-size: 1em; left: 50%; top: 50%; transform: translate(-50%, -50%); transition: transform 0.3s;}
 #watWrap .watSet-profile-button-accordion.active::before	{transform: translate(-50%, -50%) rotate(180deg);}
 #watWrap .watSet-profile-button-accordion .watSet-button-label	{font-size: 0}
@@ -661,8 +662,8 @@ html[data-wat-viewmode="list"] #wat .setTitle	{font-size: 0.8em}
 #watWrap .watSet-item-container .watSet-item	{display: flex; flex-flow: row wrap; align-items: center; border-bottom: #aaa 1px dotted; padding: 0 5px; margin: 0; cursor: pointer; transition: background-color 0.3s}
 #watWrap .watSet-item-container .watSet-item:last-child {border-bottom: none}
 #watWrap .watSet-item-container .watSet-item:hover	{background-color: #bdd7ff;}
-#watWrap .watSet-item-container .watSet-item .wat-set-item-type-radio {width: 20px; flex-shrink: 0;}
-#watWrap .watSet-item-container .watSet-item .wat-set-label {flex: 1 1 auto; padding: 5px 0; font-size: 1em; cursor: pointer;}
+#watWrap .watSet-item-container .watSet-item .wat-set-item-type-radio {width: 24px; height: 24px; flex-shrink: 0;}
+#watWrap .watSet-item-container .watSet-item .wat-set-label {flex: 1 1 auto; min-height: 24px; display: flex; align-items: center; padding: 5px 0; font-size: 1em; cursor: pointer;}
 
 /* 낭독 음성 선택 — 음성 이름이 길어도 패널 밖으로 넘치지 않도록 폭을 컨테이너에 가둔다 */
 #watWrap .tool-ttsVoice-container .watSet-inner		{display: block; min-width: 0;}
@@ -755,7 +756,7 @@ html[data-wat-viewmode="icon"] #wat .setWrap.radio .setCont .opt_lists		{grid-co
 html[data-wat-viewmode="icon"] #wat .setWrap.radio .setCont .opt_lists .opt_item {display: block; position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); clip-path: inset(50%);}
 html[data-wat-viewmode="icon"] #wat .setWrap.radio .setCont .opt_lists .opt_item.selectOn {position: static; width: 100%; height: auto; margin: 0; clip: auto; clip-path: none; overflow: hidden}
 html[data-wat-viewmode="icon"] #wat .setWrap.radio .setCont input[type="radio"]:focus-visible + label {outline: 2px solid #0D6EFD; outline-offset: 2px}
-html[data-wat-viewmode="icon"] #wat .setWrap.radio .setCont .opt_lists .opt_item.selectOn label {width: 100%; font-size: calc(var(--wat-font-size) * 0.8); cursor: pointer; flex: 1 1 auto; text-align: center; border: none; margin: 0; padding: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;}
+html[data-wat-viewmode="icon"] #wat .setWrap.radio .setCont .opt_lists .opt_item.selectOn label {width: 100%; min-height: 24px; display: flex; align-items: center; justify-content: center; font-size: calc(var(--wat-font-size) * 0.8); cursor: pointer; flex: 1 1 auto; text-align: center; border: none; margin: 0; padding: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;}
 /* 아이콘 모드: 폰트 변경 — 긴 폰트명을 2줄까지 표시(한 줄 말줄임 완화), 중앙 열 폭 수축 허용 */
 html[data-wat-viewmode="icon"] #wat .personalOpt_item.fontFamily .setWrap.radio .setCont .opt_lists		{min-width: 0; white-space: normal; overflow: hidden; text-overflow: unset; align-self: center}
 html[data-wat-viewmode="icon"] #wat .personalOpt_item.fontFamily .setWrap.radio .setCont .opt_lists .opt_item.selectOn	{min-width: 0; overflow: hidden}
