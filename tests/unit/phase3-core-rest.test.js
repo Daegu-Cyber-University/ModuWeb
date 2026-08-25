@@ -6,6 +6,7 @@ import { OptionsProcessor } from '../../src/core/OptionsProcessor.js';
 import { ConfigurationManager } from '../../src/core/ConfigurationManager.js';
 import { StyleBatchProcessor } from '../../src/core/StyleBatchProcessor.js';
 import { ContainerManager } from '../../src/core/ContainerManager.js';
+import { Constants } from '../../src/core/constants.js';
 
 // ──────────────────────────────────────────────────
 // OptionsProcessor
@@ -334,7 +335,7 @@ describe('ContainerManager', () => {
 		el.className = 'target-el';
 		document.body.appendChild(el);
 
-		ContainerManager.applySelectorClasses('.target-el', '', { APPLY: 'wat-apply' });
+		ContainerManager.applySelectorClasses('.target-el', '', Constants.CSS_CLASSES);
 		expect(el.classList.contains('wat-apply')).toBe(true);
 
 		el.remove();
@@ -345,9 +346,14 @@ describe('ContainerManager', () => {
 		el.className = 'exclude-el';
 		document.body.appendChild(el);
 
-		ContainerManager.applySelectorClasses('', '.exclude-el', {});
+		ContainerManager.applySelectorClasses('', '.exclude-el', Constants.CSS_CLASSES);
 		expect(el.classList.contains('wat-exclude')).toBe(true);
 
 		el.remove();
+	});
+
+	test('CSS_CLASSES에 APPLY/EXCLUDE가 정의되어 있다 (누락 시 "undefined" 클래스가 부여되는 회귀 방지)', () => {
+		expect(Constants.CSS_CLASSES.APPLY).toBe('wat-apply');
+		expect(Constants.CSS_CLASSES.EXCLUDE).toBe('wat-exclude');
 	});
 });

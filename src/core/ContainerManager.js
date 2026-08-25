@@ -72,7 +72,7 @@ export class ContainerManager {
 		if (excludeSelector) {
 			ErrorHandler.safeExecute(() => {
 				document.querySelectorAll(excludeSelector).forEach(el => {
-					el.classList.add('wat-exclude');
+					el.classList.add(cssClasses.EXCLUDE);
 				});
 			}, {
 				category: ErrorHandler.CATEGORIES.DOM_OPERATION,

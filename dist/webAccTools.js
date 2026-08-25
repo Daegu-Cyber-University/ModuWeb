@@ -39,7 +39,12 @@ var WATPlugin = (function (exports) {
 
 		static CSS_CLASSES = {
 			ACTIVE: 'active',
-			SELECTED: 'selected'
+			SELECTED: 'selected',
+			// applySelector/excludeSelector 대상에 부여하는 마킹 클래스.
+			// APPLY 누락으로 classList.add(undefined)가 되어 대상에 "undefined"
+			// 클래스가 붙고 .wat-apply 스타일 경로가 무력화되던 문제의 원인.
+			APPLY: 'wat-apply',
+			EXCLUDE: 'wat-exclude'
 		};
 
 		static TIMING = {
@@ -603,7 +608,7 @@ var WATPlugin = (function (exports) {
 			if (excludeSelector) {
 				ErrorHandler.safeExecute(() => {
 					document.querySelectorAll(excludeSelector).forEach(el => {
-						el.classList.add('wat-exclude');
+						el.classList.add(cssClasses.EXCLUDE);
 					});
 				}, {
 					category: ErrorHandler.CATEGORIES.DOM_OPERATION,
