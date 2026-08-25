@@ -18,7 +18,7 @@
 - **One-line install** — a single `<script>` tag with `data-wat-auto`. No build step, no framework required.
 - **Works offline / in air-gapped networks** — `webAccTools.standalone.min.js` inlines CSS, icons and Korean locale data into **one file**. No external network needed.
 - **TTS & STT without API keys** — screen reading and voice commands run on the browser's Web Speech API. Nothing to sign up for, nothing to pay.
-- **WCAG 2.1 AA · KWCAG 2.1** — designed for both the international standard and the Korean government accessibility standard, making it a fit for Korean public-sector sites.
+- **WCAG 2.1 AA · KWCAG 2.1** — designed for both the international standard and the Korean government accessibility standard, making it a fit for Korean public-sector sites. The panel UI itself is checked against WCAG 2.2 AA, including measured 24×24 CSS px target sizes across all 166 controls.
 - **6 UI languages** — Korean, English (US/GB), Japanese, Chinese, German.
 - **Accessibility profiles** — one-click presets for low vision, color blindness, and dyslexia.
 
