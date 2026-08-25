@@ -121,6 +121,74 @@ describe('trapFocus', () => {
 		expect(() => pressKey(emptyLayer, 'Escape')).not.toThrow();
 		expect(document.body.contains(emptyLayer)).toBe(false);
 	});
+
+	test('레이어 자신에 포커스가 있을 때 Shift+Tab → 마지막 요소로 (모달 밖 이탈 방지)', () => {
+		// 다이얼로그를 열면 초기 포커스는 layer(tabindex=-1)에 있다. 이때 Shift+Tab이
+		// 개입 없이 브라우저 기본 이동으로 넘어가면 포커스가 오버레이 뒤 콘텐츠로 빠진다.
+		const { previous, overlay, layer, last } = buildModalFixture();
+		WAT.prototype.trapFocus.call({}, layer, previous, overlay);
+
+		layer.focus();
+		const event = pressKey(layer, 'Tab', { shiftKey: true });
+
+		expect(event.defaultPrevented).toBe(true);
+		expect(document.activeElement).toBe(last);
+	});
+
+	test('레이어 자신에 포커스가 있을 때 Tab → 첫 요소로', () => {
+		const { previous, overlay, layer, first } = buildModalFixture();
+		WAT.prototype.trapFocus.call({}, layer, previous, overlay);
+
+		layer.focus();
+		const event = pressKey(layer, 'Tab');
+
+		expect(event.defaultPrevented).toBe(true);
+		expect(document.activeElement).toBe(first);
+	});
+
+	test('포커스가 모달 밖 요소로 이동하면 안전망이 모달 안으로 되돌린다', () => {
+		// keydown 개입을 비켜 가는 경로(라디오 그룹 경계 등)를 문서 수준 focusin
+		// 안전망이 막는지 확인. 밖의 요소에 focus()가 일어나면 즉시 첫 요소로 복귀해야 한다.
+		const { previous, overlay, layer, first } = buildModalFixture();
+		const outside = document.createElement('button');
+		outside.id = 'outside-btn';
+		document.body.appendChild(outside);
+		WAT.prototype.trapFocus.call({}, layer, previous, overlay);
+
+		first.focus();
+		outside.focus();
+
+		expect(document.activeElement).toBe(first);
+	});
+
+	test('display:none 처리된 요소는 순환 경계에서 제외된다', () => {
+		// CSS로 숨긴 요소가 first/last에 끼면 브라우저 기본 이동과 어긋나 트랩이 뚫린다
+		const { previous, overlay, layer, first, last } = buildModalFixture();
+		const hiddenTail = document.createElement('button');
+		hiddenTail.id = 'hidden-tail';
+		hiddenTail.style.display = 'none';
+		layer.appendChild(hiddenTail); // DOM상 마지막이지만 화면에는 없음
+		WAT.prototype.trapFocus.call({}, layer, previous, overlay);
+
+		last.focus();
+		const event = pressKey(layer, 'Tab'); // 보이는 마지막(last)에서 첫 요소로 순환해야 함
+
+		expect(event.defaultPrevented).toBe(true);
+		expect(document.activeElement).toBe(first);
+	});
+
+	test('teardown 후에는 포커스 안전망이 해제되어 밖의 포커스 이동을 막지 않는다', () => {
+		const { previous, overlay, layer } = buildModalFixture();
+		const outside = document.createElement('button');
+		outside.id = 'outside-after';
+		document.body.appendChild(outside);
+		WAT.prototype.trapFocus.call({}, layer, previous, overlay);
+
+		pressKey(layer, 'Escape'); // teardown + 포커스 복원
+		outside.focus();
+
+		expect(document.activeElement).toBe(outside);
+	});
 });
 
 // ──────────────────────────────────────────────────
