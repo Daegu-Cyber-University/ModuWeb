@@ -508,16 +508,14 @@ html[data-wat-position="left"] #watWrap		{right: auto; left: 10px;}
 #wat_btnMinimize::before			{position: absolute; content: ''; width: 10px; height: 2px; background-color: #f5f5f5; transition: all 0.2s ease;}
 #wat_btnMinimize.minimized::before		{width: 8px; height: 8px; background: transparent; border: 2px solid #f5f5f5; border-radius: 1px;}
 #wat_btnMinimize.minimized::after		{position: absolute; content: ''; width: 2px; height: 2px; background-color: #f5f5f5}
-.wat-minimized					{/* height: 65px !important; overflow: hidden; */ transition: all 0.3s ease; --wat-tool-width: 200px}
+/* 축소: 200px 헤더 바만 남긴다. 본문·푸터는 display:none으로 접는다 —
+   overflow 숨김만 쓰면 보이지 않는 컨트롤이 탭 순서에 남는다 (WCAG 2.4.3) */
+.wat-minimized					{transition: all 0.3s ease; --wat-tool-width: 200px}
+.wat-minimized #watWrap				{height: 52px}	/* 헤더 50px + 위아래 테두리 2px (border-box) */
 .wat-minimized #wat_header			{flex-direction: row-reverse;}
 .wat-minimized #wat_title			{display: none;}
-.wat-minimized #wat_panel_Opt			{transition: all 0.3s ease;}
-.wat-minimized #wat_panel_Opt_tab		{display: none}
-html[data-wat-viewmode="icon"] .wat-minimized  #wat .personalList {grid-template-columns: 1fr; grid-auto-rows: auto; grid-template-rows: auto;}
-html[data-wat-viewmode="icon"] .wat-minimized #wat .setWrap .setTitle {height: 5px; font-size: 0;}
-.wat-minimized #wat_footer			{height: 40px;}
-.wat-minimized #wat_footer .copy-since		{display: none}
-.wat-minimized #wat_footer .copy-remaining	{display: none}
+.wat-minimized #wat_panel_Opt			{display: none}
+.wat-minimized #wat_footer			{display: none}
 
 
 /* 패널 본문은 헤더·푸터를 제외한 남은 높이를 차지한다.

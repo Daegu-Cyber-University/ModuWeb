@@ -9148,6 +9148,9 @@ var WATPlugin = (function (exports) {
 					
 					// 11. localStorage에서 패널 상태 확인 및 복원
 					this._restorePanelState();
+
+					// 12. 축소 상태 복원
+					this.restoreMinimizeState();
 				} catch (e) {
 					this._log('error', 'generateHTMLElements error', e);
 				}
