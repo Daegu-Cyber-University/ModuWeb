@@ -1,6 +1,6 @@
 /**
  * @fileoverview WAT (Web Accessibility Tool) - ModuWeb
- * @version 2.3.4
+ * @version 2.3.5
  * @license Apache-2.0
  * @see https://github.com/Daegu-Cyber-University/ModuWeb
  */
@@ -7403,7 +7403,7 @@ var WATPlugin = (function (exports) {
 							plugin: this,
 							timestamp: Date.now(),
 							// 번들러 치환이 없는 환경(테스트 등)에서 ReferenceError로 초기화 이벤트가 사라지지 않도록 가드
-						version: (typeof "2.3.4" !== 'undefined') ? "2.3.4" : 'dev',
+						version: (typeof "2.3.5" !== 'undefined') ? "2.3.5" : 'dev',
 							language: this.language,
 							features: {
 								tts: !!this.ttsManager,
@@ -13184,7 +13184,7 @@ var WATPlugin = (function (exports) {
 
 	/**
 	 * @fileoverview WAT (Web Accessibility Tool) 진입점
-	 * @version 2.3.4
+	 * @version 2.3.5
 	 */
 
 	// 전역에 등록 (기존 동작 유지)
