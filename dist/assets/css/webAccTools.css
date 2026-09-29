@@ -323,6 +323,11 @@ caption.displayNone			{position:static !important; left:auto !important; top:aut
 	pointer-events: none !important;
 }
 
+/* 상태 문구는 상자의 흰 글자색을 직접 상속 — 호스트 전역 규칙(예: * {color: #333})에 덮이지 않도록 */
+.wat-voice-status > * {
+	color: inherit !important;
+}
+
 .wat-voice-status .status-icon {
 	font-size: 18px !important;
 	margin-bottom: 5px !important;
@@ -508,14 +513,19 @@ html[data-wat-position="left"] #watWrap		{right: auto; left: 10px;}
 #wat_btnMinimize::before			{position: absolute; content: ''; width: 10px; height: 2px; background-color: #f5f5f5; transition: all 0.2s ease;}
 #wat_btnMinimize.minimized::before		{width: 8px; height: 8px; background: transparent; border: 2px solid #f5f5f5; border-radius: 1px;}
 #wat_btnMinimize.minimized::after		{position: absolute; content: ''; width: 2px; height: 2px; background-color: #f5f5f5}
-/* 축소: 200px 헤더 바만 남긴다. 본문·푸터는 display:none으로 접는다 —
-   overflow 숨김만 쓰면 보이지 않는 컨트롤이 탭 순서에 남는다 (WCAG 2.4.3) */
+/* 축소: 200px 폭의 아이콘 띠 — 탭·푸터를 접고 기능 제목 글자를 숨겨 아이콘과 조작 버튼만 1열로 남긴다.
+   아이콘 배치는 보기 모드와 관계없이 아이콘 보기 규칙(:is(html[data-wat-viewmode="icon"], .wat-minimized))을 쓰고,
+   축소할 때 toggleMinimize()가 개별 설정 탭으로 전환한다 (환경설정 탭은 좁은 띠에 맞지 않음).
+   접힌 탭·푸터는 display:none이라 탭 순서에 남지 않는다 (WCAG 2.4.3) */
 .wat-minimized					{transition: all 0.3s ease; --wat-tool-width: 200px}
-.wat-minimized #watWrap				{height: 52px}	/* 헤더 50px + 위아래 테두리 2px (border-box) */
 .wat-minimized #wat_header			{flex-direction: row-reverse;}
 .wat-minimized #wat_title			{display: none;}
-.wat-minimized #wat_panel_Opt			{display: none}
+.wat-minimized #wat_panel_Opt_tab		{display: none}
 .wat-minimized #wat_footer			{display: none}
+/* 아이콘 보기 규칙(3열 그리드·110px 행)보다 우선하도록 .wat-container로 명시도를 높인다.
+   제목은 글자와 줄 높이를 함께 접어 아이콘 자리(위 여백 35px)만 남긴다 */
+.wat-container.wat-minimized #wat .personalList		{grid-template-columns: 1fr; grid-auto-rows: auto}
+.wat-container.wat-minimized #wat .setWrap .setTitle	{font-size: 0; line-height: 0}
 
 
 /* 패널 본문은 헤더·푸터를 제외한 남은 높이를 차지한다.
@@ -523,7 +533,9 @@ html[data-wat-position="left"] #watWrap		{right: auto; left: 10px;}
    스크롤을 끝까지 내려도 마지막 항목이 가려졌다. min-height:0은 flex 자식의 스크롤 허용. */
 .wat_panel					{position: relative; flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column}
 #wat_panel_Opt_tab				{position: relative; width: 100%; height: 45px; flex-shrink: 0}
-#wat_title					{font-size: 1.2em; font-weight: bold}
+/* 글자색을 직접 지정 — 헤더의 흰색을 상속에만 맡기면 호스트 전역 규칙(예: * {color: #333})이
+   제목에 직접 적용되어 파란 헤더 위 글자가 어둡게 덮인다 (WCAG 1.4.3) */
+#wat_title					{font-size: 1.2em; font-weight: bold; color: #fff}
 
 /* 푸터를 absolute로 띄우면 본문 스크롤 영역이 푸터 뒤로 숨는다 — flex 흐름에 둔다 */
 #wat_footer					{position: relative; flex-shrink: 0; width: 100%; height: 30px; line-height: 30px; background-color: #f8f8f8; border-top: 1px solid #ddd; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #666; padding: 0 10px; box-sizing: border-box;}
@@ -738,39 +750,42 @@ html[data-wat-viewmode="list"] #wat .setWrap.button .opt_lists .btn_basic {heigh
 #watWrap .switch-label::after				{content: ''; position: absolute; width: 18px; height: 18px; background-color: white; border-radius: 50%; top: 2px; left: 2px; transition: left 0.3s;}
 #watWrap .switch:checked + .switch-label			{background-color: #0D6EFD;}
 #watWrap .switch:checked + .switch-label::after		{left: 22px;}
+/* 사용할 수 없는 기능(예: 사전 서버 미설정)의 스위치 — 흐리게 표시하고 눌러도 동작하지 않음을 커서로 알린다 */
+#watWrap .switch:disabled + .switch-label		{opacity: 0.5; cursor: not-allowed;}
+#watWrap .setTitle[aria-disabled="true"]		{cursor: not-allowed;}
 
-html[data-wat-viewmode="icon"] #wat .personalList				{display: grid; grid-template-columns: repeat(3, 1fr); grid-auto-rows: minmax(110px, auto); grid-gap: 5px; overflow-x: hidden; flex-wrap: wrap;}
-html[data-wat-viewmode="icon"] #wat .personalOpt_item				{width: 100%}
-html[data-wat-viewmode="icon"] #wat .setWrap					{display: flex; flex-direction: row; height: 100%; flex-wrap: wrap; align-content: space-between;}
-html[data-wat-viewmode="icon"] #wat .setWrap.button .opt_lists			{height: auto}
+:is(html[data-wat-viewmode="icon"], .wat-minimized) #wat .personalList				{display: grid; grid-template-columns: repeat(3, 1fr); grid-auto-rows: minmax(110px, auto); grid-gap: 5px; overflow-x: hidden; flex-wrap: wrap;}
+:is(html[data-wat-viewmode="icon"], .wat-minimized) #wat .personalOpt_item				{width: 100%}
+:is(html[data-wat-viewmode="icon"], .wat-minimized) #wat .setWrap					{display: flex; flex-direction: row; height: 100%; flex-wrap: wrap; align-content: space-between;}
+:is(html[data-wat-viewmode="icon"], .wat-minimized) #wat .setWrap.button .opt_lists			{height: auto}
 
-html[data-wat-viewmode="icon"] #wat .setWrap .setTitle				{width: 100%; text-align: center; padding: 35px 0 0 0}
-html[data-wat-viewmode="icon"] #wat .setWrap .setTitle::before			{width: 30px; height: 30px; left: 50%; top: 5px; transform: translate(-50%, 0)}
+:is(html[data-wat-viewmode="icon"], .wat-minimized) #wat .setWrap .setTitle				{width: 100%; text-align: center; padding: 35px 0 0 0}
+:is(html[data-wat-viewmode="icon"], .wat-minimized) #wat .setWrap .setTitle::before			{width: 30px; height: 30px; left: 50%; top: 5px; transform: translate(-50%, 0)}
 
-html[data-wat-viewmode="icon"] #wat .setWrap.radio .setCont			{display: grid; grid-template-columns: 24px auto 24px; width: 100%; background-color: #fff; border-radius: 5px; align-items: center}
+:is(html[data-wat-viewmode="icon"], .wat-minimized) #wat .setWrap.radio .setCont			{display: grid; grid-template-columns: 24px auto 24px; width: 100%; background-color: #fff; border-radius: 5px; align-items: center}
 /* 라디오는 display:none 대신 시각적 숨김 — 키보드(화살표 이동)·스크린리더("N개 중 X") 접근 유지 */
-html[data-wat-viewmode="icon"] #wat .setWrap.radio .setCont input[type="radio"]	{position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0;}
-html[data-wat-viewmode="icon"] #wat .setWrap.radio .setCont .opt_lists		{grid-column: 2 / 3; display: flex; flex-wrap: wrap; overflow: hidden; text-align: center; text-overflow: ellipsis; white-space: nowrap;}
-html[data-wat-viewmode="icon"] #wat .setWrap.radio .setCont .opt_lists .opt_item {display: block; position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); clip-path: inset(50%);}
-html[data-wat-viewmode="icon"] #wat .setWrap.radio .setCont .opt_lists .opt_item.selectOn {position: static; width: 100%; height: auto; margin: 0; clip: auto; clip-path: none; overflow: hidden}
-html[data-wat-viewmode="icon"] #wat .setWrap.radio .setCont input[type="radio"]:focus-visible + label {outline: 2px solid #0D6EFD; outline-offset: 2px}
-html[data-wat-viewmode="icon"] #wat .setWrap.radio .setCont .opt_lists .opt_item.selectOn label {width: 100%; min-height: 24px; display: flex; align-items: center; justify-content: center; font-size: calc(var(--wat-font-size) * 0.8); cursor: pointer; flex: 1 1 auto; text-align: center; border: none; margin: 0; padding: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;}
+:is(html[data-wat-viewmode="icon"], .wat-minimized) #wat .setWrap.radio .setCont input[type="radio"]	{position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0;}
+:is(html[data-wat-viewmode="icon"], .wat-minimized) #wat .setWrap.radio .setCont .opt_lists		{grid-column: 2 / 3; display: flex; flex-wrap: wrap; overflow: hidden; text-align: center; text-overflow: ellipsis; white-space: nowrap;}
+:is(html[data-wat-viewmode="icon"], .wat-minimized) #wat .setWrap.radio .setCont .opt_lists .opt_item {display: block; position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); clip-path: inset(50%);}
+:is(html[data-wat-viewmode="icon"], .wat-minimized) #wat .setWrap.radio .setCont .opt_lists .opt_item.selectOn {position: static; width: 100%; height: auto; margin: 0; clip: auto; clip-path: none; overflow: hidden}
+:is(html[data-wat-viewmode="icon"], .wat-minimized) #wat .setWrap.radio .setCont input[type="radio"]:focus-visible + label {outline: 2px solid #0D6EFD; outline-offset: 2px}
+:is(html[data-wat-viewmode="icon"], .wat-minimized) #wat .setWrap.radio .setCont .opt_lists .opt_item.selectOn label {width: 100%; min-height: 24px; display: flex; align-items: center; justify-content: center; font-size: calc(var(--wat-font-size) * 0.8); cursor: pointer; flex: 1 1 auto; text-align: center; border: none; margin: 0; padding: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;}
 /* 아이콘 모드: 폰트 변경 — 긴 폰트명을 2줄까지 표시(한 줄 말줄임 완화), 중앙 열 폭 수축 허용 */
-html[data-wat-viewmode="icon"] #wat .personalOpt_item.fontFamily .setWrap.radio .setCont .opt_lists		{min-width: 0; white-space: normal; overflow: hidden; text-overflow: unset; align-self: center}
-html[data-wat-viewmode="icon"] #wat .personalOpt_item.fontFamily .setWrap.radio .setCont .opt_lists .opt_item.selectOn	{min-width: 0; overflow: hidden}
-html[data-wat-viewmode="icon"] #wat .personalOpt_item.fontFamily .setWrap.radio .setCont .opt_lists .opt_item.selectOn label	{display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; white-space: normal; overflow: hidden; text-overflow: ellipsis; line-height: 1.3; max-height: calc(1.3em * 2); word-break: keep-all; overflow-wrap: break-word; padding: 0 4px; box-sizing: border-box; font-size: calc(var(--wat-font-size) * 0.72)}
+:is(html[data-wat-viewmode="icon"], .wat-minimized) #wat .personalOpt_item.fontFamily .setWrap.radio .setCont .opt_lists		{min-width: 0; white-space: normal; overflow: hidden; text-overflow: unset; align-self: center}
+:is(html[data-wat-viewmode="icon"], .wat-minimized) #wat .personalOpt_item.fontFamily .setWrap.radio .setCont .opt_lists .opt_item.selectOn	{min-width: 0; overflow: hidden}
+:is(html[data-wat-viewmode="icon"], .wat-minimized) #wat .personalOpt_item.fontFamily .setWrap.radio .setCont .opt_lists .opt_item.selectOn label	{display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; white-space: normal; overflow: hidden; text-overflow: ellipsis; line-height: 1.3; max-height: calc(1.3em * 2); word-break: keep-all; overflow-wrap: break-word; padding: 0 4px; box-sizing: border-box; font-size: calc(var(--wat-font-size) * 0.72)}
 /* 좁은 화면: 아이콘 그리드 3열 → 2열 (셀 폭 확보) */
 @media (max-width: 480px) {
-	html[data-wat-viewmode="icon"] #wat .personalList	{grid-template-columns: repeat(2, 1fr);}
+	:is(html[data-wat-viewmode="icon"], .wat-minimized) #wat .personalList	{grid-template-columns: repeat(2, 1fr);}
 }
 
 /* 이전/다음 버튼 — 24px 이상 확보 (WCAG 2.5.8 대상 크기) */
-html[data-wat-viewmode="icon"] #wat .setWrap.radio .setCont .btn_chgOpt		{background-color: #B9C2F6; border: none; cursor: pointer; font-size: 0; color: transparent; margin: 0; padding: 0}
-html[data-wat-viewmode="icon"] #wat .setWrap.radio .setCont .btn_chgOpt:focus-visible	{outline: 2px solid #0D6EFD; outline-offset: 1px}
-html[data-wat-viewmode="icon"] #wat .setWrap.radio .setCont .btn_chgOpt.prev	{display: inline-block; width: 24px; height: 24px; line-height: 24px; border-radius: 5px;}
-html[data-wat-viewmode="icon"] #wat .setWrap.radio .setCont .btn_chgOpt.prev::before	{content: "◀"; font-size: calc(var(--wat-font-size) * 0.8); color: #222222}
-html[data-wat-viewmode="icon"] #wat .setWrap.radio .setCont .btn_chgOpt.next	{display: inline-block; width: 24px; height: 24px; line-height: 24px; border-radius: 5px;}
-html[data-wat-viewmode="icon"] #wat .setWrap.radio .setCont .btn_chgOpt.next::before	{content: "▶"; font-size: calc(var(--wat-font-size) * 0.8); color: #222222}
+:is(html[data-wat-viewmode="icon"], .wat-minimized) #wat .setWrap.radio .setCont .btn_chgOpt		{background-color: #B9C2F6; border: none; cursor: pointer; font-size: 0; color: transparent; margin: 0; padding: 0}
+:is(html[data-wat-viewmode="icon"], .wat-minimized) #wat .setWrap.radio .setCont .btn_chgOpt:focus-visible	{outline: 2px solid #0D6EFD; outline-offset: 1px}
+:is(html[data-wat-viewmode="icon"], .wat-minimized) #wat .setWrap.radio .setCont .btn_chgOpt.prev	{display: inline-block; width: 24px; height: 24px; line-height: 24px; border-radius: 5px;}
+:is(html[data-wat-viewmode="icon"], .wat-minimized) #wat .setWrap.radio .setCont .btn_chgOpt.prev::before	{content: "◀"; font-size: calc(var(--wat-font-size) * 0.8); color: #222222}
+:is(html[data-wat-viewmode="icon"], .wat-minimized) #wat .setWrap.radio .setCont .btn_chgOpt.next	{display: inline-block; width: 24px; height: 24px; line-height: 24px; border-radius: 5px;}
+:is(html[data-wat-viewmode="icon"], .wat-minimized) #wat .setWrap.radio .setCont .btn_chgOpt.next::before	{content: "▶"; font-size: calc(var(--wat-font-size) * 0.8); color: #222222}
 /* ************************* Web Accessibility Tool Style .End   ************************* */
 
 #watWrap .setWrap.button .opt_lists .btn_iconSet		{font-size: 0}
@@ -1069,6 +1084,9 @@ html[data-wat-viewmode="icon"] #wat .setWrap.radio .setCont .btn_chgOpt.next::be
 	padding: 0 0 0 4px;
 	flex-shrink: 0;
 }
+/* 메시지·아이콘은 알림 상자의 흰 글자색을 직접 상속 — 호스트 전역 규칙(예: * {color: #333})이
+   자식 요소에 직접 적용되면 상속보다 우선해 색 배경 위 글자가 어둡게 덮인다 (WCAG 1.4.3) */
+.wat-user-feedback > * {color: inherit;}
 
 /* TTS 알림 채널(showNotification) — 하단 우측·검정 배경으로 구분 */
 .wat-notification {

@@ -309,7 +309,8 @@
 					"desc": "Suchen Sie Wörter mit einem Open API-Wörterbuch.",
 					"options": {
 						"on": "Ein",
-						"off": "Aus"
+						"off": "Aus",
+						"unavailable": "Nicht verfügbar"
 					}
 				},
 				"lineHeight": {

@@ -87,7 +87,7 @@
 - **STT (Speech-to-Text)**: 음성을 텍스트로 변환
 
 ### 보조 지원도구
-- **사전 기능**: 오픈 사전 검색 지원
+- **사전 기능**: 오픈 사전 검색 지원 (사전 서버 `serverEndpoint`가 설정된 사이트에서만 켤 수 있고, 미설정 시 패널에 '사용 불가'로 표시)
 - **읽기 모드**: 집중 읽기를 위한 단순화된 화면
 - **페이지 구조 탐색**: 제목·랜드마크·링크 목록으로 페이지 개요 확인과 위치 이동
 - **다국어 지원**: 한국어, 영어, 일본어, 중국어 지원
@@ -170,7 +170,7 @@ CSS·아이콘·한국어 언어 데이터가 파일 안에 모두 포함되어 
 </script>
 ```
 
-`config` 옵션에 객체를 직접 넘기면 config.json 파일 없이도 동작합니다. 사전 검색 기능만 별도 서버 설정([설정 옵션](#설정-옵션) 참고)이 필요하고, 나머지 기능은 설정 없이 모두 동작합니다.
+`config` 옵션에 객체를 직접 넘기면 config.json 파일 없이도 동작합니다. 사전 검색 기능만 별도 서버 설정([설정 옵션](#설정-옵션) 참고)이 필요하고(설정이 없으면 사전 검색 스위치가 '사용 불가'로 비활성 표시됨), 나머지 기능은 설정 없이 모두 동작합니다.
 
 ## 배포 패키지 (완성본 zip)
 
@@ -556,7 +556,7 @@ wat.changeImgDisplayMode(mode);  // 이미지 표시 모드 변경
 
 ```javascript
 wat.togglePanel(actionHidden);          // UI 패널 열기/닫기
-wat.toggleMinimize();                   // 패널 최소화 토글
+wat.toggleMinimize();                   // 패널 최소화 토글 (200px 폭 아이콘 띠)
 wat.applyProfileSettings(profileName);  // 장애 유형별 프로필 일괄 적용
 wat.resetWatSettings();                 // 모든 설정 초기화
 ```
@@ -579,7 +579,7 @@ TTS는 브라우저 Web Speech API를 사용하며, WAT에서는 `ttsManager`의
 // 자동 읽기 토글
 wat.ttsManager.toggleAutoTTS();
 
-// 포커스 기반 읽기 토글
+// 포커스 탐지 낭독 토글 — Tab 키 등으로 포커스가 이동한 요소와 마우스로 클릭·선택한 텍스트를 읽음
 wat.ttsManager.toggleFocusTTS();
 
 // 읽기 속도 조절

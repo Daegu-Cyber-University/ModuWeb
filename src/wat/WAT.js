@@ -4814,7 +4814,8 @@ export class WAT {
 				minimizeButton.setAttribute('title', this.getLocalizedText('command.minimize'));
 				minimizeButton.classList.remove('minimized');
 			} else {
-				// 축소
+				// 축소 — 아이콘 띠는 개별 설정 목록을 보여주므로 첫 탭(개별 설정)으로 전환한다
+				this.activateInitialTab();
 				watContainer.classList.add('wat-minimized');
 				document.documentElement.dataset.watMinimized = 'true';
 				minimizeButton.setAttribute('aria-label', this.getLocalizedText('command.restore'));
@@ -5737,6 +5738,14 @@ export class WAT {
 				
 				ErrorHandler.debugLog('Dictionary feature disabled - no server endpoint configured');
 			}
+		}
+
+		/**
+		 * 사전 검색을 사용할 수 있는지 반환합니다 (config에 사전 서버 serverEndpoint가 있어야 함)
+		 * @returns {boolean} 사용 가능하면 true — config 로드 전이거나 서버가 설정되지 않았으면 false
+		 */
+		isDictionaryAvailable() {
+			return this.getConfigValue('api.dictionary.enabled', false) === true;
 		}
 
 		/**

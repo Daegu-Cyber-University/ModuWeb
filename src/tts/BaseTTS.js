@@ -2,6 +2,8 @@
  * @fileoverview BaseTTS - FocusTTS와 KeyboardTTS의 공통 기능 베이스 클래스
  * @module src/tts/BaseTTS
  */
+import { Constants } from '../core/constants.js';
+
 export class BaseTTS {
 	constructor(ttsManager) {
 		this.ttsManager = ttsManager;
@@ -18,17 +20,13 @@ export class BaseTTS {
 	 * 주어진 DOM 요소가 WAT 자체 UI 요소인지 확인합니다.
 	 * @param {Element} target - 검사할 요소
 	 * @returns {boolean}
+	 * @description 위젯이 만드는 UI(패널·알림·모달·읽기 가이드 등)는 모두 제외 표식(.wat-exclude)을 단다.
+	 *              'wat-' 접두사로 판정하면 위젯이 호스트 요소에 붙이는 마킹 클래스(body.wat-apply,
+	 *              wat-dyn-*, 낭독 하이라이트)까지 위젯으로 오인해 페이지 전체가 낭독에서 빠진다.
 	 */
 	_isWatUIElement(target) {
-		if (!target) return false;
-		return (
-			target.closest('#wat-container') !== null ||
-			target.closest('.wat-exclude') !== null ||
-			target.closest('[id^="wat-"]') !== null ||
-			target.closest('[class*="wat-"]') !== null ||
-			(target.id && target.id.startsWith('wat-')) ||
-			Array.from(target.classList || []).some(cls => cls.startsWith('wat-'))
-		);
+		if (!target || typeof target.closest !== 'function') return false;
+		return target.closest(`.${Constants.CSS_CLASSES.EXCLUDE}`) !== null;
 	}
 
 	/**

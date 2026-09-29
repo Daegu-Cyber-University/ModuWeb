@@ -92,7 +92,7 @@ Copy **one file**, `dist/webAccTools.standalone.min.js`, to your server. CSS, ic
 | Color | High-contrast themes, color inversion, saturation control |
 | Focus | Cursor highlighting, reading guide, media & animation control |
 | Audio | TTS screen reading (auto / focus / keyboard modes), STT voice commands |
-| Extras | Dictionary lookup, simplified reading mode, page structure viewer |
+| Extras | Dictionary lookup (needs a dictionary server endpoint; shown as unavailable otherwise), simplified reading mode, page structure viewer |
 | Keyboard | Full keyboard navigation, focus indicators, shortcuts |
 | Profiles | One-click presets per disability type, settings persistence, export/import |
 

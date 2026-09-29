@@ -1,5 +1,6 @@
 /**
- * @fileoverview FocusTTS - 마우스 선택/드래그로 텍스트를 읽어주는 기능
+ * @fileoverview FocusTTS - 포커스 탐지 낭독: 키보드로 포커스가 이동한 요소와
+ *               마우스로 클릭·선택·드래그한 텍스트를 읽어주는 기능
  * @module src/tts/FocusTTS
  */
 import { BaseTTS } from './BaseTTS.js';
@@ -12,10 +13,15 @@ export class FocusTTS extends BaseTTS {
 		this.lastEventTime = 0;
 		this.eventDebounceDelay = 150;
 		this.selectionTimer = null;
+		// 마지막 입력이 마우스·터치였는지 — 그 입력으로 생긴 포커스는 mouseup 경로가 읽는다
+		this.lastInputWasPointer = false;
 
 		this.boundHandlers = {
 			doubleClick: this._handleDoubleClick.bind(this),
-			mouseUp: this._handleMouseUp.bind(this)
+			mouseUp: this._handleMouseUp.bind(this),
+			focusIn: this._handleFocusIn.bind(this),
+			pointerDown: this._handlePointerDown.bind(this),
+			keyDown: this._handleKeyDown.bind(this)
 		};
 	}
 
@@ -23,8 +29,14 @@ export class FocusTTS extends BaseTTS {
 		if (this.isEnabled) return;
 
 		this.isEnabled = true;
+		this.lastInputWasPointer = false;
 		document.addEventListener('dblclick', this.boundHandlers.doubleClick, { passive: true });
 		document.addEventListener('mouseup', this.boundHandlers.mouseUp, { passive: true });
+		// 입력 방식은 캡처 단계에서 먼저 기록해 focusin 시점에 판단할 수 있게 한다
+		document.addEventListener('pointerdown', this.boundHandlers.pointerDown, { capture: true, passive: true });
+		document.addEventListener('mousedown', this.boundHandlers.pointerDown, { capture: true, passive: true });
+		document.addEventListener('keydown', this.boundHandlers.keyDown, { capture: true, passive: true });
+		document.addEventListener('focusin', this.boundHandlers.focusIn);
 	}
 
 	disable() {
@@ -33,11 +45,16 @@ export class FocusTTS extends BaseTTS {
 		this.isEnabled = false;
 		document.removeEventListener('dblclick', this.boundHandlers.doubleClick, { passive: true });
 		document.removeEventListener('mouseup', this.boundHandlers.mouseUp, { passive: true });
+		document.removeEventListener('pointerdown', this.boundHandlers.pointerDown, { capture: true, passive: true });
+		document.removeEventListener('mousedown', this.boundHandlers.pointerDown, { capture: true, passive: true });
+		document.removeEventListener('keydown', this.boundHandlers.keyDown, { capture: true, passive: true });
+		document.removeEventListener('focusin', this.boundHandlers.focusIn);
 
 		this._clearSelectionTimer();
 		this._stopCurrentSpeech();
 		this._removeHighlight();
 		this.lastEventTime = 0;
+		this.lastInputWasPointer = false;
 	}
 
 	/**
@@ -55,6 +72,39 @@ export class FocusTTS extends BaseTTS {
 		if (this.selectionTimer) {
 			clearTimeout(this.selectionTimer);
 			this.selectionTimer = null;
+		}
+	}
+
+	/**
+	 * 마우스·터치 입력을 기록합니다 — 이 입력으로 생긴 포커스는 mouseup 경로가 읽는다
+	 */
+	_handlePointerDown() {
+		this.lastInputWasPointer = true;
+	}
+
+	/**
+	 * 키보드 입력을 기록합니다 — 이후의 포커스 이동은 키보드 탐색으로 보고 읽는다
+	 */
+	_handleKeyDown() {
+		this.lastInputWasPointer = false;
+	}
+
+	/**
+	 * 키보드로 포커스가 이동하면 포커스된 요소를 읽습니다.
+	 * @param {FocusEvent} event - focusin 이벤트
+	 * @description 마우스 클릭으로 생긴 포커스는 mouseup 경로가 같은 요소를 읽으므로 건너뛴다(중복 발화 방지).
+	 *              body·html로 포커스가 돌아가는 경우는 페이지 전체 낭독이 되므로 읽지 않는다.
+	 */
+	_handleFocusIn(event) {
+		if (!this.isEnabled || this.lastInputWasPointer) return;
+
+		const element = event.target;
+		if (!element || element === document.body || element === document.documentElement) return;
+		if (this._isWatUIElement(element)) return;
+
+		const textToRead = this._extractElementText(element);
+		if (textToRead && textToRead.trim().length > 0) {
+			this._speakText(textToRead.trim());
 		}
 	}
 
