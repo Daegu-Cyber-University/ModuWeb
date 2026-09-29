@@ -326,9 +326,13 @@ export class Dictionary {
 	/**
 	 * 사전 검색 기능을 켜거나 끕니다 (끌 때 열린 결과 레이어 정리)
 	 * @returns {void}
+	 * @description 사전 서버가 설정되지 않아 사용할 수 없으면 켜지 않는다 (끄기는 항상 허용)
 	 */
 	toggleDiction() {
 		const currentState = this.plugin.state.get('plugin.isDictionEnabled');
+		if (!currentState && !this.plugin.isDictionaryAvailable()) {
+			return;
+		}
 		this.plugin.state.set('plugin.isDictionEnabled', !currentState);
 
 		if (!this.plugin.state.get('plugin.isDictionEnabled')) {

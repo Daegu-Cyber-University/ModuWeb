@@ -309,7 +309,8 @@
 					"desc": "Lookup words using an Open API dictionary.",
 					"options": {
 						"on": "On",
-						"off": "Off"
+						"off": "Off",
+						"unavailable": "Unavailable"
 					}
 				},
 				"lineHeight": {

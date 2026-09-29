@@ -309,7 +309,8 @@
 					"desc": "Open API 사전을 활용하여 단어를 검색합니다.",
 					"options": {
 						"on": "켜기",
-						"off": "끄기"
+						"off": "끄기",
+						"unavailable": "사용 불가"
 					}
 				},
 				"lineHeight": {

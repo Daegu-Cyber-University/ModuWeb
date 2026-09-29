@@ -309,7 +309,8 @@
 					"desc": "Open API 辞書を活用して単語を検索します。",
 					"options": {
 						"on": "オン",
-						"off": "オフ"
+						"off": "オフ",
+						"unavailable": "利用不可"
 					}
 				},
 				"lineHeight": {

@@ -1,6 +1,6 @@
 /**
  * @fileoverview WAT (Web Accessibility Tool) - ModuWeb
- * @version 2.3.6
+ * @version 2.3.7
  * @license Apache-2.0
  * @see https://github.com/Daegu-Cyber-University/ModuWeb
  */
@@ -2279,9 +2279,13 @@ var WATPlugin = (function (exports) {
 		/**
 		 * 사전 검색 기능을 켜거나 끕니다 (끌 때 열린 결과 레이어 정리)
 		 * @returns {void}
+		 * @description 사전 서버가 설정되지 않아 사용할 수 없으면 켜지 않는다 (끄기는 항상 허용)
 		 */
 		toggleDiction() {
 			const currentState = this.plugin.state.get('plugin.isDictionEnabled');
+			if (!currentState && !this.plugin.isDictionaryAvailable()) {
+				return;
+			}
 			this.plugin.state.set('plugin.isDictionEnabled', !currentState);
 
 			if (!this.plugin.state.get('plugin.isDictionEnabled')) {
@@ -2877,6 +2881,8 @@ var WATPlugin = (function (exports) {
 	 *          toggleKey가 있으면 label_toggle(상태 반전 라벨)을 생성
 	 * - ratios: true면 플러그인의 <name>Ratios/<name>Options 설정 기반 동적 목록
 	 *   (ratio가 false인 키 제외, 커스텀 label/checked/disabled 지원, initial 기본 선택)
+	 * - isAvailable: (plugin) => boolean. false면 필요한 설정이 없어 동작할 수 없는 기능으로 보고
+	 *   끈 상태의 비활성 항목과 '사용 불가'(options.unavailable 로케일) 안내로 그린다
 	 * fontFamily는 FONT_FAMILY_OPTIONS 병합·웹폰트 로드가 필요해 별도 빌더를 사용한다.
 	 */
 	const OPTION_DEFS = {
@@ -2926,7 +2932,8 @@ var WATPlugin = (function (exports) {
 		stt: { type: 'button', items: [
 			{ value: 'start' }
 		] },
-		diction: { type: 'checkbox', items: [
+		// 사전 서버(config api.dictionary.serverEndpoint)가 없으면 검색이 동작하지 않는다
+		diction: { type: 'checkbox', isAvailable: (plugin) => plugin.isDictionaryAvailable(), items: [
 			{ value: 'on', toggleKey: 'off' }
 		] },
 		pageStructure: { type: 'button', items: [
@@ -2973,7 +2980,25 @@ var WATPlugin = (function (exports) {
 				});
 			}
 
-			return this.createSettingsItem(def.type, title, optionName, optionItems);
+			// 필요한 설정이 없어 동작할 수 없는 기능은 켤 수 없도록 끈 채 비활성화하고 '사용 불가'로 안내한다
+			const isUnavailable = typeof def.isAvailable === 'function' && !def.isAvailable(this.plugin);
+			if (isUnavailable) {
+				const unavailableLabel = this.plugin.getLocalizedText(optionLocaleKey(group, 'unavailable'));
+				optionItems = optionItems.map(item => ({
+					...item,
+					label: unavailableLabel,
+					label_toggle: unavailableLabel,
+					checked: false,
+					disabled: true
+				}));
+			}
+
+			const listItemElement = this.createSettingsItem(def.type, title, optionName, optionItems);
+			if (isUnavailable) {
+				// 제목(role=button)도 눌러서 켤 수 없음을 보조기술에 알린다
+				listItemElement.querySelector('.setTitle').setAttribute('aria-disabled', 'true');
+			}
+			return listItemElement;
 		}
 
 		/**
@@ -3177,6 +3202,8 @@ var WATPlugin = (function (exports) {
 				setWrapElement.classList.add('checkbox');
 				const toggleCheckbox = () => {
 					const checkboxElement = setWrapElement.querySelector('.setCont input[type="checkbox"]');
+					// 비활성 스위치는 제목·라벨 클릭으로도 바꾸지 않는다 (사용 불가 기능 등)
+					if (checkboxElement.disabled) return;
 					checkboxElement.checked = !checkboxElement.checked;
 					// change 이벤트를 수동으로 트리거
 					checkboxElement.dispatchEvent(new Event('change', { bubbles: true }));
@@ -4928,6 +4955,7 @@ var WATPlugin = (function (exports) {
 	 * @fileoverview BaseTTS - FocusTTS와 KeyboardTTS의 공통 기능 베이스 클래스
 	 * @module src/tts/BaseTTS
 	 */
+
 	class BaseTTS {
 		constructor(ttsManager) {
 			this.ttsManager = ttsManager;
@@ -4944,17 +4972,13 @@ var WATPlugin = (function (exports) {
 		 * 주어진 DOM 요소가 WAT 자체 UI 요소인지 확인합니다.
 		 * @param {Element} target - 검사할 요소
 		 * @returns {boolean}
+		 * @description 위젯이 만드는 UI(패널·알림·모달·읽기 가이드 등)는 모두 제외 표식(.wat-exclude)을 단다.
+		 *              'wat-' 접두사로 판정하면 위젯이 호스트 요소에 붙이는 마킹 클래스(body.wat-apply,
+		 *              wat-dyn-*, 낭독 하이라이트)까지 위젯으로 오인해 페이지 전체가 낭독에서 빠진다.
 		 */
 		_isWatUIElement(target) {
-			if (!target) return false;
-			return (
-				target.closest('#wat-container') !== null ||
-				target.closest('.wat-exclude') !== null ||
-				target.closest('[id^="wat-"]') !== null ||
-				target.closest('[class*="wat-"]') !== null ||
-				(target.id && target.id.startsWith('wat-')) ||
-				Array.from(target.classList || []).some(cls => cls.startsWith('wat-'))
-			);
+			if (!target || typeof target.closest !== 'function') return false;
+			return target.closest(`.${Constants.CSS_CLASSES.EXCLUDE}`) !== null;
 		}
 
 		/**
@@ -5138,7 +5162,8 @@ var WATPlugin = (function (exports) {
 	}
 
 	/**
-	 * @fileoverview FocusTTS - 마우스 선택/드래그로 텍스트를 읽어주는 기능
+	 * @fileoverview FocusTTS - 포커스 탐지 낭독: 키보드로 포커스가 이동한 요소와
+	 *               마우스로 클릭·선택·드래그한 텍스트를 읽어주는 기능
 	 * @module src/tts/FocusTTS
 	 */
 
@@ -5150,10 +5175,15 @@ var WATPlugin = (function (exports) {
 			this.lastEventTime = 0;
 			this.eventDebounceDelay = 150;
 			this.selectionTimer = null;
+			// 마지막 입력이 마우스·터치였는지 — 그 입력으로 생긴 포커스는 mouseup 경로가 읽는다
+			this.lastInputWasPointer = false;
 
 			this.boundHandlers = {
 				doubleClick: this._handleDoubleClick.bind(this),
-				mouseUp: this._handleMouseUp.bind(this)
+				mouseUp: this._handleMouseUp.bind(this),
+				focusIn: this._handleFocusIn.bind(this),
+				pointerDown: this._handlePointerDown.bind(this),
+				keyDown: this._handleKeyDown.bind(this)
 			};
 		}
 
@@ -5161,8 +5191,14 @@ var WATPlugin = (function (exports) {
 			if (this.isEnabled) return;
 
 			this.isEnabled = true;
+			this.lastInputWasPointer = false;
 			document.addEventListener('dblclick', this.boundHandlers.doubleClick, { passive: true });
 			document.addEventListener('mouseup', this.boundHandlers.mouseUp, { passive: true });
+			// 입력 방식은 캡처 단계에서 먼저 기록해 focusin 시점에 판단할 수 있게 한다
+			document.addEventListener('pointerdown', this.boundHandlers.pointerDown, { capture: true, passive: true });
+			document.addEventListener('mousedown', this.boundHandlers.pointerDown, { capture: true, passive: true });
+			document.addEventListener('keydown', this.boundHandlers.keyDown, { capture: true, passive: true });
+			document.addEventListener('focusin', this.boundHandlers.focusIn);
 		}
 
 		disable() {
@@ -5171,11 +5207,16 @@ var WATPlugin = (function (exports) {
 			this.isEnabled = false;
 			document.removeEventListener('dblclick', this.boundHandlers.doubleClick, { passive: true });
 			document.removeEventListener('mouseup', this.boundHandlers.mouseUp, { passive: true });
+			document.removeEventListener('pointerdown', this.boundHandlers.pointerDown, { capture: true, passive: true });
+			document.removeEventListener('mousedown', this.boundHandlers.pointerDown, { capture: true, passive: true });
+			document.removeEventListener('keydown', this.boundHandlers.keyDown, { capture: true, passive: true });
+			document.removeEventListener('focusin', this.boundHandlers.focusIn);
 
 			this._clearSelectionTimer();
 			this._stopCurrentSpeech();
 			this._removeHighlight();
 			this.lastEventTime = 0;
+			this.lastInputWasPointer = false;
 		}
 
 		/**
@@ -5193,6 +5234,39 @@ var WATPlugin = (function (exports) {
 			if (this.selectionTimer) {
 				clearTimeout(this.selectionTimer);
 				this.selectionTimer = null;
+			}
+		}
+
+		/**
+		 * 마우스·터치 입력을 기록합니다 — 이 입력으로 생긴 포커스는 mouseup 경로가 읽는다
+		 */
+		_handlePointerDown() {
+			this.lastInputWasPointer = true;
+		}
+
+		/**
+		 * 키보드 입력을 기록합니다 — 이후의 포커스 이동은 키보드 탐색으로 보고 읽는다
+		 */
+		_handleKeyDown() {
+			this.lastInputWasPointer = false;
+		}
+
+		/**
+		 * 키보드로 포커스가 이동하면 포커스된 요소를 읽습니다.
+		 * @param {FocusEvent} event - focusin 이벤트
+		 * @description 마우스 클릭으로 생긴 포커스는 mouseup 경로가 같은 요소를 읽으므로 건너뛴다(중복 발화 방지).
+		 *              body·html로 포커스가 돌아가는 경우는 페이지 전체 낭독이 되므로 읽지 않는다.
+		 */
+		_handleFocusIn(event) {
+			if (!this.isEnabled || this.lastInputWasPointer) return;
+
+			const element = event.target;
+			if (!element || element === document.body || element === document.documentElement) return;
+			if (this._isWatUIElement(element)) return;
+
+			const textToRead = this._extractElementText(element);
+			if (textToRead && textToRead.trim().length > 0) {
+				this._speakText(textToRead.trim());
 			}
 		}
 
@@ -7403,7 +7477,7 @@ var WATPlugin = (function (exports) {
 							plugin: this,
 							timestamp: Date.now(),
 							// 번들러 치환이 없는 환경(테스트 등)에서 ReferenceError로 초기화 이벤트가 사라지지 않도록 가드
-						version: (typeof "2.3.6" !== 'undefined') ? "2.3.6" : 'dev',
+						version: (typeof "2.3.7" !== 'undefined') ? "2.3.7" : 'dev',
 							language: this.language,
 							features: {
 								tts: !!this.ttsManager,
@@ -11612,7 +11686,8 @@ var WATPlugin = (function (exports) {
 					minimizeButton.setAttribute('title', this.getLocalizedText('command.minimize'));
 					minimizeButton.classList.remove('minimized');
 				} else {
-					// 축소
+					// 축소 — 아이콘 띠는 개별 설정 목록을 보여주므로 첫 탭(개별 설정)으로 전환한다
+					this.activateInitialTab();
 					watContainer.classList.add('wat-minimized');
 					document.documentElement.dataset.watMinimized = 'true';
 					minimizeButton.setAttribute('aria-label', this.getLocalizedText('command.restore'));
@@ -12538,6 +12613,14 @@ var WATPlugin = (function (exports) {
 			}
 
 			/**
+			 * 사전 검색을 사용할 수 있는지 반환합니다 (config에 사전 서버 serverEndpoint가 있어야 함)
+			 * @returns {boolean} 사용 가능하면 true — config 로드 전이거나 서버가 설정되지 않았으면 false
+			 */
+			isDictionaryAvailable() {
+				return this.getConfigValue('api.dictionary.enabled', false) === true;
+			}
+
+			/**
 			 * Gets configuration value by dot notation path
 			 * @param {string} path - Configuration path (e.g., 'dictionary.providers.naver.endpoint')
 			 * @param {*} defaultValue - Default value if not found
@@ -13187,7 +13270,7 @@ var WATPlugin = (function (exports) {
 
 	/**
 	 * @fileoverview WAT (Web Accessibility Tool) 진입점
-	 * @version 2.3.6
+	 * @version 2.3.7
 	 */
 
 	// 전역에 등록 (기존 동작 유지)

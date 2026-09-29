@@ -26,6 +26,8 @@ const optionLocaleKey = (group, key) => `panel.personal.options.${group}.options
  *          toggleKey가 있으면 label_toggle(상태 반전 라벨)을 생성
  * - ratios: true면 플러그인의 <name>Ratios/<name>Options 설정 기반 동적 목록
  *   (ratio가 false인 키 제외, 커스텀 label/checked/disabled 지원, initial 기본 선택)
+ * - isAvailable: (plugin) => boolean. false면 필요한 설정이 없어 동작할 수 없는 기능으로 보고
+ *   끈 상태의 비활성 항목과 '사용 불가'(options.unavailable 로케일) 안내로 그린다
  * fontFamily는 FONT_FAMILY_OPTIONS 병합·웹폰트 로드가 필요해 별도 빌더를 사용한다.
  */
 const OPTION_DEFS = {
@@ -75,7 +77,8 @@ const OPTION_DEFS = {
 	stt: { type: 'button', items: [
 		{ value: 'start' }
 	] },
-	diction: { type: 'checkbox', items: [
+	// 사전 서버(config api.dictionary.serverEndpoint)가 없으면 검색이 동작하지 않는다
+	diction: { type: 'checkbox', isAvailable: (plugin) => plugin.isDictionaryAvailable(), items: [
 		{ value: 'on', toggleKey: 'off' }
 	] },
 	pageStructure: { type: 'button', items: [
@@ -122,7 +125,25 @@ export class PanelBuilder {
 			});
 		}
 
-		return this.createSettingsItem(def.type, title, optionName, optionItems);
+		// 필요한 설정이 없어 동작할 수 없는 기능은 켤 수 없도록 끈 채 비활성화하고 '사용 불가'로 안내한다
+		const isUnavailable = typeof def.isAvailable === 'function' && !def.isAvailable(this.plugin);
+		if (isUnavailable) {
+			const unavailableLabel = this.plugin.getLocalizedText(optionLocaleKey(group, 'unavailable'));
+			optionItems = optionItems.map(item => ({
+				...item,
+				label: unavailableLabel,
+				label_toggle: unavailableLabel,
+				checked: false,
+				disabled: true
+			}));
+		}
+
+		const listItemElement = this.createSettingsItem(def.type, title, optionName, optionItems);
+		if (isUnavailable) {
+			// 제목(role=button)도 눌러서 켤 수 없음을 보조기술에 알린다
+			listItemElement.querySelector('.setTitle').setAttribute('aria-disabled', 'true');
+		}
+		return listItemElement;
 	}
 
 	/**
@@ -326,6 +347,8 @@ export class PanelBuilder {
 			setWrapElement.classList.add('checkbox');
 			const toggleCheckbox = () => {
 				const checkboxElement = setWrapElement.querySelector('.setCont input[type="checkbox"]');
+				// 비활성 스위치는 제목·라벨 클릭으로도 바꾸지 않는다 (사용 불가 기능 등)
+				if (checkboxElement.disabled) return;
 				checkboxElement.checked = !checkboxElement.checked;
 				// change 이벤트를 수동으로 트리거
 				checkboxElement.dispatchEvent(new Event('change', { bubbles: true }));
