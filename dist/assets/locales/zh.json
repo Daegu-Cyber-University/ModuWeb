@@ -309,8 +309,7 @@
 					"desc": "使用开放 API 词典查询单词。",
 					"options": {
 						"on": "开启",
-						"off": "关闭",
-						"unavailable": "不可用"
+						"off": "关闭"
 					}
 				},
 				"lineHeight": {

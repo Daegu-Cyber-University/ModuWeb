@@ -750,9 +750,6 @@ html[data-wat-viewmode="list"] #wat .setWrap.button .opt_lists .btn_basic {heigh
 #watWrap .switch-label::after				{content: ''; position: absolute; width: 18px; height: 18px; background-color: white; border-radius: 50%; top: 2px; left: 2px; transition: left 0.3s;}
 #watWrap .switch:checked + .switch-label			{background-color: #0D6EFD;}
 #watWrap .switch:checked + .switch-label::after		{left: 22px;}
-/* 사용할 수 없는 기능(예: 사전 서버 미설정)의 스위치 — 흐리게 표시하고 눌러도 동작하지 않음을 커서로 알린다 */
-#watWrap .switch:disabled + .switch-label		{opacity: 0.5; cursor: not-allowed;}
-#watWrap .setTitle[aria-disabled="true"]		{cursor: not-allowed;}
 
 :is(html[data-wat-viewmode="icon"], .wat-minimized) #wat .personalList				{display: grid; grid-template-columns: repeat(3, 1fr); grid-auto-rows: minmax(110px, auto); grid-gap: 5px; overflow-x: hidden; flex-wrap: wrap;}
 :is(html[data-wat-viewmode="icon"], .wat-minimized) #wat .personalOpt_item				{width: 100%}
