@@ -3172,7 +3172,6 @@ var WATPlugin = (function (exports) {
 			// .setTitle 클릭 시 라디오 버튼 순차 선택 및 change 이벤트 트리거
 			const setWrapElement = listItemElement.querySelector('.setWrap');
 			const titleElement = setWrapElement.querySelector('.setTitle');
-			const labelElement = setWrapElement.querySelector('.switch-label');
 
 			// role="button"인 .setTitle을 키보드로도 활성화 (Enter/Space → 클릭) (WCAG 2.1.1)
 			titleElement.addEventListener('keydown', (e) => {
@@ -3202,14 +3201,16 @@ var WATPlugin = (function (exports) {
 				setWrapElement.classList.add('checkbox');
 				const toggleCheckbox = () => {
 					const checkboxElement = setWrapElement.querySelector('.setCont input[type="checkbox"]');
-					// 비활성 스위치는 제목·라벨 클릭으로도 바꾸지 않는다 (사용 불가 기능 등)
+					// 비활성 스위치는 제목을 눌러도 바꾸지 않는다 (사용 불가 기능 등)
 					if (checkboxElement.disabled) return;
 					checkboxElement.checked = !checkboxElement.checked;
 					// change 이벤트를 수동으로 트리거
 					checkboxElement.dispatchEvent(new Event('change', { bubbles: true }));
 				};
+				// 제목(role=button)만 직접 토글한다. 스위치 트랙(label.switch-label)은 for로 연결된 input을
+				// 브라우저가 토글하고 change를 보내므로(비활성이면 무시) 라벨에 리스너를 또 달면
+				// 한 번 클릭에 두 번 바뀌어 상태는 그대로이고 부수 효과만 두 번 실행된다
 				titleElement.addEventListener('click', toggleCheckbox);
-				labelElement.addEventListener('click', toggleCheckbox);
 			} else if (itemType === 'button') {
 				setWrapElement.classList.add('button');
 				titleElement.addEventListener('click', () => {
