@@ -95,6 +95,23 @@ export class PanelBuilder {
 	}
 
 	/**
+	 * 스위치(role=switch 체크박스)의 aria-checked와 상태 문구(.switch-state)를 현재 checked에 맞춥니다
+	 * (처음 그릴 때·사용자 토글·프로필 적용이 함께 쓴다. change를 보내지 않으므로 부수 효과는 없다)
+	 * @param {HTMLInputElement} checkbox - 개인 옵션 스위치 체크박스
+	 */
+	static syncSwitchStateUI(checkbox) {
+		const isActive = checkbox.checked;
+		// aria-checked를 맞추지 않으면 스크린리더가 실제와 다른 상태를 읽는다
+		if (checkbox.getAttribute('role') === 'switch') {
+			checkbox.setAttribute('aria-checked', isActive ? 'true' : 'false');
+		}
+		const stateElement = checkbox.parentElement.querySelector('.switch-state');
+		if (stateElement) {
+			stateElement.textContent = stateElement.getAttribute('data-stateText-' + (isActive ? 'on' : 'off'));
+		}
+	}
+
+	/**
 	 * 개인 옵션명으로 설정 항목 요소를 생성합니다 (OPTION_DEFS 테이블 기반)
 	 * @param {string} optionName - 옵션명 ('fontSize', 'colorTheme' 등)
 	 * @returns {HTMLLIElement} 설정 항목 리스트 요소
@@ -284,10 +301,11 @@ export class PanelBuilder {
 					</li>
 					`;
 			} else if (itemType === 'checkbox') {
+				// aria-checked와 상태 문구는 아래에서 syncSwitchStateUI가 checked에 맞춰 채운다
 				htmlString = `
 					<li class='opt_item'>
-						<input type="${itemType}" class="wat-items wat-item-type-checkbox switch" id="wat-${itemType}-${optionName}" name="${optionName}" value="${itemValue}" title="${titleText} ${itemLabel}" role="switch" aria-checked="${item.checked ? 'true' : 'false'}" ${checkedAttr} ${disabledAttr}><label for="wat-${itemType}-${optionName}" class="switch-label">${itemLabel}</label>
-						<span class="switch-state" data-stateText-on="${itemLabel}" data-stateText-off="${toggleLabel}">${itemLabel}</span>
+						<input type="${itemType}" class="wat-items wat-item-type-checkbox switch" id="wat-${itemType}-${optionName}" name="${optionName}" value="${itemValue}" title="${titleText} ${itemLabel}" role="switch" ${checkedAttr} ${disabledAttr}><label for="wat-${itemType}-${optionName}" class="switch-label">${itemLabel}</label>
+						<span class="switch-state" data-stateText-on="${itemLabel}" data-stateText-off="${toggleLabel}"></span>
 					</li>
 					`;
 			}
@@ -344,6 +362,8 @@ export class PanelBuilder {
 			setWrapElement.querySelector('.btn_chgOpt.next').addEventListener('click', () => cycleRadio('next'));
 		} else if (itemType === 'checkbox') {
 			setWrapElement.classList.add('checkbox');
+			// 초기 상태(item.checked)를 토글·프로필 적용과 같은 방식으로 표시한다
+			setWrapElement.querySelectorAll('.setCont input[type="checkbox"]').forEach(checkbox => PanelBuilder.syncSwitchStateUI(checkbox));
 			const toggleCheckbox = () => {
 				const checkboxElement = setWrapElement.querySelector('.setCont input[type="checkbox"]');
 				// 비활성 스위치는 제목을 눌러도 바꾸지 않는다 (사용 불가 기능 등)

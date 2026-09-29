@@ -10,6 +10,7 @@
 import { Constants } from '../core/constants.js';
 import { Defaults } from '../core/defaults.js';
 import { safeParseJSON } from '../core/safeParseJSON.js';
+import { PanelBuilder } from './PanelBuilder.js';
 
 // 접근성 설정 키 → 적용 메서드 매핑. 프로필 적용/해제/전체 리셋이 공유한다.
 const SETTING_APPLIERS = {
@@ -234,7 +235,12 @@ export class SettingsApplier {
 	 */
 	_syncToggleCheckbox(key, checked) {
 		const checkbox = document.getElementById(`wat-checkbox-${key}`);
-		if (checkbox) { checkbox.checked = checked; }
+		if (checkbox) {
+			checkbox.checked = checked;
+			// change를 보내면 호출부가 이미 실행한 부수 효과(toggleMediaStop 등)가 스위치 핸들러에서
+			// 한 번 더 실행되므로, 이벤트 없이 aria-checked·상태 문구만 맞춘다
+			PanelBuilder.syncSwitchStateUI(checkbox);
+		}
 	}
 
 	/**
