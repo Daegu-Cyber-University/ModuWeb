@@ -30,7 +30,7 @@ function makeWat() {
 	const wat = Object.create(WAT.prototype);
 	wat.options = {};
 	wat.getLocalizedText = jest.fn((key) => key);
-	// 사전 서버가 설정된 환경으로 둔다 — 미설정이면 사전 검색 스위치가 '사용 불가'로 그려진다
+	// 사전 서버가 설정된 환경으로 둔다 — 미설정이면 사전 검색 항목이 패널에 그려지지 않는다
 	wat.isDictionaryAvailable = () => true;
 	wat._setTimeout = jest.fn();
 	wat._notify = jest.fn();

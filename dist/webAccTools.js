@@ -2881,8 +2881,6 @@ var WATPlugin = (function (exports) {
 	 *          toggleKey가 있으면 label_toggle(상태 반전 라벨)을 생성
 	 * - ratios: true면 플러그인의 <name>Ratios/<name>Options 설정 기반 동적 목록
 	 *   (ratio가 false인 키 제외, 커스텀 label/checked/disabled 지원, initial 기본 선택)
-	 * - isAvailable: (plugin) => boolean. false면 필요한 설정이 없어 동작할 수 없는 기능으로 보고
-	 *   끈 상태의 비활성 항목과 '사용 불가'(options.unavailable 로케일) 안내로 그린다
 	 * fontFamily는 FONT_FAMILY_OPTIONS 병합·웹폰트 로드가 필요해 별도 빌더를 사용한다.
 	 */
 	const OPTION_DEFS = {
@@ -2932,8 +2930,8 @@ var WATPlugin = (function (exports) {
 		stt: { type: 'button', items: [
 			{ value: 'start' }
 		] },
-		// 사전 서버(config api.dictionary.serverEndpoint)가 없으면 검색이 동작하지 않는다
-		diction: { type: 'checkbox', isAvailable: (plugin) => plugin.isDictionaryAvailable(), items: [
+		// 사전 서버(config api.dictionary.serverEndpoint)가 없는 사이트에서는 WAT._isPersonalOptionVisible이 숨긴다
+		diction: { type: 'checkbox', items: [
 			{ value: 'on', toggleKey: 'off' }
 		] },
 		pageStructure: { type: 'button', items: [
@@ -2997,25 +2995,7 @@ var WATPlugin = (function (exports) {
 				});
 			}
 
-			// 필요한 설정이 없어 동작할 수 없는 기능은 켤 수 없도록 끈 채 비활성화하고 '사용 불가'로 안내한다
-			const isUnavailable = typeof def.isAvailable === 'function' && !def.isAvailable(this.plugin);
-			if (isUnavailable) {
-				const unavailableLabel = this.plugin.getLocalizedText(optionLocaleKey(group, 'unavailable'));
-				optionItems = optionItems.map(item => ({
-					...item,
-					label: unavailableLabel,
-					label_toggle: unavailableLabel,
-					checked: false,
-					disabled: true
-				}));
-			}
-
-			const listItemElement = this.createSettingsItem(def.type, title, optionName, optionItems);
-			if (isUnavailable) {
-				// 제목(role=button)도 눌러서 켤 수 없음을 보조기술에 알린다
-				listItemElement.querySelector('.setTitle').setAttribute('aria-disabled', 'true');
-			}
-			return listItemElement;
+			return this.createSettingsItem(def.type, title, optionName, optionItems);
 		}
 
 		/**
@@ -3221,7 +3201,7 @@ var WATPlugin = (function (exports) {
 				setWrapElement.querySelectorAll('.setCont input[type="checkbox"]').forEach(checkbox => PanelBuilder.syncSwitchStateUI(checkbox));
 				const toggleCheckbox = () => {
 					const checkboxElement = setWrapElement.querySelector('.setCont input[type="checkbox"]');
-					// 비활성 스위치는 제목을 눌러도 바꾸지 않는다 (사용 불가 기능 등)
+					// 비활성 스위치는 제목을 눌러도 바꾸지 않는다
 					if (checkboxElement.disabled) return;
 					checkboxElement.checked = !checkboxElement.checked;
 					// change 이벤트를 수동으로 트리거
@@ -8553,8 +8533,8 @@ var WATPlugin = (function (exports) {
 					e.preventDefault();
 					this.ttsManager.executeKeyboardTTS();
 				}
-				// Alt + Shift + D: 사전 검색
-				else if (e.key.toLowerCase() === 'd') {
+				// Alt + Shift + D: 사전 검색 — 사전 서버가 없는 사이트는 기능을 숨기므로 키도 가로채지 않는다
+				else if (e.key.toLowerCase() === 'd' && this.isDictionaryAvailable()) {
 					e.preventDefault();
 					const selectedText = window.getSelection().toString().trim();
 					if (selectedText) {
@@ -9072,7 +9052,7 @@ var WATPlugin = (function (exports) {
 
 				// Add options to DOM (옵션들을 DOM에 추가)
 				for (const option in this.optionsList) {
-					if (this.options[option] !== false) {
+					if (this._isPersonalOptionVisible(option)) {
 						const node = this.optionsList[option];
 						if (node instanceof Node) {
 							node.classList.add('personalOpt_item', 'wat-item-wrap', option);
@@ -9082,6 +9062,19 @@ var WATPlugin = (function (exports) {
 						}
 					}
 				}
+			}
+
+			/**
+			 * 개인 옵션을 패널에 보여줄지 판단합니다
+			 * @private
+			 * @param {string} option - 옵션명 ('fontSize', 'diction' 등)
+			 * @returns {boolean} options에서 false로 끈 기능이나, 이 사이트에서 동작할 수 없는 기능이면 false
+			 */
+			_isPersonalOptionVisible(option) {
+				if (this.options[option] === false) return false;
+				// 사전 검색은 사전 서버(config api.dictionary.serverEndpoint)가 있어야 동작하므로 없으면 숨긴다
+				if (option === 'diction' && !this.isDictionaryAvailable()) return false;
+				return true;
 			}
 
 			/**
