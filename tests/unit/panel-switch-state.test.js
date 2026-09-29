@@ -1,8 +1,9 @@
 /**
  * @fileoverview 개인 옵션 스위치의 상태 표시(aria-checked·상태 문구) 동기화 테스트
  * @description 스위치 옆 상태 문구(.switch-state)와 aria-checked는 실제 checked와 같아야 한다.
- *              처음 그릴 때, 사용자가 켜고 끌 때(change), 프로필이 켜고 끌 때 모두 같은 표시가
- *              나와야 한다. 프로필 쪽은 change를 보내지 않고 표시만 맞춰, 프로필이 이미 실행한
+ *              처음 그릴 때, 사용자가 켜고 끌 때(change), 프로필이 켜고 끌 때, 코드가
+ *              updatePersonalSettingsUI로 값을 맞출 때 모두 같은 표시가 나와야 한다. 프로필과
+ *              updatePersonalSettingsUI는 change를 보내지 않고 표시만 맞춰, 호출부가 이미 실행한
  *              부수 효과(미디어 정지 등)가 스위치 핸들러에서 한 번 더 실행되지 않아야 한다.
  */
 import { jest, describe, test, expect, beforeEach, afterEach } from '@jest/globals';
@@ -186,5 +187,43 @@ describe('프로필로 스위치를 켜고 끌 때', () => {
 		// 프로필 적용·해제가 직접 부른 한 번씩뿐이다 — change가 나가면 스위치 핸들러가 한 번 더 부른다
 		expect(wat.toggleMediaStop.mock.calls).toEqual([[true], [false]]);
 		expect(wat.toggleDataAttribute.mock.calls).toEqual([['stopAni', true], ['stopAni', false]]);
+	});
+});
+
+describe('updatePersonalSettingsUI로 스위치 값을 맞출 때', () => {
+	/**
+	 * 미디어 제어 스위치를 개인 옵션 목록에 붙인 모양으로 문서에 붙인다
+	 * (_createPersonalOptions가 항목마다 붙이는 personalOpt_item·wat-item-wrap·옵션명 클래스로
+	 * updatePersonalSettingsUI가 대상 input을 찾는다)
+	 * @param {WAT} wat
+	 */
+	function mountMediaStop(wat) {
+		const li = wat.createMediaStopSettings();
+		li.classList.add('personalOpt_item', 'wat-item-wrap', 'mediaStop');
+		document.body.appendChild(li);
+		return li.querySelector('input[role="switch"]');
+	}
+
+	test('켜고 끄면 aria-checked와 상태 문구가 값을 따라간다', () => {
+		const wat = makeWat();
+		const mediaStop = mountMediaStop(wat);
+
+		wat.updatePersonalSettingsUI('checkbox', 'mediaStop', true);
+		expect(readSwitch(mediaStop)).toEqual({ checked: true, ariaChecked: 'true', stateText: MEDIA_STOP.on });
+
+		wat.updatePersonalSettingsUI('checkbox', 'mediaStop', false);
+		expect(readSwitch(mediaStop)).toEqual({ checked: false, ariaChecked: 'false', stateText: MEDIA_STOP.off });
+	});
+
+	test('표시만 맞추고 change를 보내지 않아 스위치 부수 효과가 실행되지 않는다', () => {
+		const wat = makeWat();
+		wireChangeDelegate(wat);
+		mountMediaStop(wat);
+
+		wat.updatePersonalSettingsUI('checkbox', 'mediaStop', true);
+
+		// change가 나가면 스위치 핸들러가 data 속성을 바꾸고 미디어를 정지한다
+		expect(wat.toggleDataAttribute).not.toHaveBeenCalled();
+		expect(wat.toggleMediaStop).not.toHaveBeenCalled();
 	});
 });
