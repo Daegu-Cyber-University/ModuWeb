@@ -2950,6 +2950,23 @@ var WATPlugin = (function (exports) {
 		}
 
 		/**
+		 * 스위치(role=switch 체크박스)의 aria-checked와 상태 문구(.switch-state)를 현재 checked에 맞춥니다
+		 * (처음 그릴 때·사용자 토글·프로필 적용이 함께 쓴다. change를 보내지 않으므로 부수 효과는 없다)
+		 * @param {HTMLInputElement} checkbox - 개인 옵션 스위치 체크박스
+		 */
+		static syncSwitchStateUI(checkbox) {
+			const isActive = checkbox.checked;
+			// aria-checked를 맞추지 않으면 스크린리더가 실제와 다른 상태를 읽는다
+			if (checkbox.getAttribute('role') === 'switch') {
+				checkbox.setAttribute('aria-checked', isActive ? 'true' : 'false');
+			}
+			const stateElement = checkbox.parentElement.querySelector('.switch-state');
+			if (stateElement) {
+				stateElement.textContent = stateElement.getAttribute('data-stateText-' + (isActive ? 'on' : 'off'));
+			}
+		}
+
+		/**
 		 * 개인 옵션명으로 설정 항목 요소를 생성합니다 (OPTION_DEFS 테이블 기반)
 		 * @param {string} optionName - 옵션명 ('fontSize', 'colorTheme' 등)
 		 * @returns {HTMLLIElement} 설정 항목 리스트 요소
@@ -3139,10 +3156,11 @@ var WATPlugin = (function (exports) {
 					</li>
 					`;
 				} else if (itemType === 'checkbox') {
+					// aria-checked와 상태 문구는 아래에서 syncSwitchStateUI가 checked에 맞춰 채운다
 					htmlString = `
 					<li class='opt_item'>
-						<input type="${itemType}" class="wat-items wat-item-type-checkbox switch" id="wat-${itemType}-${optionName}" name="${optionName}" value="${itemValue}" title="${titleText} ${itemLabel}" role="switch" aria-checked="${item.checked ? 'true' : 'false'}" ${checkedAttr} ${disabledAttr}><label for="wat-${itemType}-${optionName}" class="switch-label">${itemLabel}</label>
-						<span class="switch-state" data-stateText-on="${itemLabel}" data-stateText-off="${toggleLabel}">${itemLabel}</span>
+						<input type="${itemType}" class="wat-items wat-item-type-checkbox switch" id="wat-${itemType}-${optionName}" name="${optionName}" value="${itemValue}" title="${titleText} ${itemLabel}" role="switch" ${checkedAttr} ${disabledAttr}><label for="wat-${itemType}-${optionName}" class="switch-label">${itemLabel}</label>
+						<span class="switch-state" data-stateText-on="${itemLabel}" data-stateText-off="${toggleLabel}"></span>
 					</li>
 					`;
 				}
@@ -3199,6 +3217,8 @@ var WATPlugin = (function (exports) {
 				setWrapElement.querySelector('.btn_chgOpt.next').addEventListener('click', () => cycleRadio('next'));
 			} else if (itemType === 'checkbox') {
 				setWrapElement.classList.add('checkbox');
+				// 초기 상태(item.checked)를 토글·프로필 적용과 같은 방식으로 표시한다
+				setWrapElement.querySelectorAll('.setCont input[type="checkbox"]').forEach(checkbox => PanelBuilder.syncSwitchStateUI(checkbox));
 				const toggleCheckbox = () => {
 					const checkboxElement = setWrapElement.querySelector('.setCont input[type="checkbox"]');
 					// 비활성 스위치는 제목을 눌러도 바꾸지 않는다 (사용 불가 기능 등)
@@ -3900,7 +3920,12 @@ var WATPlugin = (function (exports) {
 		 */
 		_syncToggleCheckbox(key, checked) {
 			const checkbox = document.getElementById(`wat-checkbox-${key}`);
-			if (checkbox) { checkbox.checked = checked; }
+			if (checkbox) {
+				checkbox.checked = checked;
+				// change를 보내면 호출부가 이미 실행한 부수 효과(toggleMediaStop 등)가 스위치 핸들러에서
+				// 한 번 더 실행되므로, 이벤트 없이 aria-checked·상태 문구만 맞춘다
+				PanelBuilder.syncSwitchStateUI(checkbox);
+			}
 		}
 
 		/**
@@ -8385,16 +8410,9 @@ var WATPlugin = (function (exports) {
 				this.toggleDataAttribute(dataAttr, target.checked);
 
 				const isActive = target.checked;
-				// role="switch" 요소의 aria-checked를 상태와 동기화 — 미갱신 시 스크린리더가 항상 "off"로 읽음
-				if (target.getAttribute('role') === 'switch') {
-					target.setAttribute('aria-checked', isActive ? 'true' : 'false');
-				}
-				const elm_state = target.parentElement.querySelector('.switch-state');
-				if (elm_state) {
-					const label = elm_state.getAttribute('data-stateText-' + (isActive ? 'on' : 'off'));
-					elm_state.textContent = label;
-				}
-				
+				// aria-checked·상태 문구 동기화 — 처음 그릴 때·프로필 적용과 같은 헬퍼를 쓴다
+				PanelBuilder.syncSwitchStateUI(target);
+
 				// Checkboxes that require special handling (특별한 처리가 필요한 체크박스들)
 				if (dataAttr === 'imgTextConvert') {
 					this.toggleImgTextConversion(isActive);

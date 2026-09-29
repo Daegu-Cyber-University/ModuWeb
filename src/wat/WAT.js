@@ -1512,16 +1512,9 @@ export class WAT {
 			this.toggleDataAttribute(dataAttr, target.checked);
 
 			const isActive = target.checked;
-			// role="switch" 요소의 aria-checked를 상태와 동기화 — 미갱신 시 스크린리더가 항상 "off"로 읽음
-			if (target.getAttribute('role') === 'switch') {
-				target.setAttribute('aria-checked', isActive ? 'true' : 'false');
-			}
-			const elm_state = target.parentElement.querySelector('.switch-state');
-			if (elm_state) {
-				const label = elm_state.getAttribute('data-stateText-' + (isActive ? 'on' : 'off'));
-				elm_state.textContent = label;
-			}
-			
+			// aria-checked·상태 문구 동기화 — 처음 그릴 때·프로필 적용과 같은 헬퍼를 쓴다
+			PanelBuilder.syncSwitchStateUI(target);
+
 			// Checkboxes that require special handling (특별한 처리가 필요한 체크박스들)
 			if (dataAttr === 'imgTextConvert') {
 				this.toggleImgTextConversion(isActive);
