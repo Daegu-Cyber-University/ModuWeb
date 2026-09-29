@@ -3870,18 +3870,7 @@ var WATPlugin = (function (exports) {
 			this._applySettings(effectiveSettings);
 
 			// 토글형(체크박스) 설정 — 체크된 경우에만 켠다. 해제 대칭은 toggleProfile off/resetProfileSettings 담당
-			if (profileData.settings.stopAni !== undefined && profileData.enabled.stopAni) {
-				plugin.toggleDataAttribute('stopAni', true);
-				this._syncToggleCheckbox('stopAni', true);
-			}
-			if (profileData.settings.mediaStop !== undefined && profileData.enabled.mediaStop) {
-				plugin.toggleMediaStop(true);
-				this._syncToggleCheckbox('mediaStop', true);
-			}
-			if (profileData.settings.mediaMute !== undefined && profileData.enabled.mediaMute) {
-				plugin.toggleMediaMute(true);
-				this._syncToggleCheckbox('mediaMute', true);
-			}
+			this._enableProfileToggles(profileData.settings, profileData.enabled);
 
 			// 동작형 항목 — 설정 저장이 아니라 즉시 실행되는 기능
 			// tts: 'focus' → 포커스 낭독 시작 (프로필 클릭이 사용자 제스처이므로 speechSynthesis 허용)
@@ -3910,6 +3899,29 @@ var WATPlugin = (function (exports) {
 				profileName: profileName,
 				enabledSettings: profileData.enabled
 			}));
+		}
+
+		/**
+		 * 프로필에 포함되고 체크된 토글형 설정(애니메이션 정지·미디어 정지·음소거)을 켜고 스위치 표시를 맞춥니다.
+		 * 토글형 값은 watSettings에 저장되지 않으므로 프로필 적용과 재방문 복원이 함께 쓴다
+		 * @private
+		 * @param {Object} settings - 프로필 정의의 설정값 (정의에 없는 항목은 켜지 않는다)
+		 * @param {Object} enabled - 항목별 사용 여부 (프로필 항목 체크 상태)
+		 */
+		_enableProfileToggles(settings, enabled) {
+			const plugin = this.plugin;
+			if (settings.stopAni !== undefined && enabled.stopAni) {
+				plugin.toggleDataAttribute('stopAni', true);
+				this._syncToggleCheckbox('stopAni', true);
+			}
+			if (settings.mediaStop !== undefined && enabled.mediaStop) {
+				plugin.toggleMediaStop(true);
+				this._syncToggleCheckbox('mediaStop', true);
+			}
+			if (settings.mediaMute !== undefined && enabled.mediaMute) {
+				plugin.toggleMediaMute(true);
+				this._syncToggleCheckbox('mediaMute', true);
+			}
 		}
 
 		/**
@@ -4367,8 +4379,8 @@ var WATPlugin = (function (exports) {
 				}, 100);
 			}
 
-			// 저장된 프로필 선택 상태 복원 (사용성 U-1) —
-			// 설정값 자체는 loadPreferences가 복원하므로 토글·체크박스 UI만 동기화
+			// 저장된 프로필 선택 상태 복원 (사용성 U-1) — 라디오형 값은 위 loadPreferences가 복원하고,
+			// watSettings에 없는 토글형 값(애니메이션·미디어 정지 등)은 여기서 다시 켠다
 			plugin._restoreSelectedProfileUI();
 
 			if (isFirstVisit) {
@@ -4402,11 +4414,13 @@ var WATPlugin = (function (exports) {
 		}
 
 		/**
-		 * 저장된 프로필 선택 상태를 토글 UI에 복원합니다
+		 * 저장된 프로필 선택 상태를 토글 UI에 복원하고, 프로필이 켰던 토글형 설정을 다시 켭니다
 		 * @returns {void}
 		 * @description 이전 방문에서 켠 프로필이 재방문 시 "꺼짐"으로 보이고, 다시 켜면
 		 *              설정이 리셋되던 문제(U-1)를 해결한다. localStorage의 selectedProfile을
 		 *              읽어 해당 프로필 토글을 켜짐 상태로 표시하고 체크박스 선택을 복원한다.
+		 *              라디오형 값은 loadPreferences가 복원하지만 토글형 값(애니메이션 정지·
+		 *              미디어 정지·음소거)은 저장되지 않으므로 여기서 다시 켠다.
 		 */
 		restoreSelectedProfileUI() {
 			const plugin = this.plugin;
@@ -4434,6 +4448,9 @@ var WATPlugin = (function (exports) {
 					const checkbox = container.querySelector(`.profileListItemInput[type="checkbox"][data-key="${key}"]`);
 					if (checkbox) checkbox.checked = !!enabled;
 				}
+				// 토글형 값은 watSettings에 없어 loadPreferences가 되살리지 못하므로 여기서 다시 켠다
+				// (프로필 UI는 Defaults.PROFILES로 그리므로 컨테이너가 있으면 정의도 있다)
+				this._enableProfileToggles(Defaults.PROFILES[saved.profileName].settings, saved.enabledSettings);
 			}
 		}
 
@@ -9595,7 +9612,7 @@ var WATPlugin = (function (exports) {
 			}
 
 			/**
-			 * 저장된 프로필 선택 상태를 토글 UI에 복원합니다 (SettingsApplier 위임)
+			 * 저장된 프로필 선택 상태를 토글 UI에 복원하고 토글형 설정을 다시 켭니다 (SettingsApplier 위임)
 			 * @private
 			 */
 			_restoreSelectedProfileUI() {

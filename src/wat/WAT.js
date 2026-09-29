@@ -2697,7 +2697,7 @@ export class WAT {
 		}
 
 		/**
-		 * 저장된 프로필 선택 상태를 토글 UI에 복원합니다 (SettingsApplier 위임)
+		 * 저장된 프로필 선택 상태를 토글 UI에 복원하고 토글형 설정을 다시 켭니다 (SettingsApplier 위임)
 		 * @private
 		 */
 		_restoreSelectedProfileUI() {
