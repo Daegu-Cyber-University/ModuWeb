@@ -4626,7 +4626,7 @@ export class WAT {
 
 		/**
 		 * Updates the personal settings UI elements to reflect current values (현재 값을 반영하도록 개인 설정 UI 요소를 업데이트합니다)
-		 * @param {string} type - Type of UI element ('radio', 'checkbox', 'button') (UI 요소 타입)
+		 * @param {string} type - Type of UI element ('radio', 'checkbox') (UI 요소 타입)
 		 * @param {string} key - Setting key name (설정 키 이름)
 		 * @param {string|boolean} value - Current value to set (설정할 현재 값)
 		 * @returns {void}
@@ -4638,9 +4638,6 @@ export class WAT {
 		 * 
 		 * // Update checkbox state (체크박스 상태 업데이트)
 		 * this.updatePersonalSettingsUI('checkbox', 'mediaStop', true);
-		 * 
-		 * // Update button selection (버튼 선택 업데이트)
-		 * this.updatePersonalSettingsUI('button', 'tts', 'toggle');
 		 */
 		updatePersonalSettingsUI(type, key, value) {
 			try {
@@ -4701,26 +4698,7 @@ export class WAT {
 						// 이벤트 없이 aria-checked·상태 문구만 맞춘다
 						PanelBuilder.syncSwitchStateUI(input);
 					});
-				} else if (type === 'button') {
-					inputs.forEach(input => {
-						const label = input.closest('label');
-						if (label) {
-							if (input.value === value) {
-								label.classList.add(Constants.CSS_CLASSES.SELECTED);
-							} else {
-								label.classList.remove(Constants.CSS_CLASSES.SELECTED);
-							}
-						}
-					});
 				}
-			
-				// UI 클래스 토글 (선택된 상태 표시 등)
-				const itemWrap = inputs[0].closest('.wat-item-wrap');
-				if (itemWrap) {
-					const isActive = type === 'checkbox' ? !!value : true;
-					itemWrap.classList.toggle(Constants.CSS_CLASSES.ACTIVE, isActive);
-				}
-				
 			} catch (error) {
 				this._handleError('updatePersonalSettingsUI', error, { type, key, value });
 			}
