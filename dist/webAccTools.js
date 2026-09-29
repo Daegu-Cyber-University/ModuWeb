@@ -9802,66 +9802,6 @@ var WATPlugin = (function (exports) {
 			}
 
 			/**
-			 * Sets up change and keyboard event listeners for checkbox elements (체크박스 요소의 변경 및 키보드 이벤트 리스너를 설정합니다)
-			 * @param {Array<Object>} checkboxes - Array of checkbox configuration objects (체크박스 설정 객체 배열)
-			 * @param {string} checkboxes[].selector - CSS selector for the checkbox element (체크박스 요소의 CSS 선택자)
-			 * @param {string} checkboxes[].dataAttr - Data attribute name to toggle (토글할 데이터 속성명)
-			 * @returns {void}
-			 * @description Configures change events for checkbox state management and Enter key support
-			 *              (체크박스 상태 관리를 위한 변경 이벤트와 Enter 키 지원을 구성합니다)
-			 * @example
-			 * // Setup checkbox listeners (체크박스 리스너 설정)
-			 * this.setCheckboxListeners([
-			 *   { selector: '#mediaStop', dataAttr: 'mediaStop' },
-			 *   { selector: '#mediaMute', dataAttr: 'mediaMute' }
-			 * ]);
-			 */
-			setCheckboxListeners(checkboxes) {
-				checkboxes.forEach(({ selector, dataAttr }) => {
-					const element = document.querySelector(selector);
-					if (element) {
-						// change 이벤트로 기본적인 상태 변경 감지
-						element.addEventListener('change', (e) => {
-							this.toggleDataAttribute(dataAttr, e.target.checked);
-
-							const isActive = e.target.checked;
-							//const label = e.target.nextElementSibling;
-							const elm_state = e.target.parentElement.querySelector('.switch-state');
-							const label = elm_state.getAttribute('data-stateText-' + (isActive ? 'on' : 'off'));
-							elm_state.textContent = label;
-
-							if (dataAttr === 'imgTextConvert') {
-								this.toggleImgTextConversion(isActive);
-							}
-
-							if (dataAttr === 'mediaStop') {
-								this.toggleMediaStop(e.target.checked);
-							} else if (dataAttr === 'mediaMute') {
-								this.toggleMediaMute(e.target.checked);
-							}
-
-							if (dataAttr === 'diction') {
-								//this.toggleMediaStop(e.target.checked);
-								this.toggleDiction();
-							}
-						});
-			
-						// keydown 이벤트로 Enter 키도 반응하게 설정
-						element.addEventListener('keydown', (e) => {
-							if (e.key === 'Enter') {
-								e.preventDefault(); // 기본 동작을 방지
-								// 체크 상태를 반전시킴
-								element.checked = !element.checked;
-			
-								// change 이벤트 트리거 (상태 반영)
-								element.dispatchEvent(new Event('change', { bubbles: true }));
-							}
-						});
-					}
-				});
-			}
-
-			/**
 			 * Gets the target index for radio button navigation (라디오 버튼 탐색을 위한 대상 인덱스를 가져옵니다)
 			 * @param {HTMLElement} targetWrap - Container element wrapping the radio buttons (라디오 버튼을 감싸는 컨테이너 요소)
 			 * @param {string} direction - Navigation direction ('prev' or 'next') (탐색 방향)
@@ -11655,6 +11595,9 @@ var WATPlugin = (function (exports) {
 					} else if (type === 'checkbox') {
 						inputs.forEach(input => {
 							input.checked = !!value;
+							// change를 보내면 호출부가 이미 실행한 부수 효과가 스위치 핸들러에서 한 번 더 실행되므로,
+							// 이벤트 없이 aria-checked·상태 문구만 맞춘다
+							PanelBuilder.syncSwitchStateUI(input);
 						});
 					} else if (type === 'button') {
 						inputs.forEach(input => {
