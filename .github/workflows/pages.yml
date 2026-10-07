@@ -35,7 +35,7 @@ jobs:
           # og:image 등에서 참조하는 스크린샷 포함
           cp -r docs/assets _site/docs/assets
           # 데모에는 사전 중계 서버가 없다 — config.example.json의 자리 표시자 주소를 그대로 쓰면
-          # 사전 검색이 켜지는데 검색할 때마다 실패하므로, 주소를 비워 '사용 불가'로 표시한다
+          # 사전 검색이 켜지는데 검색할 때마다 실패하므로, 주소를 비워 사전 검색 항목이 나타나지 않게 한다
           node -e "const fs = require('fs'); const c = JSON.parse(fs.readFileSync('config.example.json', 'utf8')); c.api.dictionary.enabled = false; c.api.dictionary.serverEndpoint = null; fs.writeFileSync('_site/config.json', JSON.stringify(c, null, '\t') + '\n');"
           # 루트 랜딩 페이지 (meta refresh 대신 실제 콘텐츠 — 검색엔진 색인 대상)
           cat > _site/index.html <<'EOF'

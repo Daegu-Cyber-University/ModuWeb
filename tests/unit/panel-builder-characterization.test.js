@@ -453,7 +453,11 @@ describe('createToolsSettings', () => {
 
 describe('_createPersonalOptions 조립', () => {
 	test('18개 옵션이 personalOpt_item으로 추가되고 options=false 항목은 제외된다', () => {
-		const wat = makeWat({ options: { tts: false, stt: false } });
+		// 사전 검색은 사전 서버가 설정된 사이트에서만 보이므로 서버가 있는 설정으로 고정
+		const wat = makeWat({
+			options: { tts: false, stt: false },
+			_config: { api: { dictionary: { enabled: true, serverEndpoint: 'https://dict.example.com' } } }
+		});
 		const listElement = document.createElement('ul');
 		document.body.appendChild(listElement);
 

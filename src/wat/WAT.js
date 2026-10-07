@@ -1655,8 +1655,8 @@ export class WAT {
 				e.preventDefault();
 				this.ttsManager.executeKeyboardTTS();
 			}
-			// Alt + Shift + D: 사전 검색
-			else if (e.key.toLowerCase() === 'd') {
+			// Alt + Shift + D: 사전 검색 — 사전 서버가 없는 사이트는 기능을 숨기므로 키도 가로채지 않는다
+			else if (e.key.toLowerCase() === 'd' && this.isDictionaryAvailable()) {
 				e.preventDefault();
 				const selectedText = window.getSelection().toString().trim();
 				if (selectedText) {
@@ -2174,7 +2174,7 @@ export class WAT {
 
 			// Add options to DOM (옵션들을 DOM에 추가)
 			for (const option in this.optionsList) {
-				if (this.options[option] !== false) {
+				if (this._isPersonalOptionVisible(option)) {
 					const node = this.optionsList[option];
 					if (node instanceof Node) {
 						node.classList.add('personalOpt_item', 'wat-item-wrap', option);
@@ -2184,6 +2184,19 @@ export class WAT {
 					}
 				}
 			}
+		}
+
+		/**
+		 * 개인 옵션을 패널에 보여줄지 판단합니다
+		 * @private
+		 * @param {string} option - 옵션명 ('fontSize', 'diction' 등)
+		 * @returns {boolean} options에서 false로 끈 기능이나, 이 사이트에서 동작할 수 없는 기능이면 false
+		 */
+		_isPersonalOptionVisible(option) {
+			if (this.options[option] === false) return false;
+			// 사전 검색은 사전 서버(config api.dictionary.serverEndpoint)가 있어야 동작하므로 없으면 숨긴다
+			if (option === 'diction' && !this.isDictionaryAvailable()) return false;
+			return true;
 		}
 
 		/**
