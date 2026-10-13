@@ -643,7 +643,8 @@
 				"unselected": "未选择"
 			},
 			"types": {
-				"button": "按钮"
+				"button": "按钮",
+				"password": "密码输入框"
 			}
 		},
 		"link": {

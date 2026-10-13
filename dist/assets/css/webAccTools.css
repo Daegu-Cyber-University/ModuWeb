@@ -728,8 +728,10 @@ html[data-wat-viewmode="list"] #wat .setTitle	{font-size: 0.8em}
 #watWrap .setWrap.button .buttonWrap .btn_basic.selected	{background-color: #0D6EFD; color: white; border-color: #0D6EFD;}
 
 #watWrap .setWrap.button .opt_lists			{height: 100%; font-size: 0; display: flex; flex-wrap: wrap; flex: 1 1 auto; align-items: center; align-content: center; border: #aaa 1px solid; border-bottom: none; border-right: none}
-#watWrap .setWrap.button .opt_lists .opt_item		{display: block; height: 100%; flex: 1 1 auto}
-#watWrap .setWrap.button .opt_lists .btn_basic		{display: block; width: 100%; height: 100%; font-size: var(--wat-font-size); cursor: pointer; background-color: #f0f0f0; /* transition: background-color 0.3s, border-color 0.3s; */ flex: 1 1 auto; text-align: center; border: none; border-right: #aaa 1px solid; border-bottom: #aaa 1px solid; margin: 0}
+/* 버튼 묶음(화면 낭독·페이지 스크롤 등) — 칸 너비를 똑같이 나누고 최소 높이를 정해, 글리프(▶)와 아이콘(돋보기)의 크기나
+   호스트의 button 여백·글꼴 줄 높이가 달라도 모든 버튼이 같은 크기로 한 줄을 채운다 (26px ≥ 24px, WCAG 2.5.8) */
+#watWrap .setWrap.button .opt_lists .opt_item		{display: block; height: 100%; flex: 1 1 0; min-width: 0}
+#watWrap .setWrap.button .opt_lists .btn_basic		{display: block; width: 100%; height: 100%; min-height: 26px; padding: 0 2px; box-sizing: border-box; font-size: var(--wat-font-size); cursor: pointer; background-color: #f0f0f0; /* transition: background-color 0.3s, border-color 0.3s; */ flex: 1 1 auto; text-align: center; border: none; border-right: #aaa 1px solid; border-bottom: #aaa 1px solid; margin: 0}
 /*
 html[data-wat-viewmode="list"] #wat .setWrap.button .opt_lists .btn_basic {height: 1.5rem; line-height: 1.5rem; padding: 0; margin: 0}
 */
@@ -786,7 +788,7 @@ html[data-wat-viewmode="list"] #wat .setWrap.button .opt_lists .btn_basic {heigh
 /* ************************* Web Accessibility Tool Style .End   ************************* */
 
 #watWrap .setWrap.button .opt_lists .btn_iconSet		{font-size: 0}
-#watWrap .setWrap.button .opt_lists .btn_iconSet::after	{display: inline-block; content: ""; font-size: var(--wat-font-size); color: inherit}
+#watWrap .setWrap.button .opt_lists .btn_iconSet::after	{display: inline-block; content: ""; font-size: var(--wat-font-size); line-height: 1; vertical-align: middle; color: inherit}
 #watWrap .setWrap.button .opt_lists .btn_iconSet.btn_toggle::after	{content: "▶"}
 /* #watWrap .setWrap.button .opt_lists .btn_iconSet.btn_toggle.playing::after	{content: "∥"} */
 #watWrap .setWrap.button .opt_lists .btn_iconSet.btn_up::after	{content: "△"}
@@ -800,7 +802,8 @@ html[data-wat-viewmode="list"] #wat .setWrap.button .opt_lists .btn_basic {heigh
 #watWrap .setWrap.button .opt_lists .btn_iconSet.btn_prev::after	{content: "◁"}
 /* #watWrap .setWrap.button .opt_lists .btn_iconSet.btn_focus::after	{content: "🔍"} */
 /* #watWrap .setWrap.button .opt_lists .btn_iconSet.btn_focus::after	{content: "⛶"} */
-#watWrap .setWrap.button .opt_lists .btn_iconSet.btn_focus::after	{content: ""; display: inline-block; width: 24px; height: 24px; background-image: url('../images/icon_focus.svg'); background-size: cover; background-repeat: no-repeat;} /* ⛶ 대체 사용? */
+/* 돋보기 SVG는 24칸 안쪽에 여백이 있어 20px로 그려도 글리프(16px)와 비슷한 크기로 보이고 버튼 최소 높이 안에 들어간다 */
+#watWrap .setWrap.button .opt_lists .btn_iconSet.btn_focus::after	{content: ""; display: inline-block; width: 20px; height: 20px; background-image: url('../images/icon_focus.svg'); background-size: cover; background-repeat: no-repeat;} /* ⛶ 대체 사용? */
 #watWrap .setWrap.button .opt_lists .btn_iconSet.btn_close::after	{content: "✖"}
 #watWrap .setWrap.button .opt_lists .btn_iconSet.btn_toggle[aria-pressed="true"] {background-color: #dceeff; border-color: #3399ff; box-shadow: inset 0 0 0 2px #3399ff; }
 

@@ -28,16 +28,18 @@
 
 ## Quick Start
 
-### Option 1 — CDN (simplest)
+### Option 1 — CDN (simplest, auto-updating)
 
 ```html
-<script src="https://cdn.jsdelivr.net/gh/Daegu-Cyber-University/ModuWeb@main/dist/webAccTools.js" data-wat-auto></script>
+<script src="https://cdn.jsdelivr.net/gh/Daegu-Cyber-University/ModuWeb@2/dist/webAccTools.standalone.min.js" data-wat-auto></script>
 ```
 
-Pin a release tag (e.g. `@v2.1.0`) instead of `@main` for production. Configure declaratively with `data-wat-*` attributes:
+`@2` serves the latest 2.x release, so new releases reach your site without downloading anything. Use `@2.3` to receive patch releases only, or a tag such as `@v2.3.10` to pin a version. Don't use `@main`: it serves unreleased commits. A new release can take up to 7 days to reach every visitor (jsDelivr's version-range cache plus browser caches); purging the CDN cache with the [jsDelivr purge tool](https://www.jsdelivr.com/tools/purge) makes new visitors get it right away. jsDelivr also serves the other locales with an `Access-Control-Allow-Origin` header, so no server setup is needed.
+
+Configure declaratively with `data-wat-*` attributes:
 
 ```html
-<script src=".../dist/webAccTools.js" data-wat-auto
+<script src=".../webAccTools.standalone.min.js" data-wat-auto
 	data-wat-language="en-US"
 	data-wat-config='{"branding": {"copyrightUrl": "https://example.com"}}'></script>
 ```
@@ -45,7 +47,7 @@ Pin a release tag (e.g. `@v2.1.0`) instead of `@main` for production. Configure 
 | Attribute | Description |
 |---|---|
 | `data-wat-auto` | Enable auto-initialization (required switch) |
-| `data-wat-config` | Path to config.json (relative to the script) or inline JSON (starts with `{`) |
+| `data-wat-config` | Path to config.json (relative to the script) or inline JSON (starts with `{`). With the CDN, a relative path resolves against jsDelivr, so use inline JSON or an absolute URL on your site |
 | `data-wat-language` | Default language (`ko`, `en-US`, `en-GB`, `ja`, `zh`, `de`) |
 | `data-wat-container` | Container CSS selector |
 | `data-wat-inject-css` | Set `"false"` to manage the stylesheet with your own `<link>` |
@@ -83,6 +85,19 @@ Copy **one file**, `dist/webAccTools.standalone.min.js`, to your server. CSS, ic
 	});
 </script>
 ```
+
+### Loading from another domain
+
+If the files live on a different (sub)domain from the page, the script itself still runs, but the browser requires an `Access-Control-Allow-Origin` header on the files the widget fetches from that server. Without it, the standalone file still works in Korean but cannot load other locales; with `webAccTools.js` + `assets/` the Korean locale and the open-button icon are blocked too, leaving the panel blank. The widget files are public static assets, so allowing every origin is fine. jsDelivr (Option 1) already sends the header.
+
+```apache
+# Apache — .htaccess in the widget folder (needs mod_headers)
+<IfModule mod_headers.c>
+	Header set Access-Control-Allow-Origin "*"
+</IfModule>
+```
+
+For IIS add the same header under `system.webServer/httpProtocol/customHeaders` in `web.config`; for Nginx use `add_header Access-Control-Allow-Origin "*";` in the widget folder's `location`.
 
 ## Features
 

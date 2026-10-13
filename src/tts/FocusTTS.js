@@ -4,6 +4,7 @@
  * @module src/tts/FocusTTS
  */
 import { BaseTTS } from './BaseTTS.js';
+import { isSecretInput } from './TextExtractor.js';
 
 export class FocusTTS extends BaseTTS {
 	constructor(ttsManager) {
@@ -203,7 +204,8 @@ export class FocusTTS extends BaseTTS {
 		if (!text && element.tagName && element.tagName.toLowerCase() === 'img') {
 			text = element.getAttribute('alt') || '';
 		}
-		if (!text && element.value) {
+		// 비밀번호 칸의 값은 이 대체 경로에서도 읽지 않는다
+		if (!text && element.value && !isSecretInput(element)) {
 			text = element.value;
 		}
 		return text.trim();

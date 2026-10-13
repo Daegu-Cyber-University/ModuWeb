@@ -76,13 +76,13 @@
 	<button class="copy" data-t="s2">복사</button>
 </div>
 
-<h2><span class="tag">방법 C</span> 파일 복사조차 없이 (인터넷 필요)</h2>
-<p>내 서버에 아무것도 올리지 않고, 아래 한 줄만 넣어도 됩니다. (외부 CDN에서 자동으로 불러옵니다.)</p>
+<h2><span class="tag">방법 C</span> 파일 복사조차 없이 (인터넷 필요, 자동 업데이트)</h2>
+<p>내 서버에 아무것도 올리지 않고, 아래 한 줄만 넣어도 됩니다. 외부 CDN(jsDelivr)에서 불러오고, 새 2.x 버전이 나오면 따로 내려받지 않아도 자동으로 반영됩니다.</p>
 <div class="snip">
-<pre id="s3">&lt;script src="https://cdn.jsdelivr.net/gh/Daegu-Cyber-University/ModuWeb@main/dist/webAccTools.js" data-wat-auto&gt;&lt;/script&gt;</pre>
+<pre id="s3">&lt;script src="https://cdn.jsdelivr.net/gh/Daegu-Cyber-University/ModuWeb@2/dist/webAccTools.standalone.min.js" data-wat-auto&gt;&lt;/script&gt;</pre>
 	<button class="copy" data-t="s3">복사</button>
 </div>
-<p class="muted">특정 버전으로 고정하려면 <code class="inline">@main</code> 을 <code class="inline">@v2.1.0</code> 같은 릴리스 태그로 바꾸세요.</p>
+<p class="muted">특정 버전으로 고정하려면 <code class="inline">@2</code> 를 <code class="inline">@v2.3.10</code> 같은 릴리스 태그로 바꾸세요. <code class="inline">@main</code> 은 개발 중인 코드까지 바로 나가므로 쓰지 마세요. 새 버전이 모든 방문자에게 퍼지기까지 며칠(최대 7일) 걸릴 수 있습니다.</p>
 
 <h2>세부 설정 (선택)</h2>
 <p>초기화 코드를 따로 짤 필요 없이, <code class="inline">&lt;script&gt;</code> 태그에 속성만 추가하면 됩니다.</p>
@@ -95,7 +95,7 @@
 <table>
 	<tr><th>속성</th><th>설명</th></tr>
 	<tr><td><code class="inline">data-wat-auto</code></td><td>자동 실행 스위치 <b>(필수)</b>. 이 속성이 있어야 도구가 켜집니다.</td></tr>
-	<tr><td><code class="inline">data-wat-language</code></td><td>기본 언어. <code class="inline">ko</code>(한국어), <code class="inline">en-US</code>, <code class="inline">en-GB</code>, <code class="inline">ja</code>, <code class="inline">zh</code>, <code class="inline">de</code>. <span class="muted">※ 단일 파일(방법 A)은 한국어만 내장 — 다른 언어는 방법 B 사용.</span></td></tr>
+	<tr><td><code class="inline">data-wat-language</code></td><td>기본 언어. <code class="inline">ko</code>(한국어), <code class="inline">en-US</code>, <code class="inline">en-GB</code>, <code class="inline">ja</code>, <code class="inline">zh</code>, <code class="inline">de</code>. <span class="muted">※ 단일 파일(방법 A)은 한국어만 내장 — 다른 언어는 방법 B나 C 사용.</span></td></tr>
 	<tr><td><code class="inline">data-wat-container</code></td><td>도구를 넣을 위치의 CSS 선택자. 생략하면 화면 오른쪽에 자동 배치.</td></tr>
 	<tr><td><code class="inline">data-wat-inject-css</code></td><td><code class="inline">"false"</code>로 두면 CSS 자동 삽입을 끕니다. (스타일을 직접 관리할 때만)</td></tr>
 </table>

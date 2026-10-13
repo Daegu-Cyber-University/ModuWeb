@@ -105,20 +105,28 @@
 
 빌드 도구나 서버 설정 없이 아래 세 가지 방법 중 하나로 바로 사용할 수 있습니다.
 
-### 방법 1 — CDN 한 줄 설치 (가장 간단)
+### 방법 1 — CDN 한 줄 설치 (가장 간단, 자동 업데이트)
 
-HTML에 script 태그 한 줄만 추가하면 됩니다. CSS·아이콘·언어 파일이 자동으로 로드됩니다.
+HTML에 script 태그 한 줄만 추가하면 됩니다. CSS·아이콘·한국어 문구가 파일 안에 들어 있고, 새 2.x 버전이 릴리스되면 사이트에서 따로 내려받지 않아도 자동으로 반영됩니다.
 
 ```html
-<script src="https://cdn.jsdelivr.net/gh/Daegu-Cyber-University/ModuWeb@main/dist/webAccTools.js" data-wat-auto></script>
+<script src="https://cdn.jsdelivr.net/gh/Daegu-Cyber-University/ModuWeb@2/dist/webAccTools.standalone.min.js" data-wat-auto></script>
 ```
 
-특정 버전으로 고정하려면 `@main` 대신 릴리스 태그(예: `@v2.1.0`)를 사용하세요.
+| 주소의 버전 | 받는 버전 |
+|---|---|
+| `@2` (권장) | 2.x 가운데 최신 릴리스 — 수정과 새 기능이 자동으로 반영 |
+| `@2.3` | 2.3.x 가운데 최신 릴리스 — 수정(패치)만 자동으로 반영 |
+| `@v2.3.10` | 그 버전에 고정 — 업데이트하려면 주소를 직접 바꿈 |
+
+- `@main`은 쓰지 마세요. 릴리스 전에 개발 중인 코드까지 바로 사이트에 나갑니다.
+- 새 버전이 모든 방문자에게 퍼지기까지 최대 7일이 걸릴 수 있습니다(jsDelivr의 버전 범위 캐시와 방문자 브라우저 캐시). 급한 수정은 릴리스 뒤 [jsDelivr 퍼지 도구](https://www.jsdelivr.com/tools/purge)로 CDN 캐시를 비우면 새로 받는 방문자부터 바로 반영됩니다.
+- 한국어 외 언어 파일도 jsDelivr에서 받습니다. jsDelivr는 다른 도메인에서 쓰도록 허용 헤더를 보내므로 [다른 도메인에서 불러올 때](#다른-도메인에서-불러올-때)의 서버 설정이 필요 없습니다.
 
 `data-wat-*` 속성으로 초기화 코드 없이 설정할 수 있습니다.
 
 ```html
-<script src=".../dist/webAccTools.js" data-wat-auto
+<script src=".../webAccTools.standalone.min.js" data-wat-auto
 	data-wat-language="ko"
 	data-wat-config='{"branding": {"copyrightUrl": "https://example.com"}}'></script>
 ```
@@ -126,7 +134,7 @@ HTML에 script 태그 한 줄만 추가하면 됩니다. CSS·아이콘·언어 
 | 속성 | 설명 |
 |---|---|
 | `data-wat-auto` | 자동 초기화 활성화 (필수 스위치) |
-| `data-wat-config` | config.json 경로(스크립트 위치 기준) 또는 인라인 JSON(`{`로 시작) |
+| `data-wat-config` | config.json 경로(스크립트 위치 기준) 또는 인라인 JSON(`{`로 시작). CDN으로 불러오면 상대 경로가 jsDelivr 주소 기준이 되므로 인라인 JSON이나 사이트의 절대 주소(`https://…/config.json`)를 쓰세요 |
 | `data-wat-language` | 기본 언어 (`ko`, `en-US`, `en-GB`, `ja`, `zh`, `de`) |
 | `data-wat-container` | 컨테이너 CSS 셀렉터 |
 | `data-wat-inject-css` | `"false"`면 CSS 자동 주입 끄기 (직접 `<link>` 관리 시) |
@@ -141,6 +149,8 @@ CSS·아이콘·한국어 언어 데이터가 파일 안에 모두 포함되어 
 ```
 
 > 한국어 외 언어(en-US 등)를 쓰려면 `assets/locales/` 폴더도 함께 배포하세요 (한국어는 내장).
+>
+> 새 버전이 나오면 파일을 다시 받아 바꿔야 합니다. 자동 업데이트를 원하면 방법 1을 쓰세요.
 
 ### 방법 3 — 폴더 다운로드 (자체 서버에 두고 사용)
 
@@ -171,6 +181,44 @@ CSS·아이콘·한국어 언어 데이터가 파일 안에 모두 포함되어 
 ```
 
 `config` 옵션에 객체를 직접 넘기면 config.json 파일 없이도 동작합니다. 사전 검색 기능만 별도 서버 설정([설정 옵션](#설정-옵션) 참고)이 필요하고(설정이 없으면 패널에 사전 검색 항목이 나타나지 않음), 나머지 기능은 설정 없이 모두 동작합니다.
+
+### 다른 도메인에서 불러올 때
+
+`static.example.ac.kr`에 올린 파일을 `www.example.ac.kr` 페이지에서 불러오는 것처럼 파일과 페이지의 도메인이 다르면, 브라우저는 위젯이 그 서버에서 추가로 받는 파일에 허용 헤더(CORS)를 요구합니다. script 태그 자체는 문제없이 실행됩니다.
+
+| 불러오는 파일 | 허용 헤더가 없을 때 |
+|---|---|
+| `webAccTools.standalone.min.js` (방법 2) | 한국어는 정상. 다른 언어로 바꿀 때만 언어 파일을 받지 못함 |
+| `webAccTools.js` + `assets/` (방법 3·4) | 한국어 언어 파일이 막혀 패널 글자가 모두 비고, 열기 버튼 아이콘이 보이지 않음 |
+
+파일을 둔 서버의 위젯 폴더에 아래 허용 헤더를 추가하면 해결됩니다. 위젯 파일은 공개 정적 파일이라 `*`로 열어도 됩니다. jsDelivr(방법 1)는 이미 이 헤더를 보냅니다.
+
+```apache
+# Apache — 위젯 폴더의 .htaccess (mod_headers 필요)
+<IfModule mod_headers.c>
+	Header set Access-Control-Allow-Origin "*"
+</IfModule>
+```
+
+```xml
+<!-- IIS — 위젯 폴더의 web.config -->
+<configuration>
+	<system.webServer>
+		<httpProtocol>
+			<customHeaders>
+				<add name="Access-Control-Allow-Origin" value="*" />
+			</customHeaders>
+		</httpProtocol>
+	</system.webServer>
+</configuration>
+```
+
+```nginx
+# Nginx — location 경로는 위젯 폴더에 맞게
+location /moduweb/ {
+	add_header Access-Control-Allow-Origin "*";
+}
+```
 
 ## 배포 패키지 (완성본 zip)
 
@@ -574,6 +622,7 @@ wat.togglePageScroll();                   // 자동 스크롤 토글
 ##### TTS 자동/포커스 읽기 시작/중지
 
 TTS는 브라우저 Web Speech API를 사용하며, WAT에서는 `ttsManager`의 읽기 모드로 동작합니다.
+입력란은 라벨과 현재 값을 읽지만, 비밀번호 칸(`type="password"`, 또는 `autocomplete`가 `current-password`·`new-password`·`one-time-code`인 칸)은 값을 읽지 않고 라벨만 읽습니다. 소리가 스피커로 나오기 때문입니다.
 
 ```javascript
 // 자동 읽기 토글
