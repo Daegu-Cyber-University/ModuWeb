@@ -643,7 +643,8 @@
 				"unselected": "선택 안됨"
 			},
 			"types": {
-				"button": "버튼"
+				"button": "버튼",
+				"password": "비밀번호 입력란"
 			}
 		},
 		"link": {

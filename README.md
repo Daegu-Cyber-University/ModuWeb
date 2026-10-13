@@ -574,6 +574,7 @@ wat.togglePageScroll();                   // 자동 스크롤 토글
 ##### TTS 자동/포커스 읽기 시작/중지
 
 TTS는 브라우저 Web Speech API를 사용하며, WAT에서는 `ttsManager`의 읽기 모드로 동작합니다.
+입력란은 라벨과 현재 값을 읽지만, 비밀번호 칸(`type="password"`, 또는 `autocomplete`가 `current-password`·`new-password`·`one-time-code`인 칸)은 값을 읽지 않고 라벨만 읽습니다. 소리가 스피커로 나오기 때문입니다.
 
 ```javascript
 // 자동 읽기 토글

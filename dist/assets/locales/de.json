@@ -643,7 +643,8 @@
 				"unselected": "nicht ausgewählt"
 			},
 			"types": {
-				"button": "Schaltfläche"
+				"button": "Schaltfläche",
+				"password": "Passwortfeld"
 			}
 		},
 		"link": {

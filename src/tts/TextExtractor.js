@@ -8,6 +8,22 @@
  */
 import { Localization } from '../core/localization.js';
 
+/** 값을 소리 내 읽지 않을 autocomplete 토큰 — 비밀번호 보기 단추로 type이 text로 바뀐 칸과 일회용 비밀번호 칸 */
+const SECRET_AUTOCOMPLETE_TOKENS = ['current-password', 'new-password', 'one-time-code'];
+
+/**
+ * 값을 소리 내 읽으면 안 되는 입력란(비밀번호 칸)인지 확인합니다
+ * @param {Element} element - 확인할 요소
+ * @returns {boolean} type=password이거나 autocomplete가 비밀번호·일회용 비밀번호를 가리키면 true
+ * @description 웹 음성은 스피커로 나와 옆 사람도 듣는다. 포커스 탐지·자동 읽기는 이 칸의 값을 읽지 않는다
+ */
+export function isSecretInput(element) {
+	if (!element || !element.tagName || element.tagName.toLowerCase() !== 'input') return false;
+	if ((element.type || '').toLowerCase() === 'password') return true;
+	const tokens = (element.getAttribute('autocomplete') || '').toLowerCase().split(/\s+/);
+	return tokens.some(token => SECRET_AUTOCOMPLETE_TOKENS.includes(token));
+}
+
 export class TextExtractor {
 	/**
 	 * @param {Object} plugin - WAT 인스턴스 (로케일·언어 서비스 제공자)
@@ -135,12 +151,19 @@ export class TextExtractor {
 		if (label) {
 			text += label + ' ';
 		}
-		
+
+		// 비밀번호 칸은 값을 읽지 않는다 — 라벨이 없을 때만 안내문이나 '비밀번호 입력란'으로 어떤 칸인지 알린다
+		if (isSecretInput(element)) {
+			if (!label) {
+				text += placeholder || this.plugin.getLocalizedText('tts.input.types.password');
+			}
+			return text.trim();
+		}
+
 		// 입력 타입별 처리
 		switch (type) {
 			case 'text':
 			case 'email':
-			case 'password':
 			case 'search':
 			case 'url':
 				if (value) {

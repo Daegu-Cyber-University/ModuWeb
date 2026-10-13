@@ -643,7 +643,8 @@
 				"unselected": "not selected"
 			},
 			"types": {
-				"button": "Button"
+				"button": "Button",
+				"password": "Password field"
 			}
 		},
 		"link": {
