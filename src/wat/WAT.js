@@ -2301,11 +2301,13 @@ export class WAT {
 		_createOpenButton() {
 			// 열기 버튼 생성
 			const openButtonWrapElement = this.createElementWithAttrs('div', { id: 'wat_btnOpenWrap', class: 'wat-exclude' });
+			// 페이지 어디서든 탭으로 만나는 버튼이라 '열기'만으로는 무엇을 여는지 알 수 없다 — 도구 이름을 넣는다 (WCAG 2.4.6)
+			const openButtonLabel = this.getLocalizedText('command.openTool');
 			const openButtonElement = this.createElementWithAttrs('button', { 
 				id: 'wat_btnOpen', 
 				class: 'btn_open', 
-				'aria-label': this.getLocalizedText('command.open'), 
-				title: this.getLocalizedText('command.open') 
+				'aria-label': openButtonLabel, 
+				title: openButtonLabel 
 			});
 			
 			openButtonElement.addEventListener('click', () => {
