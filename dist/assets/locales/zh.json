@@ -41,7 +41,8 @@
 							"ja": "日语",
 							"zh": "中文",
 							"de": "德语"
-						}
+						},
+						"apply": "应用语言"
 					},
 					"customColors": {
 						"title": "自定义颜色",
@@ -772,7 +773,8 @@
 			"save": "保存成功。",
 			"reset": "设置已重置。",
 			"export": "设置已导出到文件。",
-			"import": "设置已导入。正在刷新页面。"
+			"import": "设置已导入。正在刷新页面。",
+			"languageChanged": "工具语言已更改为{language}。"
 		},
 		"error": {
 			"default": "发生错误。",

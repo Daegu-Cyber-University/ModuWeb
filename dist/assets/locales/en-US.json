@@ -41,7 +41,8 @@
 							"ja": "Japanese",
 							"zh": "Chinese",
 							"de": "German"
-						}
+						},
+						"apply": "Apply language"
 					},
 					"customColors": {
 						"title": "My colors",
@@ -772,7 +773,8 @@
 			"save": "Saved successfully.",
 			"reset": "Settings have been reset.",
 			"export": "Settings exported to a file.",
-			"import": "Settings imported. Reloading the page."
+			"import": "Settings imported. Reloading the page.",
+			"languageChanged": "Tool language changed to {language}."
 		},
 		"error": {
 			"default": "An error has occurred.",

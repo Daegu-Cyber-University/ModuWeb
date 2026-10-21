@@ -4062,29 +4062,12 @@ var WATPlugin = (function (exports) {
 				const languageSettingItems = plugin.languageOptions.map(lang => {
 					return { id: `watSet_language_${lang}`, label: plugin.getLocalizedText(`panel.settings.manage.options.language.options.${lang}`), lang: lang, checked: plugin.language === lang };
 				});
+				// 라디오는 고르기만 한다 — change마다 바꾸면 화살표로 옮길 때마다 패널이 다시 만들어져
+				// 포커스가 body로 사라졌다 (WCAG 3.2.2). 실제 변경은 아래 적용 버튼이 맡는다
 				languageSettingItems.forEach(item => {
 					const languageSettingItem = plugin.createElementWithAttrs('li', { class: 'watSet-item' });
 					const input = plugin.createElementWithAttrs('input', { type: 'radio', id: item.id, class: ['wat-set-items', 'wat-set-item-type-radio'], name: 'watSet_language', value: item.lang });
 					input.checked = item.checked;
-					input.onchange = () => {
-						plugin.language = item.lang;
-						document.documentElement.dataset['watLanguage'] = item.lang;
-						// 스크린리더가 올바른 언어 엔진으로 UI를 읽도록 문서 lang 갱신 (WCAG 3.1.2)
-						document.documentElement.setAttribute('lang', item.lang);
-						plugin.updateLanguageSetting();
-
-						plugin.loadLocale(item.lang).then(() => {
-							plugin.generateHTMLElements();
-							plugin.setInitialPreferences();
-
-							plugin.setupTabs();
-							plugin.activateInitialTab();
-							plugin.setEventListeners();
-							plugin.extractFocusableElements(document.body);
-							plugin.updateTextLocalization();
-							plugin.savePreferences();
-						});
-					};
 					const label = plugin.createElementWithAttrs('label', { for: item.id, class: 'wat-set-label' });
 					label.textContent = item.label;
 					languageSettingItem.appendChild(input);
@@ -4092,6 +4075,17 @@ var WATPlugin = (function (exports) {
 					languageSettingList.appendChild(languageSettingItem);
 				});
 				languageSettingInner.appendChild(languageSettingList);
+
+				const languageApplyList = plugin.createElementWithAttrs('ul', { class: ['watSet-list', 'watSet-list-type-button'] });
+				const languageApplyItem = plugin.createElementWithAttrs('li', { class: 'watSet-item' });
+				const languageApplyButton = plugin.createElementWithAttrs('input', { type: 'button', id: 'watSet_language_apply', class: ['wat-set-items', 'wat-set-item-type-button'], value: plugin.getLocalizedText('panel.settings.manage.options.language.apply') });
+				languageApplyButton.addEventListener('click', () => {
+					const selected = languageSettingList.querySelector('input[name="watSet_language"]:checked');
+					if (selected) plugin.changeLanguage(selected.value);
+				});
+				languageApplyItem.appendChild(languageApplyButton);
+				languageApplyList.appendChild(languageApplyItem);
+				languageSettingInner.appendChild(languageApplyList);
 				languageContainer.appendChild(languageSettingInner);
 
 				container.appendChild(languageContainer);
@@ -9742,6 +9736,51 @@ var WATPlugin = (function (exports) {
 			}
 
 			/**
+			 * 위젯 언어를 바꾸고 패널을 새 언어로 다시 그립니다 (환경설정 언어 적용 버튼)
+			 * @param {string} lang - 바꿀 언어 코드 ('ko', 'en-US' 등)
+			 * @returns {Promise<void>} 로케일을 불러와 패널을 다시 그린 뒤 resolve
+			 * @description 패널을 통째로 다시 만들어 포커스가 사라지므로, 환경설정 탭을 다시 열고 적용 버튼에
+			 *              포커스를 돌려준 뒤 결과를 새 언어로 알린다 (WCAG 2.4.3, 4.1.3).
+			 *              호스트 문서의 <html lang>은 건드리지 않는다 — lang은 위젯 요소에만 지정 (WCAG 3.1.1, 3.1.2)
+			 */
+			changeLanguage(lang) {
+				if (!lang || lang === this.language) return Promise.resolve();
+				this.language = lang;
+				document.documentElement.dataset.watLanguage = lang;
+				this.updateLanguageSetting();
+
+				return this.loadLocale(lang).then(() => {
+					this.generateHTMLElements();
+					this.setInitialPreferences();
+
+					this.setupTabs();
+					const root = this.container;
+					const settingsTab = document.getElementById('wat_settings');
+					if (root && settingsTab) {
+						this.activateTab(root.querySelectorAll('[role="tab"]'), root.querySelectorAll('[role="tabpanel"]'), settingsTab);
+					}
+					this.setEventListeners();
+					this.extractFocusableElements(document.body);
+					this.updateTextLocalization();
+					this.savePreferences();
+
+					const applyButton = document.getElementById('watSet_language_apply');
+					if (applyButton) applyButton.focus();
+					this._announceToLiveRegion(this.getLocalizedText('msg.success.languageChanged', { language: this.getLocalizedText('displayLanguage') }));
+				});
+			}
+
+			/**
+			 * 위젯이 만든 요소에 위젯 언어를 지정합니다
+			 * @param {HTMLElement} element - 위젯 컨테이너·body에 붙는 라이브 리전·알림·대화상자
+			 * @returns {void}
+			 * @description 호스트 문서와 언어가 달라도 스크린리더가 위젯 문구를 맞는 언어로 읽게 한다 (WCAG 3.1.2)
+			 */
+			_applyWidgetLang(element) {
+				if (element && this.language) element.setAttribute('lang', this.language);
+			}
+
+			/**
 			 * Updates language setting display in the UI (UI에서 언어 설정 표시를 업데이트합니다)
 			 * @returns {void}
 			 * @example
@@ -9864,7 +9903,9 @@ var WATPlugin = (function (exports) {
 				}
 				container.innerHTML = "";
 				container.classList.add('wat-container', 'no-speech', 'wat-exclude');
-				
+				// 패널·열기 버튼은 모두 컨테이너 안에 있으므로 여기 한 번 지정하면 위젯 언어로 읽힌다
+				this._applyWidgetLang(container);
+
 				return container;
 			}
 
@@ -11638,6 +11679,8 @@ var WATPlugin = (function (exports) {
 					region.setAttribute('aria-live', politeness);
 					document.body.appendChild(region);
 				}
+				// 리전은 상주하므로 언어를 바꾼 뒤에도 새 언어로 읽히도록 매번 지정한다
+				this._applyWidgetLang(region);
 				// 같은 메시지 연속 전달도 낭독되도록 비운 뒤 다음 프레임에 채운다
 				region.textContent = '';
 				this._requestAnimationFrame(() => {
@@ -11666,6 +11709,7 @@ var WATPlugin = (function (exports) {
 					if (extraClass) {
 						feedback.classList.add(...extraClass.split(' ').filter(Boolean));
 					}
+					this._applyWidgetLang(feedback);
 					// 낭독은 상주 라이브 리전이 담당 — 리전을 텍스트와 함께 삽입하면
 					// 일부 스크린리더가 첫 알림을 놓치므로, 시각 요소에는 live 시맨틱을 두지 않는다
 					this._announceToLiveRegion(message, type === 'error' ? 'assertive' : 'polite');

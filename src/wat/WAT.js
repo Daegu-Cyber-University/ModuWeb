@@ -1812,6 +1812,51 @@ export class WAT {
 		}
 
 		/**
+		 * 위젯 언어를 바꾸고 패널을 새 언어로 다시 그립니다 (환경설정 언어 적용 버튼)
+		 * @param {string} lang - 바꿀 언어 코드 ('ko', 'en-US' 등)
+		 * @returns {Promise<void>} 로케일을 불러와 패널을 다시 그린 뒤 resolve
+		 * @description 패널을 통째로 다시 만들어 포커스가 사라지므로, 환경설정 탭을 다시 열고 적용 버튼에
+		 *              포커스를 돌려준 뒤 결과를 새 언어로 알린다 (WCAG 2.4.3, 4.1.3).
+		 *              호스트 문서의 <html lang>은 건드리지 않는다 — lang은 위젯 요소에만 지정 (WCAG 3.1.1, 3.1.2)
+		 */
+		changeLanguage(lang) {
+			if (!lang || lang === this.language) return Promise.resolve();
+			this.language = lang;
+			document.documentElement.dataset.watLanguage = lang;
+			this.updateLanguageSetting();
+
+			return this.loadLocale(lang).then(() => {
+				this.generateHTMLElements();
+				this.setInitialPreferences();
+
+				this.setupTabs();
+				const root = this.container;
+				const settingsTab = document.getElementById('wat_settings');
+				if (root && settingsTab) {
+					this.activateTab(root.querySelectorAll('[role="tab"]'), root.querySelectorAll('[role="tabpanel"]'), settingsTab);
+				}
+				this.setEventListeners();
+				this.extractFocusableElements(document.body);
+				this.updateTextLocalization();
+				this.savePreferences();
+
+				const applyButton = document.getElementById('watSet_language_apply');
+				if (applyButton) applyButton.focus();
+				this._announceToLiveRegion(this.getLocalizedText('msg.success.languageChanged', { language: this.getLocalizedText('displayLanguage') }));
+			});
+		}
+
+		/**
+		 * 위젯이 만든 요소에 위젯 언어를 지정합니다
+		 * @param {HTMLElement} element - 위젯 컨테이너·body에 붙는 라이브 리전·알림·대화상자
+		 * @returns {void}
+		 * @description 호스트 문서와 언어가 달라도 스크린리더가 위젯 문구를 맞는 언어로 읽게 한다 (WCAG 3.1.2)
+		 */
+		_applyWidgetLang(element) {
+			if (element && this.language) element.setAttribute('lang', this.language);
+		}
+
+		/**
 		 * Updates language setting display in the UI (UI에서 언어 설정 표시를 업데이트합니다)
 		 * @returns {void}
 		 * @example
@@ -1934,7 +1979,9 @@ export class WAT {
 			}
 			container.innerHTML = "";
 			container.classList.add('wat-container', 'no-speech', 'wat-exclude');
-			
+			// 패널·열기 버튼은 모두 컨테이너 안에 있으므로 여기 한 번 지정하면 위젯 언어로 읽힌다
+			this._applyWidgetLang(container);
+
 			return container;
 		}
 
@@ -3708,6 +3755,8 @@ export class WAT {
 				region.setAttribute('aria-live', politeness);
 				document.body.appendChild(region);
 			}
+			// 리전은 상주하므로 언어를 바꾼 뒤에도 새 언어로 읽히도록 매번 지정한다
+			this._applyWidgetLang(region);
 			// 같은 메시지 연속 전달도 낭독되도록 비운 뒤 다음 프레임에 채운다
 			region.textContent = '';
 			this._requestAnimationFrame(() => {
@@ -3736,6 +3785,7 @@ export class WAT {
 				if (extraClass) {
 					feedback.classList.add(...extraClass.split(' ').filter(Boolean));
 				}
+				this._applyWidgetLang(feedback);
 				// 낭독은 상주 라이브 리전이 담당 — 리전을 텍스트와 함께 삽입하면
 				// 일부 스크린리더가 첫 알림을 놓치므로, 시각 요소에는 live 시맨틱을 두지 않는다
 				this._announceToLiveRegion(message, type === 'error' ? 'assertive' : 'polite');
