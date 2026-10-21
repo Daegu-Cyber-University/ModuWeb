@@ -229,6 +229,8 @@ export class PanelBuilder {
 	 */
 	createSettingsItem(itemType, titleText, optionName, optionItems) {
 		const plugin = this.plugin;
+		// 라이브 리전 안내는 textContent로 들어가므로 이스케이프 전 원문을 쓴다
+		const plainTitleText = titleText;
 		// config/로케일 유래 값이 innerHTML 템플릿에 삽입되므로 전부 이스케이프 (XSS 방지)
 		titleText = escapeHTML(titleText);
 		const itemsHtml = optionItems.map(item => {
@@ -326,14 +328,22 @@ export class PanelBuilder {
 			}
 		});
 
+		// 제목·이전/다음 버튼으로 바꾸면 포커스가 제목·버튼에 머물러 바뀐 값이 읽히지 않으므로 알린다 (WCAG 4.1.3)
+		const announceValue = (valueText) => {
+			plugin._announceToLiveRegion(`${plainTitleText}: ${valueText}`);
+		};
+
 		// 라디오 순환 선택 공통 처리 (제목 클릭/이전·다음 버튼)
 		const cycleRadio = (direction) => {
 			const radioElements = setWrapElement.querySelectorAll('.setCont input[type="radio"]');
 			const targetIndex = plugin.getRadioTargetIndex(setWrapElement, direction);
-			if (radioElements[targetIndex]) {
-				radioElements[targetIndex].checked = true;
+			const targetRadio = radioElements[targetIndex];
+			if (targetRadio) {
+				targetRadio.checked = true;
 				// change 이벤트를 수동으로 트리거
-				radioElements[targetIndex].dispatchEvent(new Event('change', { bubbles: true }));
+				targetRadio.dispatchEvent(new Event('change', { bubbles: true }));
+				const targetLabel = targetRadio.labels && targetRadio.labels[0];
+				announceValue(targetLabel ? targetLabel.textContent : targetRadio.value);
 			}
 		};
 
@@ -353,6 +363,8 @@ export class PanelBuilder {
 				checkboxElement.checked = !checkboxElement.checked;
 				// change 이벤트를 수동으로 트리거
 				checkboxElement.dispatchEvent(new Event('change', { bubbles: true }));
+				const stateElement = setWrapElement.querySelector('.switch-state');
+				announceValue(stateElement ? stateElement.getAttribute('data-stateText-' + (checkboxElement.checked ? 'on' : 'off')) : '');
 			};
 			// 제목(role=button)만 직접 토글한다. 스위치 트랙(label.switch-label)은 for로 연결된 input을
 			// 브라우저가 토글하고 change를 보내므로(비활성이면 무시) 라벨에 리스너를 또 달면
