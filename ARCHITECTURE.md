@@ -127,7 +127,7 @@ graph LR
     subgraph TTS["TTS 처리 플로우"]
         T1["텍스트 추출<br/>- 선택된 요소<br/>- 자식 텍스트<br/>- 속성값"]
         T2["텍스트 정규화<br/>- 공백 제거<br/>- 특수문자 처리<br/>- 길이 확인"]
-        T3["음성 합성<br/>Web Speech API<br/>또는<br/>제3의 API"]
+        T3["음성 합성<br/>Web Speech API<br/>(speechSynthesis)"]
         T4["재생 제어<br/>- 시작/일시정지<br/>- 속도 조절<br/>- 볼륨 조절"]
         T5["UI 반영<br/>- 하이라이트<br/>- 진행률 표시<br/>- 상태 업데이트"]
     end
@@ -193,6 +193,7 @@ graph TB
     subgraph "Core Classes"
         WAT["<b>WAT</b><br/>메인 플러그인<br/>- 초기화 & 생명주기<br/>- 기능 통합 제어<br/>- UI 관리"]
         SM["<b>StateManager</b><br/>중앙 상태 관리<br/>- 옵저버 패턴<br/>- 히스토리 추적<br/>- 깊은 병합"]
+        SUB["<b>WAT 하위 모듈</b> (src/wat)<br/>PanelBuilder · SettingsApplier<br/>CustomColorEditor · Dictionary<br/>PageStructure · OverlayManager<br/>IframeStyler"]
     end
 
     subgraph "Audio Classes"
@@ -200,13 +201,14 @@ graph TB
         AutoTTS["<b>AutoTTS</b><br/>자동 읽기"]
         FocusTTS["<b>FocusTTS</b><br/>포커스 기반 읽기"]
         KeyboardTTS["<b>KeyboardTTS</b><br/>키보드 단축키"]
+        TE["<b>TextExtractor</b><br/>낭독 텍스트 추출"]
         STT["<b>STTManager</b><br/>음성 인식 제어"]
         VC["<b>VoiceCommand</b><br/>음성 명령어"]
     end
 
     subgraph "Management Classes"
         EM["<b>ErrorHandler</b><br/>에러 처리<br/>- 에러 추적<br/>- 복구 전략<br/>- 로깅"]
-        CM["<b>ContainerManager</b><br/>UI 컨테이너 관리<br/>- DOM 생성<br/>- 이벤트 바인딩"]
+        CM["<b>ContainerManager</b><br/>UI 컨테이너 관리<br/>- 컨테이너 생성·탐색<br/>- 선택자 클래스 적용"]
         CFG["<b>ConfigurationManager</b><br/>설정 관리<br/>- 파일 로드<br/>- 옵션 처리<br/>- 기본값"]
     end
 
@@ -216,29 +218,35 @@ graph TB
     end
 
     WAT --> SM
+    WAT --> SUB
     WAT --> TTS
+    WAT --> TE
     WAT --> STT
     WAT --> EM
     WAT --> CM
     WAT --> CFG
+    WAT --> SBP
     
     TTS --> AutoTTS
     TTS --> FocusTTS
     TTS --> KeyboardTTS
+    AutoTTS -.-> TE
+    FocusTTS -.-> TE
     STT --> VC
     
-    SM --> SBP
-    SM --> OP
+    CFG --> OP
     
 ```
+
+> 실선은 직접 만들거나 호출하는 관계, 점선은 WAT 인스턴스를 거쳐(`plugin.textExtractor`) 쓰는 관계입니다. `ContainerManager`·`OptionsProcessor`는 인스턴스를 만들지 않고 정적 메서드만 호출합니다.
 
 ---
 
 ## 📦 파일 구조
 
 ```
-ModuWeb/
-├── 📄 webAccTools.js (메인 번들)
+dist/ (배포 폴더)
+├── 📄 webAccTools.js (메인 번들, 주석 포함)
 │   ├── StateManager
 │   ├── TTSManager
 │   │   ├── AutoTTS
@@ -247,30 +255,36 @@ ModuWeb/
 │   ├── STTManager
 │   │   └── VoiceCommand
 │   ├── WAT (메인 클래스)
+│   │   ├── PanelBuilder · SettingsApplier · CustomColorEditor · CustomColorTheme
+│   │   ├── Dictionary · PageStructure · OverlayManager · IframeStyler
+│   │   ├── TextExtractor (TTS 낭독 텍스트 추출)
 │   │   ├── ErrorHandler
 │   │   ├── ContainerManager
 │   │   ├── ConfigurationManager
 │   │   ├── StyleBatchProcessor
 │   │   └── OptionsProcessor
-│   └── Utility Functions
+│   └── 유틸 함수 (autoInit, colorContrast, escapeHTML, safeParseJSON, safeUrl 등)
+│
+├── 📄 webAccTools.min.js (메인 번들 압축본)
+├── 📄 webAccTools.standalone.min.js (단일 파일 번들 — CSS·아이콘·한국어 로케일 내장)
 │
 ├── 📄 watInit.js (초기화 스크립트)
 │   └── DOMContentLoaded 핸들러
+├── 📄 watInit_ver-manual.js (수동 초기화 함수형 예시)
 │
 ├── 📄 config.json (설정 파일, git 제외)
-│   ├── api.dictionary   (사전 JSONP 엔드포인트: enabled/serverEndpoint/timeout)
+│   ├── api.dictionary   (사전 서버: enabled/serverEndpoint/timeout — fetch+JSON 우선, JSONP 폴백)
 │   ├── resources.fonts  (외부 폰트 CSS URL)
 │   ├── branding         (copyrightUrl)
 │   └── settings.ui      (modalWidth, showPronunciation 등)
 │
 └── 📁 assets/
     ├── 📁 css/
-    │   ├── webAccTools.css (메인 스타일)
-    │   └── 테마 파일들
+    │   └── webAccTools.css (메인 스타일, 색상 모드 포함)
     ├── 📁 fonts/
-    │   └── 접근성 폰트들
+    │   └── koddi-udon-gothic/ (Koddi Udon Gothic 글꼴)
     ├── 📁 images/
-    │   └── UI 아이콘들
+    │   └── UI 아이콘들 (SVG·PNG)
     └── 📁 locales/
         ├── ko.json (한국어)
         ├── en-US.json (영어 - 미국)
@@ -280,52 +294,67 @@ ModuWeb/
         └── de.json (독일어)
 ```
 
-> **참고**: 로케일 파일은 위 6개(`ko`, `en-US`, `en-GB`, `ja`, `zh`, `de`)이며 `en.json`은 존재하지 않습니다. `assets/js/` 폴더도 없습니다. `config.json`은 다국어 UI 텍스트나 API 키를 담지 않으며(사전은 서버 측 JSONP 중계로 처리), 다국어 문자열은 `assets/locales/*.json`에서 로드됩니다.
+> **참고**: 로케일 파일은 위 6개(`ko`, `en-US`, `en-GB`, `ja`, `zh`, `de`)이며 `en.json`은 존재하지 않습니다. `assets/js/` 폴더도 없습니다. `config.json`은 다국어 UI 텍스트나 API 키를 담지 않으며(사전은 서버 측 중계로 처리), 다국어 문자열은 `assets/locales/*.json`에서 로드됩니다.
 
 ---
 
 ## 📂 소스 모듈 레이아웃 (`src/`)
 
-배포 번들(`dist/webAccTools.js`)은 Rollup으로 아래 **19개 소스 파일**을 묶어 생성합니다.
+배포 파일 3종은 Rollup으로 아래 **34개 소스 파일**을 묶어 만듭니다. `src/index.js`에서 `dist/webAccTools.js`·`dist/webAccTools.min.js`를, `src/standalone.js`에서 CSS·아이콘·한국어 로케일을 넣은 `dist/webAccTools.standalone.min.js`를 만듭니다. Babel 같은 트랜스파일은 거치지 않습니다.
 (자세한 빌드 절차는 [`CONTRIBUTING.md`](./CONTRIBUTING.md) 참고)
 
 ```
 src/
-├── index.js                        # 진입점 / named exports (WAT, ErrorHandler, StateManager, TTSManager, STTManager) + window.WAT 등록
-├── wat/
-│   ├── WAT.js                      # 메인 클래스 (약 10,800줄 단일 파일)
-│   └── StateManager.js             # 중앙 상태 관리 (옵저버 패턴)
-├── core/                           # 9개 파일
+├── index.js                        # 진입점 / window.WAT 등록 · data-wat-auto 자동 초기화 · named exports (WAT, ErrorHandler, StateManager, TTSManager, STTManager)
+├── standalone.js                   # 단일 파일 진입점 / 인라인 CSS·한국어 로케일·이미지 주입 후 index.js와 같은 등록·export
+├── wat/                            # 10개 파일
+│   ├── WAT.js                      # 메인 클래스 (약 6,300줄) — 초기화, 기능 적용(글꼴·색상·확대 등), 하위 모듈 조립
+│   ├── StateManager.js             # 중앙 상태 관리 (옵저버 패턴)
+│   ├── PanelBuilder.js             # 설정 패널 항목 생성 (OPTION_DEFS 테이블 + buildOption)
+│   ├── SettingsApplier.js          # 설정 저장·복원·내보내기/가져오기, 프로필 적용 (wat:settings:* 이벤트)
+│   ├── CustomColorEditor.js        # 내 색상 편집기 UI (배경·글자색 선택, 대비 추천색)
+│   ├── CustomColorTheme.js         # 내 색상 저장소 · 루트 CSS 변수(--wat-custom-*) 적용
+│   ├── Dictionary.js               # 선택 텍스트 사전 검색 (wat:dictionary:* 이벤트)
+│   ├── PageStructure.js            # 페이지 구조(제목·링크) 대화상자
+│   ├── OverlayManager.js           # 모달 공통 처리 (포커스 트랩 · Esc 닫기 · 포커스 복원)
+│   └── IframeStyler.js             # 동일 출처 iframe에 접근성 스타일 적용 · 동기화
+├── core/                           # 14개 파일
 │   ├── ConfigurationManager.js     # config.json 로드 · 옵션 처리
 │   ├── OptionsProcessor.js         # 비율/언어/컨테이너/스타일/선택자 옵션 정규화
 │   ├── ContainerManager.js         # UI 컨테이너 DOM 관리
 │   ├── StyleBatchProcessor.js      # 스타일 일괄 처리
 │   ├── ErrorHandler.js             # 중앙집중식 에러 처리
+│   ├── autoInit.js                 # script 태그의 data-wat-* 속성으로 자동 초기화 ("1줄 설치")
+│   ├── colorContrast.js            # 색 변환 · 명도 대비 계산 (WCAG 상대 휘도)
 │   ├── constants.js                # 상수(STORAGE_KEYS 등)
 │   ├── defaults.js                 # 기본 설정값
+│   ├── escapeHTML.js               # HTML 이스케이프 (XSS 방지)
 │   ├── localization.js             # SUPPORTED_LANGUAGES · 로케일 파일 매핑
+│   ├── safeParseJSON.js            # 안전한 JSON 파싱 (손상된 저장값 대비)
+│   ├── safeUrl.js                  # http(s) URL 검증 (javascript: 등 위험 스킴 차단)
 │   └── validation.js               # 입력 검증 유틸
-├── tts/                            # 5개 파일
+├── tts/                            # 6개 파일
 │   ├── TTSManager.js               # TTS 총괄 (toggleAutoTTS / toggleFocusTTS)
-│   ├── BaseTTS.js                  # TTS 공통 로직
-│   ├── AutoTTS.js                  # 자동 읽기
+│   ├── BaseTTS.js                  # FocusTTS · KeyboardTTS 공통 로직
+│   ├── AutoTTS.js                  # 자동 읽기 (BaseTTS를 상속하지 않음)
 │   ├── FocusTTS.js                 # 포커스 기반 읽기
-│   └── KeyboardTTS.js              # 키보드 단축키 읽기
+│   ├── KeyboardTTS.js              # 키보드 단축키 읽기
+│   └── TextExtractor.js            # 요소 유형별 낭독 텍스트 추출 (비밀번호 칸은 값을 읽지 않음)
 └── stt/                            # 2개 파일
-    ├── STTManager.js               # STT 총괄 (toggleVoiceCommand)
+    ├── STTManager.js               # STT 총괄 (toggleVoiceCommand, wat:stt:stateChanged 이벤트)
     └── VoiceCommand.js             # 음성 명령어 해석·실행
 ```
 
 | 디렉터리 | 파일 수 | 역할 |
 |----------|:-----:|------|
-| `wat/` | 2 | 메인 클래스 + 상태 관리 |
-| `core/` | 9 | 설정·옵션·컨테이너·스타일·에러·상수·검증 |
-| `tts/` | 5 | 음성 합성(TTS) 매니저 및 모드 |
+| `index.js`, `standalone.js` | 2 | 진입점 (기본 번들 / 단일 파일 번들) · 공개 export |
+| `wat/` | 10 | 메인 클래스 · 상태 관리 · 패널 생성 · 설정 저장 · 내 색상 · 사전 · 페이지 구조 · 모달 · iframe |
+| `core/` | 14 | 설정 · 옵션 · 컨테이너 · 스타일 · 에러 · 자동 초기화 · 명도 대비 · 상수 · 보안 유틸(이스케이프·JSON·URL) · 검증 |
+| `tts/` | 6 | 음성 합성(TTS) 매니저 · 읽기 모드 · 낭독 텍스트 추출 |
 | `stt/` | 2 | 음성 인식(STT) 매니저 및 명령 |
-| `index.js` | 1 | 진입점 / 공개 export |
-| **합계** | **19** | |
+| **합계** | **34** | |
 
-> **진행 중인 리팩터링**: `src/wat/WAT.js`는 약 **10,800줄**에 달하는 단일 파일로, 위 매니저 클래스(TTSManager/STTManager/ConfigurationManager/ContainerManager 등)로 책임을 점진적으로 분해하는 작업이 진행 중입니다. 위 다이어그램의 클래스 관계는 이 목표 구조를 기준으로 그려졌으며, 일부 로직은 아직 `WAT.js` 내부에 남아 있습니다.
+> **리팩터링 현황**: `src/wat/WAT.js`는 한때 약 10,800줄짜리 단일 파일이었습니다. 지금은 패널 생성(`PanelBuilder`), 설정 저장·프로필(`SettingsApplier`), 사전(`Dictionary`), 페이지 구조(`PageStructure`), 모달 공통 처리(`OverlayManager`), iframe 스타일(`IframeStyler`), 낭독 텍스트 추출(`TextExtractor`)을 별도 모듈로 떼어 내 약 **6,300줄**입니다. 글꼴·색상·확대 같은 기능 적용과 패널 이벤트 처리는 아직 `WAT.js`에 있습니다.
 
 ---
 
