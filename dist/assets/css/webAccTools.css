@@ -751,7 +751,8 @@ html[data-wat-viewmode="list"] #wat .setTitle	{font-size: 0.8em}
 #watWrap .wat-cc-slot				{min-width: 0; margin: 8px 0; padding: 6px 8px; background-color: #fff; border: 1px solid #aaa; border-radius: 5px}
 #watWrap .wat-cc-slot-title			{padding: 0 4px; font-weight: bold}
 #watWrap .wat-cc-current				{font-weight: normal}
-#watWrap .wat-cc-swatches				{display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 4px}
+/* 슬롯당 8색 — 패널 폭에서는 4칸 2줄, 좁은 화면에서는 2칸으로 접힌다 */
+#watWrap .wat-cc-swatches				{display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 4px}
 #watWrap .wat-cc-swatch-item			{display: flex; align-items: center; gap: 4px; min-height: 32px}
 #watWrap .wat-cc-swatch-input			{flex-shrink: 0; width: 20px; height: 20px; margin: 0}
 #watWrap .wat-cc-swatch				{display: flex; flex: 1 1 auto; align-items: center; gap: 6px; min-width: 0; min-height: 32px; font-size: 0.9em; cursor: pointer}
@@ -764,7 +765,9 @@ html[data-wat-viewmode="list"] #wat .setTitle	{font-size: 0.8em}
 #watWrap .wat-cc-hint				{grid-column: 2; margin: 0; font-size: 0.85em; color: #333}
 #watWrap .wat-cc-error				{grid-column: 2; margin: 0; font-size: 0.85em; font-weight: bold; color: #b00020}
 #watWrap .wat-cc-suggest				{margin: 8px 0; padding: 8px; background-color: #fff; border: 2px solid #0a58ca; border-radius: 5px}
-#watWrap .wat-cc-suggest-detail			{display: flex; align-items: center; gap: 8px; margin: 4px 0}
+/* 추천 한 줄: 바꿨을 때의 조합 칩 · 설명 · 그쪽을 바꾸는 버튼 (좁으면 버튼이 다음 줄로) */
+#watWrap .wat-cc-suggest-option			{display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; padding: 6px 0; border-top: 1px solid #ddd}
+#watWrap .wat-cc-suggest-text			{flex: 1 1 160px; min-width: 0}
 #watWrap .wat-cc-suggest-actions			{display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px}
 #watWrap .wat-cc-actions				{display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; margin-top: 8px}
 #watWrap .wat-cc-request				{margin: 4px 0}

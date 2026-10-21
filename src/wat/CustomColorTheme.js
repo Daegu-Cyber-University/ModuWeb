@@ -24,36 +24,28 @@ export const CUSTOM_COLOR_VARS = Object.freeze({
 // 링크가 본문과 색으로 구분되지 않을 때 밑줄을 켜는 플래그 (data-wat-link-underline)
 const LINK_UNDERLINE_KEY = 'watLinkUnderline';
 
-/** 배경색 견본 — 밝은 9색 × 어두운 글자 6색은 모두 7:1 이상 */
+/** 배경색 견본 — 밝은 5색 × 어두운 글자 4색은 모두 7:1 이상 (견본 조합에 쓰인 색은 모두 포함) */
 export const BG_SWATCHES = Object.freeze([
 	{ id: 'white', hex: '#ffffff' },
 	{ id: 'cream', hex: '#fdf6e3' },
 	{ id: 'lightYellow', hex: '#fff8c5' },
-	{ id: 'apricot', hex: '#fde9d9' },
-	{ id: 'lightPink', hex: '#fce8ec' },
-	{ id: 'lightPurple', hex: '#eee8f7' },
 	{ id: 'lightBlue', hex: '#e6f0fa' },
-	{ id: 'mint', hex: '#e3f4ec' },
 	{ id: 'lightGray', hex: '#e8e8e8' },
 	{ id: 'darkGray', hex: '#333333' },
 	{ id: 'navy', hex: '#0b1f3a' },
 	{ id: 'black', hex: '#000000' }
 ]);
 
-/** 글자색 견본 — 어두운 배경 3색 × 밝은 글자 6색도 모두 7:1 이상 */
+/** 글자색 견본 — 어두운 배경 3색 × 밝은 글자 4색도 모두 7:1 이상 */
 export const FG_SWATCHES = Object.freeze([
 	{ id: 'black', hex: '#000000' },
-	{ id: 'ink', hex: '#1a1a1a' },
 	{ id: 'darkBrown', hex: '#3b2f1e' },
 	{ id: 'navy', hex: '#0b1f3a' },
-	{ id: 'darkGreen', hex: '#0b3d20' },
 	// #4d4d4d는 연회색 배경(#e8e8e8)과 6.9:1이라 #444444로 낮췄다
 	{ id: 'darkGray', hex: '#444444' },
 	{ id: 'white', hex: '#ffffff' },
 	{ id: 'lightGray', hex: '#d9d9d9' },
-	{ id: 'cream', hex: '#fdf6e3' },
 	{ id: 'yellow', hex: '#ffff00' },
-	{ id: 'amber', hex: '#ffd54f' },
 	{ id: 'skyBlue', hex: '#7fdbff' }
 ]);
 
