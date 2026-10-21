@@ -679,29 +679,12 @@ export class PanelBuilder {
 			const languageSettingItems = plugin.languageOptions.map(lang => {
 				return { id: `watSet_language_${lang}`, label: plugin.getLocalizedText(`panel.settings.manage.options.language.options.${lang}`), lang: lang, checked: plugin.language === lang };
 			});
+			// 라디오는 고르기만 한다 — change마다 바꾸면 화살표로 옮길 때마다 패널이 다시 만들어져
+			// 포커스가 body로 사라졌다 (WCAG 3.2.2). 실제 변경은 아래 적용 버튼이 맡는다
 			languageSettingItems.forEach(item => {
 				const languageSettingItem = plugin.createElementWithAttrs('li', { class: 'watSet-item' });
 				const input = plugin.createElementWithAttrs('input', { type: 'radio', id: item.id, class: ['wat-set-items', 'wat-set-item-type-radio'], name: 'watSet_language', value: item.lang });
 				input.checked = item.checked;
-				input.onchange = () => {
-					plugin.language = item.lang;
-					document.documentElement.dataset['watLanguage'] = item.lang;
-					// 스크린리더가 올바른 언어 엔진으로 UI를 읽도록 문서 lang 갱신 (WCAG 3.1.2)
-					document.documentElement.setAttribute('lang', item.lang);
-					plugin.updateLanguageSetting();
-
-					plugin.loadLocale(item.lang).then(() => {
-						plugin.generateHTMLElements();
-						plugin.setInitialPreferences();
-
-						plugin.setupTabs();
-						plugin.activateInitialTab();
-						plugin.setEventListeners();
-						plugin.extractFocusableElements(document.body);
-						plugin.updateTextLocalization();
-						plugin.savePreferences();
-					});
-				};
 				const label = plugin.createElementWithAttrs('label', { for: item.id, class: 'wat-set-label' });
 				label.textContent = item.label;
 				languageSettingItem.appendChild(input);
@@ -709,6 +692,17 @@ export class PanelBuilder {
 				languageSettingList.appendChild(languageSettingItem);
 			});
 			languageSettingInner.appendChild(languageSettingList);
+
+			const languageApplyList = plugin.createElementWithAttrs('ul', { class: ['watSet-list', 'watSet-list-type-button'] });
+			const languageApplyItem = plugin.createElementWithAttrs('li', { class: 'watSet-item' });
+			const languageApplyButton = plugin.createElementWithAttrs('input', { type: 'button', id: 'watSet_language_apply', class: ['wat-set-items', 'wat-set-item-type-button'], value: plugin.getLocalizedText('panel.settings.manage.options.language.apply') });
+			languageApplyButton.addEventListener('click', () => {
+				const selected = languageSettingList.querySelector('input[name="watSet_language"]:checked');
+				if (selected) plugin.changeLanguage(selected.value);
+			});
+			languageApplyItem.appendChild(languageApplyButton);
+			languageApplyList.appendChild(languageApplyItem);
+			languageSettingInner.appendChild(languageApplyList);
 			languageContainer.appendChild(languageSettingInner);
 
 			container.appendChild(languageContainer);

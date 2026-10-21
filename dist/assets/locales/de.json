@@ -41,7 +41,8 @@
 							"ja": "Japanisch",
 							"zh": "Chinesisch",
 							"de": "Deutsch"
-						}
+						},
+						"apply": "Sprache übernehmen"
 					},
 					"customColors": {
 						"title": "Eigene Farben",
@@ -772,7 +773,8 @@
 			"save": "Erfolgreich gespeichert.",
 			"reset": "Die Einstellungen wurden zurückgesetzt.",
 			"export": "Einstellungen wurden in eine Datei exportiert.",
-			"import": "Einstellungen importiert. Die Seite wird neu geladen."
+			"import": "Einstellungen importiert. Die Seite wird neu geladen.",
+			"languageChanged": "Sprache des Tools geändert: {language}."
 		},
 		"error": {
 			"default": "Ein Fehler ist aufgetreten.",

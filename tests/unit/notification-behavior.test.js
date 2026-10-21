@@ -18,7 +18,8 @@ function makeStub() {
 		getLocalizedText: jest.fn((key) => `[${key}]`),
 		// 래퍼들이 단일 디스패처로 위임하므로 스텁 this에도 연결
 		_notify: WAT.prototype._notify,
-		_announceToLiveRegion: WAT.prototype._announceToLiveRegion
+		_announceToLiveRegion: WAT.prototype._announceToLiveRegion,
+		_applyWidgetLang: WAT.prototype._applyWidgetLang
 	};
 }
 
