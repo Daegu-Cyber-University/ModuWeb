@@ -234,10 +234,11 @@ describe('deriveThemeColors', () => {
 });
 
 describe('describeColor', () => {
-	test('무채색은 명도 이름만', () => {
-		expect(describeColor('#000000')).toEqual({ kind: 'neutral', key: 'black' });
-		expect(describeColor('#ffffff')).toEqual({ kind: 'neutral', key: 'white' });
-		expect(describeColor('#808080')).toEqual({ kind: 'neutral', key: 'gray' });
+	test('무채색은 회색과 명도 단계로 — 견본 이름(검정·진회색·연회색·흰색)과 다른 어휘를 쓴다', () => {
+		expect(describeColor('#000000')).toEqual({ kind: 'neutral', tone: 'veryDark', hue: 'gray' });
+		expect(describeColor('#ffffff')).toEqual({ kind: 'neutral', tone: 'veryLight', hue: 'gray' });
+		expect(describeColor('#808080')).toEqual({ kind: 'neutral', tone: 'base', hue: 'gray' });
+		expect(describeColor('#bebebe')).toEqual({ kind: 'neutral', tone: 'light', hue: 'gray' });
 	});
 
 	test('유채색은 명도 단계와 색조 이름', () => {

@@ -317,7 +317,6 @@ export function deriveThemeColors(bgHex, fgHex) {
 }
 
 // [상한, 키] — 값이 상한 미만인 첫 구간
-const NEUTRAL_STEPS = [[0.12, 'black'], [0.35, 'darkGray'], [0.65, 'gray'], [0.9, 'lightGray'], [Infinity, 'white']];
 const TONE_STEPS = [[0.2, 'veryDark'], [0.38, 'dark'], [0.62, 'base'], [0.8, 'light'], [Infinity, 'veryLight']];
 const HUE_STEPS = [
 	[15, 'red'], [40, 'orange'], [65, 'yellow'], [90, 'yellowGreen'], [150, 'green'], [185, 'teal'],
@@ -327,8 +326,10 @@ const pickStep = (steps, value) => steps.find(([limit]) => value < limit)[1];
 
 /**
  * 스크린리더가 '#2b2100'을 한 글자씩 읽지 않도록 대략적인 색 이름을 고릅니다 (문구는 로케일이 정한다)
+ * 무채색도 '밝은 회색'처럼 명도 단계 + 회색으로 부른다 — 견본 이름(검정·진회색·연회색·흰색)을 쓰면
+ * 견본과 다른 색이 같은 이름으로 불려 같은 색으로 오해된다.
  * @param {string} hex
- * @returns {{kind:'neutral', key:string}|{kind:'chromatic', tone:string, hue:string}|null}
+ * @returns {{kind:'neutral'|'chromatic', tone:string, hue:string}|null} 무채색의 hue는 'gray'
  */
 export function describeColor(hex) {
 	const hsl = hexToHsl(hex);
@@ -336,7 +337,7 @@ export function describeColor(hex) {
 	const { h, s, l } = hsl;
 	// 채도가 낮거나 아주 어둡고 밝은 색은 색조보다 명도로 부르는 편이 정확하다
 	if (s < 0.15 || l < 0.06 || l > 0.96) {
-		return { kind: 'neutral', key: pickStep(NEUTRAL_STEPS, l) };
+		return { kind: 'neutral', tone: pickStep(TONE_STEPS, l), hue: 'gray' };
 	}
 	return { kind: 'chromatic', tone: pickStep(TONE_STEPS, l), hue: pickStep(HUE_STEPS, h) };
 }
