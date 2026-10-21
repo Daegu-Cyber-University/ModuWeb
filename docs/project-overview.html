@@ -13,6 +13,42 @@
 	<meta property="og:image" content="https://daegu-cyber-university.github.io/ModuWeb/docs/assets/screenshots/social-preview.png">
 	<meta name="twitter:card" content="summary_large_image">
 	<style>
+		/* 색·모양 토큰: 데모 랜딩(남색 헤더·회백 배경)과 같은 계열, 강조색은 파랑 하나 */
+		:root {
+			--navy: #1a2340;
+			--navy-text: #c3cbe0;
+			--bg: #f5f6fa;
+			--surface: #ffffff;
+			--surface-2: #f0f2f7;
+			--border: #dce0e8;
+			--text: #1f2533;
+			--text-muted: #586174;
+			--accent: #2557d6;
+			--accent-soft: #e9effc;
+			--code-bg: #161b29;
+			--code-text: #e6e9f0;
+			--radius: 8px;
+			--radius-sm: 4px;
+			--sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+			--mono: ui-monospace, "Cascadia Code", Consolas, "D2Coding", monospace;
+			color-scheme: light;
+		}
+
+		@media (prefers-color-scheme: dark) {
+			:root {
+				--bg: #10141f;
+				--surface: #171c2a;
+				--surface-2: #1d2334;
+				--border: #2c3449;
+				--text: #e4e7ef;
+				--text-muted: #a2aabd;
+				--accent: #86a6f4;
+				--accent-soft: #1f2a48;
+				--code-bg: #0c1018;
+				color-scheme: dark;
+			}
+		}
+
 		* {
 			margin: 0;
 			padding: 0;
@@ -20,358 +56,340 @@
 		}
 
 		body {
-			font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-			line-height: 1.6;
-			color: #333;
-			background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-			min-height: 100vh;
+			font-family: var(--sans);
+			line-height: 1.65;
+			color: var(--text);
+			background: var(--bg);
+			word-break: keep-all;
+			overflow-wrap: break-word;
 		}
 
-		.container {
-			max-width: 1400px;
+		a {
+			color: var(--accent);
+			text-underline-offset: 2px;
+		}
+
+		code {
+			font-family: var(--mono);
+			font-size: 0.9em;
+		}
+
+		:focus-visible {
+			outline: 2px solid var(--accent);
+			outline-offset: 2px;
+		}
+
+		.wrap {
+			max-width: 1120px;
 			margin: 0 auto;
-			padding: 20px;
+			padding: 0 24px;
 		}
 
-		.header {
-			text-align: center;
-			color: white;
-			margin-bottom: 40px;
+		.skip-link {
+			position: absolute;
+			left: 16px;
+			top: -48px;
+			padding: 8px 12px;
+			background: var(--surface);
+			color: var(--text);
+			border: 1px solid var(--border);
+			border-radius: var(--radius-sm);
+			z-index: 20;
 		}
 
-		.header h1 {
-			font-size: 3em;
-			margin-bottom: 10px;
-			text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+		.skip-link:focus {
+			top: 12px;
 		}
 
-		.header .subtitle {
-			font-size: 1.3em;
-			opacity: 0.9;
+		/* 머리말 */
+		.site-header {
+			background: var(--navy);
+			color: #fff;
+			padding: 40px 0 32px;
 		}
 
-		.content {
-			background: white;
-			border-radius: 15px;
-			box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-			overflow: hidden;
+		.site-header h1 {
+			font-size: 2rem;
+			line-height: 1.25;
+			font-weight: 700;
+			letter-spacing: -0.01em;
+		}
+
+		.site-header .subtitle {
+			margin-top: 6px;
+			color: var(--navy-text);
+			font-size: 1.05rem;
+		}
+
+		.doc-links {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 8px 20px;
+			margin-top: 20px;
+		}
+
+		.doc-links a {
+			color: #fff;
+			font-weight: 500;
+		}
+
+		.doc-links a:focus-visible {
+			outline-color: #fff;
+		}
+
+		/* 탭: 스크롤해도 위에 고정 */
+		.tabbar {
+			position: sticky;
+			top: 0;
+			z-index: 10;
+			background: var(--surface);
+			border-bottom: 1px solid var(--border);
 		}
 
 		.nav-tabs {
 			display: flex;
-			background: #f8f9fa;
-			border-bottom: 1px solid #dee2e6;
+			gap: 4px;
+			overflow-x: auto;
+			scrollbar-width: none;
+		}
+
+		.nav-tabs::-webkit-scrollbar {
+			display: none;
 		}
 
 		.nav-tab {
-			flex: 1;
-			padding: 15px 20px;
-			text-align: center;
+			flex: 0 0 auto;
+			padding: 14px 14px 12px;
 			background: transparent;
-			border: none;
-			cursor: pointer;
-			font-size: 16px;
+			border: 0;
+			border-bottom: 2px solid transparent;
+			color: var(--text-muted);
+			font: inherit;
+			font-size: 0.95rem;
 			font-weight: 500;
-			color: #6c757d;
-			transition: all 0.3s ease;
-		}
-
-		.nav-tab.active {
-			background: white;
-			color: #495057;
-			border-bottom: 3px solid #007bff;
+			cursor: pointer;
+			white-space: nowrap;
 		}
 
 		.nav-tab:hover {
-			background: #e9ecef;
+			color: var(--text);
 		}
 
+		.nav-tab[aria-selected="true"] {
+			color: var(--text);
+			font-weight: 600;
+			border-bottom-color: var(--accent);
+		}
+
+		.nav-tab:focus-visible {
+			outline-offset: -4px;
+		}
+
+		/* 탭 패널 */
 		.tab-content {
-			display: none;
-			padding: 30px;
-			animation: fadeIn 0.3s ease-in;
+			padding: 32px 0 56px;
 		}
 
-		.tab-content.active {
-			display: block;
-		}
-
-		@keyframes fadeIn {
-			from { opacity: 0; transform: translateY(10px); }
-			to { opacity: 1; transform: translateY(0); }
-		}
-
-		.section {
-			margin-bottom: 40px;
+		.tab-content:focus-visible {
+			outline: none;
 		}
 
 		.section h2 {
-			color: #2c3e50;
-			border-bottom: 3px solid #3498db;
-			padding-bottom: 10px;
-			margin-bottom: 20px;
-			font-size: 1.8em;
+			font-size: 1.5rem;
+			line-height: 1.3;
+			padding-bottom: 12px;
+			margin-bottom: 8px;
+			border-bottom: 1px solid var(--border);
 		}
 
 		.section h3 {
-			color: #34495e;
-			margin: 25px 0 15px 0;
-			font-size: 1.4em;
+			font-size: 1.15rem;
+			line-height: 1.4;
+			margin: 36px 0 12px;
 		}
 
-		.diagram-container {
-			background: #f8f9fa;
-			border-radius: 10px;
-			padding: 20px;
-			margin: 20px 0;
-			overflow-x: auto;
+		.section h4 {
+			font-size: 1rem;
+			line-height: 1.4;
+		}
+
+		.section > p {
+			max-width: 75ch;
+		}
+
+		/* 공통 패널 */
+		.card,
+		.tech-item,
+		.feature-item,
+		.spec-category,
+		.diagram-container,
+		.architecture-flow,
+		.highlight-box {
+			background: var(--surface);
+			border: 1px solid var(--border);
+			border-radius: var(--radius);
 		}
 
 		.grid {
 			display: grid;
 			grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-			gap: 20px;
-			margin: 20px 0;
+			gap: 16px;
+			margin: 16px 0;
 		}
 
 		.card {
-			background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-			color: white;
-			padding: 25px;
-			border-radius: 10px;
-			box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-			transition: transform 0.3s ease;
-		}
-
-		.card:hover {
-			transform: translateY(-5px);
+			padding: 20px 24px;
 		}
 
 		.card h3 {
-			color: white;
-			margin-bottom: 15px;
-			font-size: 1.3em;
+			margin: 0 0 10px;
+			font-size: 1.05rem;
 		}
 
-		.card ul {
-			list-style: none;
+		.card ul,
+		.feature-item ul {
+			padding-left: 1.2em;
 		}
 
-		.card li {
-			padding: 5px 0;
-			position: relative;
-			padding-left: 20px;
+		.card li,
+		.feature-item li {
+			padding: 2px 0;
 		}
 
-		.card li:before {
-			content: "✓";
-			position: absolute;
-			left: 0;
-			color: #4CAF50;
-			font-weight: bold;
+		.card li::marker,
+		.feature-item li::marker {
+			color: var(--accent);
 		}
 
+		.highlight-box {
+			padding: 20px 24px;
+			margin: 16px 0;
+			background: var(--surface-2);
+		}
+
+		.highlight-box h3 {
+			margin: 0 0 8px;
+		}
+
+		.highlight-box h4 {
+			margin-bottom: 8px;
+			color: var(--text-muted);
+			font-weight: 500;
+		}
+
+		/* 개발 도구·핵심 기술 */
 		.tech-stack {
 			display: grid;
-			grid-template-columns: repeat(5, 1fr);
-			gap: 20px;
-			margin: 20px 0;
-		}
-		
-		@media (max-width: 1200px) {
-			.tech-stack {
-				grid-template-columns: repeat(3, 1fr);
-			}
-		}
-		
-		@media (max-width: 768px) {
-			.tech-stack {
-				grid-template-columns: repeat(2, 1fr);
-			}
-		}
-		
-		@media (max-width: 480px) {
-			.tech-stack {
-				grid-template-columns: 1fr;
-			}
+			grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+			gap: 12px;
+			margin: 12px 0;
 		}
 
 		.tech-item {
-			background: linear-gradient(145deg, #f8f9fa 0%, #e9ecef 100%);
-			padding: 25px 20px;
-			border-radius: 12px;
-			border-left: 5px solid #007bff;
-			box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-			transition: all 0.3s ease;
-			text-align: center;
-		}
-		
-		.tech-item:hover {
-			transform: translateY(-3px);
-			box-shadow: 0 8px 20px rgba(0,0,0,0.15);
-			border-left-color: #0056b3;
-		}
-		
-		.tech-item:nth-child(1) { border-left-color: #dc3545; }
-		.tech-item:nth-child(2) { border-left-color: #28a745; }
-		.tech-item:nth-child(3) { border-left-color: #ffc107; }
-		.tech-item:nth-child(4) { border-left-color: #6f42c1; }
-		.tech-item:nth-child(5) { border-left-color: #fd7e14; }
-
-		.tech-item h4 {
-			color: #495057;
-			margin-bottom: 12px;
-			font-size: 1.1em;
-			font-weight: 600;
+			padding: 16px 18px;
 		}
 
 		.tech-item .version {
-			background: linear-gradient(45deg, #007bff, #0056b3);
-			color: white;
-			padding: 4px 12px;
-			border-radius: 15px;
-			font-size: 0.75em;
-			font-weight: 600;
-			display: inline-block;
-			margin-bottom: 12px;
-			box-shadow: 0 2px 6px rgba(0,123,255,0.3);
-		}
-		
-		.tech-item:nth-child(1) .version { background: linear-gradient(45deg, #dc3545, #c82333); }
-		.tech-item:nth-child(2) .version { background: linear-gradient(45deg, #28a745, #1e7e34); }
-		.tech-item:nth-child(3) .version { background: linear-gradient(45deg, #ffc107, #e0a800); }
-		.tech-item:nth-child(4) .version { background: linear-gradient(45deg, #6f42c1, #59359a); }
-		.tech-item:nth-child(5) .version { background: linear-gradient(45deg, #fd7e14, #e55a00); }
-		
-		.tech-item p {
-			color: #6c757d;
-			font-size: 0.9em;
-			line-height: 1.4;
-			margin: 0;
+			margin: 2px 0 8px;
+			font-family: var(--mono);
+			font-size: 0.82rem;
+			color: var(--accent);
 		}
 
+		.tech-item p {
+			color: var(--text-muted);
+			font-size: 0.9rem;
+			line-height: 1.5;
+		}
+
+		/* 기능 목록 */
 		.feature-list {
 			display: grid;
 			grid-template-columns: repeat(2, 1fr);
-			gap: 20px;
-			margin: 20px 0;
-		}
-		
-		@media (max-width: 768px) {
-			.feature-list {
-				grid-template-columns: 1fr;
-			}
+			gap: 16px;
+			margin: 12px 0;
 		}
 
 		.feature-item {
-			background: #ffffff;
-			padding: 20px;
-			border-radius: 10px;
-			border: 1px solid #e9ecef;
-			box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-			transition: transform 0.3s ease, box-shadow 0.3s ease;
-			height: 100%;
-			display: flex;
-			flex-direction: column;
-		}
-		
-		.feature-item:hover {
-			transform: translateY(-3px);
-			box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+			padding: 18px 22px;
 		}
 
 		.feature-item h4 {
-			color: #495057;
-			margin-bottom: 10px;
-			font-size: 1.1em;
+			margin-bottom: 2px;
 		}
 
 		.feature-item .description {
-			color: #6c757d;
-			font-size: 0.9em;
-			margin-bottom: 15px;
-		}
-
-		.feature-item ul {
-			list-style: none;
-			flex-grow: 1;
+			color: var(--text-muted);
+			font-size: 0.9rem;
+			margin-bottom: 10px;
 		}
 
 		.feature-item li {
-			padding: 3px 0;
-			color: #495057;
-			font-size: 0.9em;
+			font-size: 0.95rem;
 		}
 
-		.feature-item li:before {
-			content: "→";
-			margin-right: 8px;
-			color: #007bff;
-		}
-
+		/* 단계 흐름 */
 		.architecture-flow {
-			background: #f8f9fa;
-			border-radius: 10px;
-			padding: 25px;
-			margin: 20px 0;
+			padding: 8px 20px;
+			margin: 12px 0;
 		}
 
 		.flow-step {
 			display: flex;
-			align-items: center;
-			margin: 15px 0;
-			padding: 15px;
-			background: white;
-			border-radius: 8px;
-			box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+			align-items: flex-start;
+			gap: 14px;
+			padding: 14px 0;
 		}
 
-		.flow-number {
-			background: #007bff;
-			color: white;
-			width: 30px;
-			height: 30px;
+		.flow-step + .flow-step {
+			border-top: 1px solid var(--border);
+		}
+
+		.flow-number,
+		.step-number {
+			flex: 0 0 28px;
+			height: 28px;
 			border-radius: 50%;
 			display: flex;
 			align-items: center;
 			justify-content: center;
-			font-weight: bold;
-			margin-right: 15px;
+			background: var(--accent-soft);
+			color: var(--accent);
+			font-weight: 700;
+			font-size: 0.9rem;
+		}
+
+		.flow-content,
+		.step-description {
+			min-width: 0;
 		}
 
 		.flow-content h4 {
-			color: #495057;
-			margin-bottom: 5px;
+			margin-bottom: 2px;
 		}
 
 		.flow-content p {
-			color: #6c757d;
-			font-size: 0.9em;
+			color: var(--text-muted);
+			font-size: 0.95rem;
 		}
 
+		/* 현황·브라우저 표 */
 		.system-specs {
-			background: #f8f9fa;
-			border-radius: 10px;
-			padding: 20px;
-			margin: 20px 0;
+			margin: 12px 0;
 		}
 
 		.specs-grid {
 			display: grid;
 			grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-			gap: 20px;
+			gap: 16px;
 		}
 
 		.spec-category {
-			background: white;
-			padding: 20px;
-			border-radius: 8px;
-			border-left: 4px solid #28a745;
+			padding: 18px 22px;
 		}
 
 		.spec-category h4 {
-			color: #495057;
-			margin-bottom: 15px;
+			margin-bottom: 8px;
 		}
 
 		.spec-list {
@@ -379,444 +397,326 @@
 		}
 
 		.spec-list li {
-			padding: 5px 0;
-			border-bottom: 1px solid #e9ecef;
 			display: flex;
+			flex-wrap: wrap;
 			justify-content: space-between;
+			gap: 4px 16px;
+			padding: 7px 0;
 		}
 
-		.spec-list li:last-child {
-			border-bottom: none;
+		.spec-list li + li {
+			border-top: 1px solid var(--border);
 		}
 
 		.spec-label {
 			font-weight: 500;
-			color: #495057;
 		}
 
 		.spec-value {
-			color: #6c757d;
+			color: var(--text-muted);
+			text-align: right;
 		}
 
-		.highlight-box {
-			background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-			color: white;
-			padding: 20px;
-			border-radius: 10px;
-			margin: 20px 0;
-		}
-
-		.highlight-box h3 {
-			color: white;
-			margin-bottom: 15px;
-		}
-
+		/* 코드 */
 		.code-block {
-			background: #1a1a1a;
-			color: #f8f8f2;
-			padding: 25px;
-			border-radius: 12px;
-			font-family: 'Fira Code', 'Consolas', 'Monaco', 'Courier New', monospace;
-			font-size: 0.9em;
+			position: relative;
+			margin: 16px 0 0;
+			padding: 36px 20px 20px;
+			background: var(--code-bg);
+			color: var(--code-text);
+			border-radius: var(--radius);
+			font-family: var(--mono);
+			font-size: 0.875rem;
 			line-height: 1.6;
 			overflow-x: auto;
-			margin: 20px 0;
-			border: 1px solid #404040;
-			box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-			position: relative;
 		}
-		
-		.code-block pre {
-			margin: 0;
-			padding: 0;
-			background: transparent;
-			border: none;
-			overflow: visible;
-			white-space: pre;
-		}
-		
-		.code-block code {
-			font-family: inherit;
-			font-size: inherit;
-			background: transparent;
-			color: inherit;
-		}
-		
+
 		.code-block::before {
-			content: "JavaScript";
+			content: attr(data-label);
 			position: absolute;
-			top: 8px;
-			right: 15px;
-			background: #007bff;
-			color: white;
-			padding: 2px 8px;
-			border-radius: 4px;
-			font-size: 0.7em;
-			font-weight: 500;
-			font-family: 'Segoe UI', sans-serif;
+			top: 10px;
+			right: 14px;
+			font-family: var(--sans);
+			font-size: 0.75rem;
+			color: #9aa3b8;
+		}
+
+		.code-block pre {
+			white-space: pre;
+			tab-size: 4;
+		}
+
+		.code-block code {
+			font-size: inherit;
 		}
 
 		.code-block .comment {
-			color: #6a9955;
-			font-style: italic;
+			color: #8fae8b;
 		}
 
 		.code-block .keyword {
-			color: #569cd6;
-			font-weight: 600;
+			color: #9db8ff;
 		}
 
 		.code-block .string {
-			color: #ce9178;
+			color: #e7b48f;
 		}
 
-		/* 아키텍처 다이어그램 스타일 */
-		.architecture-diagram {
-			background: white;
-			border-radius: 10px;
+		/* 다이어그램 공통 */
+		.diagram-container {
 			padding: 20px;
+			margin: 12px 0;
+			overflow-x: auto;
 		}
 
 		.arch-grid {
-			display: flex;
-			flex-direction: column;
-			gap: 20px;
+			display: grid;
+			gap: 12px;
 		}
 
-		.arch-layer {
-			border: 2px solid #e9ecef;
-			border-radius: 10px;
-			padding: 15px;
-			background: #f8f9fa;
+		.arch-layer,
+		.module-layer {
+			padding: 14px 16px;
+			background: var(--surface-2);
+			border-radius: var(--radius);
 		}
 
-		.arch-layer h4 {
-			margin: 0 0 15px 0;
-			color: #495057;
-			text-align: center;
-			font-size: 1.1em;
+		.module-layer + .module-layer {
+			margin-top: 12px;
 		}
 
-		.arch-components {
+		.arch-layer h4,
+		.module-layer h4 {
+			margin-bottom: 10px;
+			font-size: 0.95rem;
+			color: var(--text-muted);
+			font-weight: 600;
+		}
+
+		.arch-components,
+		.module-group {
 			display: flex;
 			flex-wrap: wrap;
-			gap: 10px;
-			justify-content: center;
+			align-items: center;
+			gap: 8px;
 		}
 
-		.component {
-			padding: 8px 16px;
-			border-radius: 6px;
-			font-size: 0.9em;
-			font-weight: 500;
-			text-align: center;
-			min-width: 120px;
-		}
-
-		.component.core {
-			background: #007bff;
-			color: white;
-		}
-
-		.component.module {
-			background: #28a745;
-			color: white;
-		}
-
-		.component.feature {
-			background: #ffc107;
-			color: #333;
+		/* 클래스·이벤트 이름은 코드 식별자이므로 고정폭 칩으로 표시 */
+		.component,
+		.module-item,
+		.relation-item,
+		.participant {
+			padding: 4px 10px;
+			background: var(--surface);
+			border: 1px solid var(--border);
+			border-radius: var(--radius-sm);
+			font-family: var(--mono);
+			font-size: 0.85rem;
+			color: var(--text);
 		}
 
 		.component.event {
-			background: #6f42c1;
-			color: white;
+			border-style: dashed;
 		}
 
-		/* 시퀀스 다이어그램 스타일 */
-		.sequence-diagram {
-			background: white;
-			border-radius: 10px;
-			padding: 20px;
+		.connection,
+		.relation-arrow {
+			color: var(--text-muted);
 		}
 
+		/* 모듈 간 통신 */
 		.sequence-header {
 			display: flex;
-			justify-content: space-between;
-			margin-bottom: 20px;
-			padding-bottom: 10px;
-			border-bottom: 2px solid #e9ecef;
-		}
-
-		.participant {
-			background: #007bff;
-			color: white;
-			padding: 10px;
-			border-radius: 6px;
-			font-size: 0.8em;
-			text-align: center;
-			flex: 1;
-			margin: 0 5px;
-		}
-
-		.sequence-flows {
-			display: flex;
-			flex-direction: column;
-			gap: 15px;
+			flex-wrap: wrap;
+			gap: 8px;
+			padding-bottom: 14px;
+			margin-bottom: 6px;
+			border-bottom: 1px solid var(--border);
 		}
 
 		.sequence-step {
 			display: flex;
-			align-items: center;
-			gap: 15px;
+			align-items: flex-start;
+			gap: 14px;
+			padding: 12px 0;
 		}
 
-		.step-number {
-			background: #007bff;
-			color: white;
-			width: 30px;
-			height: 30px;
-			border-radius: 50%;
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			font-weight: bold;
-			flex-shrink: 0;
+		.sequence-step + .sequence-step {
+			border-top: 1px solid var(--border);
 		}
 
 		.step-description {
-			flex: 1;
-			padding: 10px;
-			background: #f8f9fa;
-			border-radius: 6px;
-			border-left: 4px solid #007bff;
+			color: var(--text-muted);
+			font-size: 0.95rem;
+		}
+
+		.step-description strong {
+			color: var(--text);
 		}
 
 		.sequence-note {
-			text-align: center;
-			background: #e3f2fd;
-			padding: 15px;
-			border-radius: 8px;
-			margin-top: 20px;
-			font-style: italic;
-			color: #1976d2;
+			margin-top: 12px;
+			padding: 12px 16px;
+			background: var(--surface-2);
+			border-radius: var(--radius);
+			color: var(--text-muted);
+			font-size: 0.95rem;
 		}
 
-		/* 모듈 다이어그램 스타일 */
-		.module-diagram {
-			background: white;
-			border-radius: 10px;
-			padding: 20px;
-		}
-
-		.module-layer {
-			margin-bottom: 25px;
-			border: 1px solid #e9ecef;
-			border-radius: 8px;
-			padding: 15px;
-			background: #f8f9fa;
-		}
-
-		.module-layer h4 {
-			margin: 0 0 15px 0;
-			color: #495057;
-			text-align: center;
-		}
-
-		.module-group {
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			flex-wrap: wrap;
-			gap: 10px;
-		}
-
-		.module-item {
-			padding: 8px 16px;
-			border-radius: 6px;
-			font-size: 0.9em;
-			font-weight: 500;
-			text-align: center;
-			min-width: 100px;
-		}
-
-		.module-item.core {
-			background: #007bff;
-			color: white;
-		}
-
-		.module-item.tts {
-			background: #28a745;
-			color: white;
-		}
-
-		.module-item.stt {
-			background: #dc3545;
-			color: white;
-		}
-
-		.module-item.ui {
-			background: #ffc107;
-			color: #333;
-		}
-
-		.module-item.util {
-			background: #6c757d;
-			color: white;
-		}
-
-		.connection {
-			font-size: 1.2em;
-			color: #6c757d;
-			font-weight: bold;
-		}
-
-		/* 클래스 다이어그램 스타일 */
+		/* 클래스 다이어그램 */
 		.class-diagram {
 			display: grid;
-			grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-			gap: 20px;
-			margin-bottom: 20px;
+			grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+			gap: 12px;
 		}
 
 		.class-card {
-			border: 2px solid #e9ecef;
-			border-radius: 8px;
-			background: white;
+			border: 1px solid var(--border);
+			border-radius: var(--radius);
+			background: var(--surface);
 			overflow: hidden;
 		}
 
-		.class-card.main {
-			border-color: #007bff;
-		}
-
 		.class-card h4 {
-			background: #f8f9fa;
-			margin: 0;
-			padding: 12px;
-			text-align: center;
-			color: #495057;
-			font-weight: bold;
-			border-bottom: 1px solid #e9ecef;
+			padding: 10px 14px;
+			background: var(--surface-2);
+			border-bottom: 1px solid var(--border);
+			font-family: var(--mono);
+			font-size: 0.95rem;
 		}
 
 		.class-card.main h4 {
-			background: #007bff;
-			color: white;
+			background: var(--navy);
+			color: #fff;
 		}
 
-		.class-properties, .class-methods {
-			padding: 10px;
+		.class-properties,
+		.class-methods {
+			padding: 10px 14px;
 		}
 
 		.class-properties {
-			border-bottom: 1px solid #e9ecef;
+			border-bottom: 1px solid var(--border);
 		}
 
-		.property, .method {
-			padding: 4px 0;
-			font-family: 'Courier New', monospace;
-			font-size: 0.85em;
-			color: #495057;
+		.property,
+		.method {
+			padding: 2px 0;
+			font-family: var(--mono);
+			font-size: 0.82rem;
+			color: var(--text-muted);
 		}
 
-		.property:before {
-			content: "📝 ";
-		}
-
-		.method:before {
-			content: "⚙️ ";
+		.method {
+			color: var(--text);
 		}
 
 		.class-relationships {
-			display: flex;
-			flex-direction: column;
+			display: grid;
 			gap: 10px;
-			margin-top: 20px;
-			padding: 20px;
-			background: #f8f9fa;
-			border-radius: 8px;
+			margin-top: 16px;
+			padding-top: 16px;
+			border-top: 1px solid var(--border);
 		}
 
 		.relationship {
 			display: flex;
+			flex-wrap: wrap;
 			align-items: center;
-			justify-content: center;
-			gap: 15px;
+			gap: 8px;
 		}
 
-		.relation-item {
-			background: #007bff;
-			color: white;
-			padding: 8px 16px;
-			border-radius: 6px;
-			font-weight: 500;
-		}
-
-		.relation-arrow {
-			font-size: 1.5em;
-			color: #6c757d;
-			font-weight: bold;
+		.site-footer {
+			padding: 24px 0 40px;
+			border-top: 1px solid var(--border);
+			color: var(--text-muted);
+			font-size: 0.85rem;
 		}
 
 		@media (max-width: 768px) {
-			.nav-tabs {
-				flex-direction: column;
+			.wrap {
+				padding: 0 16px;
 			}
-			
-			.header h1 {
-				font-size: 2em;
+
+			.site-header {
+				padding: 28px 0 24px;
 			}
-			
-			.grid {
+
+			.site-header h1 {
+				font-size: 1.6rem;
+			}
+
+			.feature-list {
 				grid-template-columns: 1fr;
 			}
-			
-			.arch-components {
-				flex-direction: column;
-				align-items: center;
+
+			.grid,
+			.specs-grid {
+				grid-template-columns: 1fr;
 			}
-			
-			.sequence-header {
-				flex-direction: column;
-				gap: 10px;
+
+			.card,
+			.feature-item,
+			.spec-category,
+			.highlight-box {
+				padding: 16px;
 			}
-			
-			.participant {
-				margin: 0;
+
+			.diagram-container {
+				padding: 14px;
 			}
-			
-			.module-group {
-				flex-direction: column;
-				align-items: center;
+		}
+
+		/* 인쇄할 때는 모든 탭 내용을 펼친다 */
+		@media print {
+			.tabbar,
+			.skip-link,
+			.doc-links {
+				display: none;
 			}
-			
-			.connection {
-				transform: rotate(90deg);
+
+			.tab-content[hidden] {
+				display: block;
+			}
+
+			.site-header {
+				background: none;
+				color: #000;
 			}
 		}
 	</style>
 </head>
 <body>
-	<div class="container">
-		<div class="header">
-			<h1>ModuWeb - 프로젝트 개요</h1>
-			<div class="subtitle">ModuWeb (WAT: Web Accessibility Tools - 웹 접근성 지원 도구)</div>
+	<a class="skip-link" href="#main">본문 바로가기</a>
+
+	<header class="site-header">
+		<div class="wrap">
+			<h1>ModuWeb 프로젝트 개요</h1>
+			<p class="subtitle">WAT (Web Accessibility Tools): 웹 접근성 지원 도구</p>
+			<nav class="doc-links" aria-label="관련 문서">
+				<a href="../examples/index.html">데모·예제</a>
+				<a href="architecture-diagram.html">아키텍처 다이어그램</a>
+				<a href="https://github.com/Daegu-Cyber-University/ModuWeb">GitHub 저장소</a>
+			</nav>
 		</div>
+	</header>
 
+	<div class="tabbar">
+		<div class="wrap nav-tabs" role="tablist" aria-label="문서 구역">
+			<button type="button" class="nav-tab" role="tab" id="tab-overview" aria-controls="overview" aria-selected="true">프로젝트 개요</button>
+			<button type="button" class="nav-tab" role="tab" id="tab-environment" aria-controls="environment" aria-selected="false">개발환경</button>
+			<button type="button" class="nav-tab" role="tab" id="tab-architecture" aria-controls="architecture" aria-selected="false">시스템 아키텍처</button>
+			<button type="button" class="nav-tab" role="tab" id="tab-features" aria-controls="features" aria-selected="false">주요 기능</button>
+			<button type="button" class="nav-tab" role="tab" id="tab-structure" aria-controls="structure" aria-selected="false">구조도</button>
+		</div>
+	</div>
+
+	<main id="main" class="wrap">
 		<div class="content">
-			<div class="nav-tabs">
-				<button class="nav-tab active" onclick="showTab(event, 'overview')">📋 프로젝트 개요</button>
-				<button class="nav-tab" onclick="showTab(event, 'environment')">🛠️ 개발환경</button>
-				<button class="nav-tab" onclick="showTab(event, 'architecture')">🏗️ 시스템 아키텍처</button>
-				<button class="nav-tab" onclick="showTab(event, 'features')">⚡ 주요기능</button>
-				<button class="nav-tab" onclick="showTab(event, 'structure')">📁 구조도</button>
-			</div>
-
 			<!-- 프로젝트 개요 탭 -->
-			<div id="overview" class="tab-content active">
+			<div id="overview" class="tab-content" role="tabpanel" aria-labelledby="tab-overview" tabindex="0">
 				<div class="section">
-					<h2>📖 프로젝트 소개</h2>
+					<h2>프로젝트 소개</h2>
 					<div class="highlight-box">
 						<h3>프로젝트 명: ModuWeb</h3>
 						<h4>부제: WAT: Web Accessibility Tools</h4>
@@ -840,28 +740,41 @@
 						</div>
 						
 						<div class="card">
-							<h3>🔧 핵심 특징</h3>
+							<h3>핵심 특징</h3>
 							<ul>
-								<li>TTS/STT 음성 인터페이스</li>
-								<li>다양한 접근성 도구</li>
-								<li>반응형 UI 디자인</li>
-								<li>실시간 설정 저장</li>
-								<li>키보드 네비게이션</li>
+								<li>스크립트 한 줄 설치 (CDN·오프라인 단일 파일)</li>
+								<li>TTS 화면 낭독·STT 음성 명령</li>
+								<li>장애 유형별 프로필 7종</li>
+								<li>내 색상: 배경·글자색 선택과 7:1 짝 색 추천</li>
+								<li>키보드 조작과 단축키</li>
+								<li>설정 자동 저장·내보내기/가져오기</li>
 							</ul>
 						</div>
 					</div>
 
-					<h3>📊 프로젝트 현황</h3>
+					<h3>프로젝트 현황</h3>
 					<div class="system-specs">
 						<div class="specs-grid">
 							<div class="spec-category">
-								<h4>📋 버전 정보</h4>
+								<h4>버전 정보</h4>
 								<ul class="spec-list">
-									<li><span class="spec-label">현재 버전</span><span class="spec-value">2.0.1</span></li>
-									<li><span class="spec-label">마지막 업데이트</span><span class="spec-value">2025-08-19</span></li>
-									<li><span class="spec-label">라이선스</span><span class="spec-value">Apache 2.0</span></li>
-									<li><span class="spec-label">개발 팀</span><span class="spec-value">DAEGU CYBER UNIVERSITY</span></li>
-									<li><span class="spec-label">언어 지원</span><span class="spec-value">6개국</span></li>
+									<li><span class="spec-label">현재 버전</span><span class="spec-value">2.3.11</span></li>
+									<li><span class="spec-label">마지막 업데이트</span><span class="spec-value">2026-10-21</span></li>
+									<li><span class="spec-label">라이선스</span><span class="spec-value">Apache-2.0</span></li>
+									<li><span class="spec-label">개발 팀</span><span class="spec-value">대구사이버대학교</span></li>
+									<li><span class="spec-label">언어 지원</span><span class="spec-value">6개 언어 (ko·en-US·en-GB·ja·zh·de)</span></li>
+									<li><span class="spec-label">변경 이력</span><span class="spec-value"><a href="https://github.com/Daegu-Cyber-University/ModuWeb/blob/main/CHANGELOG.md">CHANGELOG.md</a></span></li>
+								</ul>
+							</div>
+
+							<div class="spec-category">
+								<h4>배포 형태</h4>
+								<ul class="spec-list">
+									<li><span class="spec-label">CDN</span><span class="spec-value">jsDelivr <code>@2</code> (2.x 최신 자동 반영)</span></li>
+									<li><span class="spec-label">단일 파일</span><span class="spec-value">webAccTools.standalone.min.js</span></li>
+									<li><span class="spec-label">폴더 배포</span><span class="spec-value">webAccTools.js + assets/</span></li>
+									<li><span class="spec-label">런타임 의존성</span><span class="spec-value">없음 (jQuery 불필요)</span></li>
+									<li><span class="spec-label">배포 zip</span><span class="spec-value"><a href="https://github.com/Daegu-Cyber-University/ModuWeb/releases">GitHub Releases</a></span></li>
 								</ul>
 							</div>
 						</div>
@@ -870,54 +783,60 @@
 			</div>
 
 			<!-- 개발환경 탭 -->
-			<div id="environment" class="tab-content">
+			<div id="environment" class="tab-content" role="tabpanel" aria-labelledby="tab-environment" tabindex="0">
 				<div class="section">
-					<h2>🛠️ 개발환경 및 기술 스택</h2>
+					<h2>개발환경 및 기술 스택</h2>
 					
-					<h3>💻 개발 도구</h3>
+					<h3>개발 도구</h3>
 					<div class="tech-stack">
 						<div class="tech-item">
-							<h4>에디터</h4>
-							<div class="version">IDE</div>
-							<p>Visual Studio Code</p>
-						</div>
-						
-						<div class="tech-item">
 							<h4>버전 관리</h4>
-							<div class="version">Git</div>
-							<p>Git 기반 소스코드 관리</p>
+							<div class="version">Git · GitHub</div>
+							<p>Git 기반 소스 관리, Pull Request로 변경 반영</p>
 						</div>
-						
+
 						<div class="tech-item">
 							<h4>빌드 도구</h4>
-							<div class="version">Webpack</div>
-							<p>모듈 번들링 및 최적화</p>
+							<div class="version">Rollup 4</div>
+							<p>src/ ES 모듈을 IIFE 번들 3종(일반·min·standalone)으로 생성</p>
 						</div>
-						
+
 						<div class="tech-item">
 							<h4>테스팅</h4>
-							<div class="version">Jest</div>
-							<p>단위 테스트 및 통합 테스트</p>
+							<div class="version">Jest 30 · jsdom</div>
+							<p>단위 테스트(tests/unit)와 수동 점검표(tests/manual)</p>
+						</div>
+
+						<div class="tech-item">
+							<h4>코드 검사</h4>
+							<div class="version">ESLint 8</div>
+							<p>JS 규칙 검사와 CSS 셀렉터 누수 검사(lint:css)</p>
+						</div>
+
+						<div class="tech-item">
+							<h4>CI · 배포</h4>
+							<div class="version">GitHub Actions</div>
+							<p>테스트·dist 동기화 검사, Pages 데모 배포, 릴리스</p>
 						</div>
 					</div>
 
-					<h3>🌐 브라우저 지원</h3>
+					<h3>브라우저 지원</h3>
 					<div class="system-specs">
 						<div class="specs-grid">
 							<div class="spec-category">
 								<h4>데스크톱 브라우저</h4>
 								<ul class="spec-list">
 									<li><span class="spec-label">Chrome</span><span class="spec-value">90+</span></li>
-									<li><span class="spec-label">Firefox</span><span class="spec-value">88+</span></li>
-									<li><span class="spec-label">Safari</span><span class="spec-value">14+</span></li>
+									<li><span class="spec-label">Firefox</span><span class="spec-value">88+ (음성 명령 미지원)</span></li>
+									<li><span class="spec-label">Safari</span><span class="spec-value">14.1+</span></li>
 									<li><span class="spec-label">Edge</span><span class="spec-value">90+</span></li>
 								</ul>
 							</div>
-							
+
 							<div class="spec-category">
 								<h4>모바일 브라우저</h4>
 								<ul class="spec-list">
-									<li><span class="spec-label">iOS Safari</span><span class="spec-value">14+</span></li>
+									<li><span class="spec-label">iOS Safari</span><span class="spec-value">14.5+</span></li>
 									<li><span class="spec-label">Android Chrome</span><span class="spec-value">90+</span></li>
 									<li><span class="spec-label">Samsung Internet</span><span class="spec-value">14+</span></li>
 								</ul>
@@ -925,31 +844,31 @@
 						</div>
 					</div>
 
-					<h3>🔧 핵심 기술</h3>
+					<h3>핵심 기술</h3>
 					<div class="tech-stack">
-						
+
 						<div class="tech-item">
 							<h4>Web Speech API</h4>
 							<div class="version">Native</div>
-							<p>TTS/STT 음성 인터페이스</p>
+							<p>speechSynthesis 화면 낭독, SpeechRecognition 음성 명령</p>
 						</div>
-						
+
 						<div class="tech-item">
-							<h4>Dictionary API</h4>
-							<div class="version">API</div>
-							<p>외부 사전 API 활용</p>
+							<h4>사전 중계 서버</h4>
+							<div class="version">JSONP</div>
+							<p>사이트가 운영하는 serverEndpoint로 검색 (API 키는 서버에만)</p>
 						</div>
-						
+
 						<div class="tech-item">
 							<h4>HTML5</h4>
 							<div class="version">Semantic</div>
 							<p>접근성 중심 마크업</p>
 						</div>
-						
+
 						<div class="tech-item">
 							<h4>JavaScript</h4>
-							<div class="version">ES6+</div>
-							<p>모던 JavaScript 문법 활용</p>
+							<div class="version">ES Modules</div>
+							<p>트랜스파일 없이 번들 (정적 클래스 필드·옵셔널 체이닝 사용)</p>
 						</div>
 						
 						<div class="tech-item">
@@ -962,155 +881,158 @@
 			</div>
 
 			<!-- 시스템 아키텍처 탭 -->
-			<div id="architecture" class="tab-content">
+			<div id="architecture" class="tab-content" role="tabpanel" aria-labelledby="tab-architecture" tabindex="0">
 				<div class="section">
-					<h2>🏗️ 시스템 아키텍처</h2>
+					<h2>시스템 아키텍처</h2>
 					
-					<h3>📐 전체 아키텍처 개요</h3>
+					<h3>전체 아키텍처 개요</h3>
 					<div class="diagram-container">
 						<div class="architecture-diagram">
 							<div class="arch-grid">
 								<div class="arch-layer">
-									<h4>🏛️ WAT Core Framework</h4>
+									<h4>핵심 (src/wat · src/core)</h4>
 									<div class="arch-components">
 										<div class="component core">WAT</div>
 										<div class="component core">StateManager</div>
-										<div class="component core">EventHandler</div>
+										<div class="component core">ConfigurationManager</div>
+										<div class="component core">OptionsProcessor</div>
+										<div class="component core">ErrorHandler</div>
 									</div>
 								</div>
-								
+
 								<div class="arch-layer">
-									<h4>🔧 Core Modules</h4>
+									<h4>음성 (src/tts · src/stt)</h4>
 									<div class="arch-components">
 										<div class="component module">TTSManager</div>
-										<div class="component module">STTManager</div>
+										<div class="component module">AutoTTS</div>
 										<div class="component module">FocusTTS</div>
+										<div class="component module">KeyboardTTS</div>
+										<div class="component module">TextExtractor</div>
+										<div class="component module">STTManager</div>
+										<div class="component module">VoiceCommand</div>
 									</div>
 								</div>
-								
+
 								<div class="arch-layer">
-									<h4>⚡ Feature Modules</h4>
+									<h4>기능 모듈 (src/wat)</h4>
 									<div class="arch-components">
-										<div class="component feature">MediaController</div>
-										<div class="component feature">DictionaryManager</div>
-										<div class="component feature">ConfigManager</div>
+										<div class="component feature">PanelBuilder</div>
+										<div class="component feature">SettingsApplier</div>
+										<div class="component feature">CustomColorEditor</div>
+										<div class="component feature">CustomColorTheme</div>
+										<div class="component feature">Dictionary</div>
+										<div class="component feature">PageStructure</div>
+										<div class="component feature">OverlayManager</div>
+										<div class="component feature">IframeStyler</div>
 									</div>
 								</div>
-								
+
 								<div class="arch-layer">
-									<h4>📡 Events System</h4>
+									<h4>document 이벤트 (CustomEvent)</h4>
 									<div class="arch-components">
 										<div class="component event">wat:initialized</div>
-										<div class="component event">wat:tts:*</div>
-										<div class="component event">wat:stt:*</div>
-										<div class="component event">wat:media:*</div>
-										<div class="component event">wat:dict:*</div>
 										<div class="component event">wat:settings:*</div>
+										<div class="component event">wat:stt:stateChanged</div>
+										<div class="component event">wat:media:*</div>
+										<div class="component event">wat:dictionary:*</div>
 									</div>
 								</div>
 							</div>
 						</div>
 					</div>
 
-					<h3>🔄 초기화 플로우</h3>
+					<h3>초기화 플로우</h3>
 					<div class="architecture-flow">
 						<div class="flow-step">
 							<div class="flow-number">1</div>
 							<div class="flow-content">
 								<h4>WAT 인스턴스 생성</h4>
-								<p>사용자 정의 옵션과 함께 WAT 클래스 인스턴스를 생성합니다.</p>
+								<p><code>data-wat-auto</code> 스크립트 속성(자동 초기화) 또는 <code>new WAT(options)</code>로 인스턴스를 만듭니다. 생성자는 config.json 로드를 비동기로 시작합니다.</p>
 							</div>
 						</div>
-						
+
 						<div class="flow-step">
 							<div class="flow-number">2</div>
 							<div class="flow-content">
-								<h4>StateManager 초기화</h4>
-								<p>중앙집중식 상태 관리 시스템을 초기화하고 기본 설정을 로드합니다.</p>
+								<h4>상태·모듈 준비</h4>
+								<p>localStorage에 저장된 설정(watSettings)으로 StateManager를 만들고 TTSManager, STTManager, PanelBuilder, SettingsApplier 등 모듈 인스턴스를 생성합니다.</p>
 							</div>
 						</div>
-						
+
 						<div class="flow-step">
 							<div class="flow-number">3</div>
 							<div class="flow-content">
-								<h4>모듈 초기화</h4>
-								<p>TTS, STT, MediaController 등 핵심 모듈들을 순차적으로 초기화합니다.</p>
+								<h4>설정·언어 로드 (init)</h4>
+								<p><code>init()</code>이 위젯 CSS를 주입하고 config 로드를 기다린 뒤 언어 파일(locales)을 불러옵니다.</p>
 							</div>
 						</div>
-						
+
 						<div class="flow-step">
 							<div class="flow-number">4</div>
 							<div class="flow-content">
-								<h4>이벤트 시스템 활성화</h4>
-								<p>모듈 간 통신을 위한 이벤트 기반 시스템을 활성화합니다.</p>
+								<h4>패널 생성과 설정 적용</h4>
+								<p>패널 HTML을 만들고 저장된 설정을 페이지에 다시 적용한 뒤 탭·이벤트 리스너·iframe 처리를 설정합니다.</p>
 							</div>
 						</div>
-						
+
 						<div class="flow-step">
 							<div class="flow-number">5</div>
 							<div class="flow-content">
 								<h4>초기화 완료</h4>
-								<p>wat:initialized 이벤트를 발송하여 초기화 완료를 알립니다.</p>
+								<p>document에 <code>wat:initialized</code> 이벤트를 발생시킵니다 (detail에 version·language·features).</p>
 							</div>
 						</div>
 					</div>
 
-					<h3>🔗 모듈 간 통신</h3>
+					<h3>모듈 간 통신</h3>
 					<div class="diagram-container">
 						<div class="sequence-diagram">
 							<div class="sequence-header">
-								<div class="participant">User Interface</div>
-								<div class="participant">WAT Framework</div>
-								<div class="participant">StateManager</div>
-								<div class="participant">TTSManager</div>
-								<div class="participant">Event System</div>
+								<div class="participant">패널 UI</div>
+								<div class="participant">WAT</div>
+								<div class="participant">페이지 DOM</div>
+								<div class="participant">SettingsApplier</div>
+								<div class="participant">document 이벤트</div>
 							</div>
 							<div class="sequence-flows">
 								<div class="sequence-step">
 									<div class="step-number">1</div>
 									<div class="step-description">
-										<strong>User Interface → WAT Framework</strong><br>
-										사용자 액션
+										<strong>패널 UI → WAT</strong><br>
+										라디오·버튼 조작이 <code>changeFontSize()</code> 같은 WAT 메서드를 호출
 									</div>
 								</div>
 								<div class="sequence-step">
 									<div class="step-number">2</div>
 									<div class="step-description">
-										<strong>WAT Framework → StateManager</strong><br>
-										상태 업데이트
+										<strong>WAT → 페이지 DOM</strong><br>
+										&lt;html&gt;의 data-* 속성 변경 (CSS가 색상 모드·채도 등을 적용)
 									</div>
 								</div>
 								<div class="sequence-step">
 									<div class="step-number">3</div>
 									<div class="step-description">
-										<strong>StateManager → StateManager</strong><br>
-										상태 변경 처리
+										<strong>WAT → 페이지 DOM</strong><br>
+										StyleBatchProcessor가 글자 크기·줄 간격 등 동적 스타일을 모아 한 번에 적용, iframe에도 동기화
 									</div>
 								</div>
 								<div class="sequence-step">
 									<div class="step-number">4</div>
 									<div class="step-description">
-										<strong>StateManager → TTSManager</strong><br>
-										모듈 호출
+										<strong>WAT → SettingsApplier</strong><br>
+										<code>savePreferences()</code>가 localStorage(watSettings)에 저장하고 StateManager의 settings 갱신
 									</div>
 								</div>
 								<div class="sequence-step">
 									<div class="step-number">5</div>
 									<div class="step-description">
-										<strong>TTSManager → Event System</strong><br>
-										이벤트 발송
-									</div>
-								</div>
-								<div class="sequence-step">
-									<div class="step-number">6</div>
-									<div class="step-description">
-										<strong>Event System → User Interface</strong><br>
-										UI 업데이트
+										<strong>SettingsApplier → document 이벤트</strong><br>
+										<code>wat:settings:saved</code> 발생 (위젯을 넣은 페이지가 구독할 수 있음)
 									</div>
 								</div>
 							</div>
 							<div class="sequence-note">
-							반응형 상태 기반 아키텍처
+							모듈은 WAT 인스턴스(plugin)를 통해 서로를 호출합니다. TTS 시작·읽기 가이드 변경 같은 상태 변화는 StateManager의 <code>subscribe()</code> 옵저버가 패널 버튼에 반영합니다.
 							</div>
 						</div>
 					</div>
@@ -1118,28 +1040,31 @@
 			</div>
 
 			<!-- 주요기능 탭 -->
-			<div id="features" class="tab-content">
+			<div id="features" class="tab-content" role="tabpanel" aria-labelledby="tab-features" tabindex="0">
 				<div class="section">
-					<h2>⚡ 주요 기능</h2>
+					<h2>주요 기능</h2>
 
-					<h3>🎨 접근성 도구</h3>
+					<h3>접근성 도구</h3>
 					<div class="feature-list">
 						<div class="feature-item">
-							<h4>👁️ 시각적 지원</h4>
+							<h4>시각적 지원</h4>
 							<div class="description">시인성 및 가독성 향상</div>
 							<ul>
-								<li>폰트 크기 및 종류 조절</li>
-								<li>텍스트 정렬 및 간격 조정</li>
-								<li>화면 확대/축소</li>
+								<li>폰트 크기(1.2·1.5·2배)와 폰트 종류 변경</li>
+								<li>줄 간격·글자 간격·텍스트 정렬 조정</li>
+								<li>화면 확대 (1.2·1.5·2배)</li>
+								<li>이미지 표시 모드 (숨기기·대체텍스트로 변환)</li>
 							</ul>
 						</div>
 
 						<div class="feature-item">
-							<h4>🎨 색상 인식 지원</h4>
+							<h4>색상 인식 지원</h4>
 							<div class="description">색상 대비 및 인식 개선</div>
 							<ul>
-								<li>웹페이지 색상 모드 변경</li>
-								<li>채도 및 명암 조절</li>
+								<li>색상 모드 5종: 기본·밝게·어둡게·반전·내 색상 (첫 방문 때 OS 다크 모드 반영)</li>
+								<li>내 색상: 배경·글자색 직접 선택, 명도 대비 표시, 7:1 짝 색 추천 (WCAG 1.4.8)</li>
+								<li>채도 변경: 높게·낮게·흑백</li>
+								<li>색약 보정: 적색약·녹색약 보정 필터</li>
 							</ul>
 						</div>
 
@@ -1147,196 +1072,222 @@
 							<h4>집중력 지원</h4>
 							<div class="description">집중력 향상을 위한 시각적 도구</div>
 							<ul>
-								<li>마우스 위치 강조</li>
-								<li>마우스 가이드 표시</li>
-								<li>미디어 콘텐츠 및 애니메이션 제어</li>
+								<li>커서 집중 모드: 마스킹·밑줄·커서 확대</li>
+								<li>미디어 정지·음소거, 애니메이션 정지</li>
+								<li>페이지 자동 스크롤과 위·아래 이동</li>
 							</ul>
 						</div>
 
 						<div class="feature-item">
-							<h4>🔊 청각적 지원</h4>
-							<div class="description">청각 정보 제공 및 제어</div>
+							<h4>키보드 접근성</h4>
+							<div class="description">마우스 없이 모든 기능 사용</div>
 							<ul>
-								<li>음성 피드백 안내</li>
-								<li>오디오 설명 추가</li>
-								<li>미디어 볼륨 조절</li>
+								<li>패널 전체를 키보드로 조작, 포커스 표시</li>
+								<li>단축키: Alt+Shift+T 선택 영역 낭독 · Alt+Shift+D 사전 검색 · Alt+Shift+S 음성 명령</li>
+								<li><code>settings.ui.keyboardShortcuts: false</code>로 단축키 끄기 (WCAG 2.1.4)</li>
 							</ul>
 						</div>
 					</div>
 					
-					<h3>🎵 음성 인터페이스</h3>
+					<h3>음성 인터페이스</h3>
 					<div class="feature-list">
 						<div class="feature-item">
-							<h4>🗣️ TTS (Text-to-Speech)</h4>
+							<h4>TTS (Text-to-Speech)</h4>
 							<div class="description">텍스트를 음성으로 변환하는 기능</div>
 							<ul>
-								<li>자동 TTS - 페이지 요소 순차 읽기</li>
-								<li>포커스 TTS - 포커스된 요소 읽기</li>
-								<li>키보드 TTS - 단축키 기반 읽기</li>
-								<li>다국어 음성 지원</li>
-								<li>읽기 속도 조절</li>
+								<li>자동 읽기 - 페이지 요소를 차례로 읽고 이전·다음 이동 (AutoTTS)</li>
+								<li>포커스 탐지 낭독 - Tab으로 이동한 요소와 클릭·선택한 텍스트 읽기 (FocusTTS)</li>
+								<li>선택 영역 낭독 - 선택한 텍스트를 Alt+Shift+T로 읽기 (KeyboardTTS)</li>
+								<li>환경설정에서 낭독 음성 선택, 읽기 속도는 API로 조절</li>
+								<li>비밀번호 칸은 값을 읽지 않고 라벨만 읽음</li>
 							</ul>
 						</div>
-						
+
 						<div class="feature-item">
-							<h4>🎤 STT (Speech-to-Text)</h4>
-							<div class="description">음성을 텍스트로 변환하는 기능</div>
+							<h4>STT (Speech-to-Text)</h4>
+							<div class="description">음성 명령으로 페이지 조작</div>
 							<ul>
-								<li>음성 인식</li>
-								<li>명령어 인식</li>
-								<li>텍스트 필드 자동 입력</li>
+								<li>"이동·클릭·실행 + 대상 이름"으로 링크·버튼 누르기</li>
+								<li>체크박스·라디오 버튼 켜고 끄기</li>
+								<li>연속 인식, 상태 표시창, 권한 거부·오류 시 자동 종료</li>
+								<li>SpeechRecognition을 지원하는 브라우저에서 동작 (Firefox 미지원)</li>
 							</ul>
 						</div>
 					</div>
 
-					<h3>📚 보조 기능</h3>
+					<h3>보조 기능</h3>
 					<div class="feature-list">
 						<div class="feature-item">
-							<h4>📖 사전 기능</h4>
+							<h4>사전 검색</h4>
 							<div class="description">단어 의미 검색</div>
 							<ul>
-								<li>더블클릭 검색</li>
-								<li>팝업 사전</li>
+								<li>더블클릭 또는 선택 후 Alt+Shift+D로 검색</li>
+								<li>결과를 팝업 레이어로 표시</li>
+								<li>사전 중계 서버(<code>serverEndpoint</code>)가 설정된 사이트에서만 패널에 나타남</li>
 							</ul>
 						</div>
-						
+
 						<div class="feature-item">
-							<h4>⚙️ 설정 관리</h4>
+							<h4>페이지 구조</h4>
+							<div class="description">페이지 개요 확인과 위치 이동</div>
+							<ul>
+								<li>제목·랜드마크·링크 목록</li>
+								<li>목록에서 해당 위치로 이동하거나 링크 실행</li>
+							</ul>
+						</div>
+
+						<div class="feature-item">
+							<h4>설정 관리</h4>
 							<div class="description">개인화 설정</div>
 							<ul>
-								<li>장애 프로필 기능</li>
-								<li>설정 내보내기/가져오기</li>
-								<li>초기화 기능</li>
+								<li>장애 유형별 프로필 7종: 저시력·색맹·난독증·시각 장애·고령자·움직임 민감·신체 장애</li>
+								<li>설정 자동 저장 (localStorage), 설정 내보내기/가져오기 (JSON 파일)</li>
+								<li>전체 초기화</li>
+							</ul>
+						</div>
+
+						<div class="feature-item">
+							<h4>언어·패널</h4>
+							<div class="description">도구 자체의 표시 방식</div>
+							<ul>
+								<li>6개 언어: 한국어·영어(미국·영국)·일본어·중국어·독일어</li>
+								<li>패널 위치(왼쪽·오른쪽), 보기 모드(아이콘·목차)</li>
+								<li>창 축소: 아이콘 띠로 줄이고 상태 유지</li>
 							</ul>
 						</div>
 					</div>
 
-					<h3>🔧 개발자 기능</h3>
+					<h3>개발자 기능</h3>
 					<div class="highlight-box">
 						<h3>API 및 확장성</h3>
-						<div class="code-block">
-<pre><code><span class="comment">// WAT 인스턴스 생성 및 초기화</span>
-<span class="keyword">const</span> wat = <span class="keyword">new</span> WAT({
-    containerSelector: <span class="string">'#content'</span>,
-    language: <span class="string">'ko'</span>
-});
+						<p>가장 간단한 설치는 <code>&lt;script src="…/webAccTools.standalone.min.js" data-wat-auto&gt;&lt;/script&gt;</code> 한 줄입니다. 세밀하게 제어하려면 아래처럼 직접 초기화합니다.</p>
+						<div class="code-block" data-label="JavaScript">
+<pre><code><span class="comment">// 초기화 완료 이벤트는 init() 전에 등록 (document에 발생)</span>
+document.addEventListener(<span class="string">'wat:initialized'</span>, (e) => console.log(<span class="string">'WAT 초기화 완료'</span>, e.detail.version));
 
-<span class="keyword">await</span> wat.init();
+<span class="comment">// WAT 인스턴스 생성 및 초기화</span>
+<span class="keyword">const</span> wat = <span class="keyword">new</span> WAT({ configPath: <span class="string">'./config.json'</span>, language: <span class="string">'ko'</span> });
+window.watPlugin = wat;
+wat.init();
 
-<span class="comment">// 이벤트 리스너 등록</span>
-document.addEventListener(<span class="string">'wat:initialized'</span>, () => {
-    console.log(<span class="string">'WAT 초기화 완료'</span>);
-});
+<span class="comment">// 설정이 저장될 때마다 알림</span>
+document.addEventListener(<span class="string">'wat:settings:saved'</span>, (e) => console.log(e.detail.settings));
 
-<span class="comment">// TTS 기능 사용</span>
+<span class="comment">// 색상 · 프로필</span>
+wat.changeColorTheme(<span class="string">'dark'</span>);
+wat.setCustomColors({ bg: <span class="string">'#fdf6e3'</span>, fg: <span class="string">'#3b2f1e'</span> });
+wat.applyProfileSettings(<span class="string">'lowVision'</span>);
+
+<span class="comment">// TTS · STT</span>
 wat.ttsManager.toggleAutoTTS();
-wat.ttsManager.setSpeechRate(1.2);
-
-<span class="comment">// STT 기능 사용</span>
-wat.sttManager.toggleVoiceCommand();</code></pre>
+wat.setTTSSpeechRate(1.2);
+wat.toggleVoiceCommand();</code></pre>
 						</div>
 					</div>
 				</div>
 			</div>
 
 			<!-- 구조도 탭 -->
-			<div id="structure" class="tab-content">
+			<div id="structure" class="tab-content" role="tabpanel" aria-labelledby="tab-structure" tabindex="0">
 				<div class="section">
-					<h2>📁 프로젝트 구조도</h2>
+					<h2>프로젝트 구조도</h2>
 					
-					<h3>📂 디렉토리 구조</h3>
-					<div class="code-block">
-<pre>WAT-Project/
-├── 📁 docs/                    <span class="comment"># 문서화</span>
-│   ├── 📄 architecture-diagram.html
-│   ├── 📄 project-overview.html
-│   └── 📄 API-GUIDE.md
+					<h3>디렉토리 구조</h3>
+					<div class="code-block" data-label="디렉터리">
+<pre>ModuWeb/
+├── src/                                <span class="comment"># 소스 (ES 모듈), 빌드하면 dist/ 생성</span>
+│   ├── index.js                        <span class="comment"># 진입점: window.WAT 등록, data-wat-auto 자동 초기화</span>
+│   ├── standalone.js                   <span class="comment"># 단일 파일 번들 진입점 (CSS·아이콘·한국어 내장)</span>
+│   ├── wat/                            <span class="comment"># WAT 메인 클래스, 상태 관리, 패널·설정·내 색상 등 기능 모듈</span>
+│   ├── core/                           <span class="comment"># 설정·옵션 처리, 상수·기본값(프로필), 색 대비 계산, 유틸</span>
+│   ├── tts/                            <span class="comment"># 화면 낭독 (자동·포커스·선택 영역, 낭독 텍스트 추출)</span>
+│   └── stt/                            <span class="comment"># 음성 명령</span>
 │
-├── 📁 examples/                <span class="comment"># 예제 파일</span>
-│   ├── 📄 index.html          <span class="comment"># 메인 예제 페이지</span>
-│   ├── 📄 basic.html          <span class="comment"># 기본 사용 예제</span>
-│   ├── 📄 custom-examples.html <span class="comment"># 커스텀 설정 예제</span>
-│   ├── 📄 api-examples.html    <span class="comment"># API 사용 예제</span>
-│   └── 📁 assets/             <span class="comment"># 예제용 리소스</span>
+├── dist/                               <span class="comment"># 배포 파일 (빌드 결과, 저장소에 함께 커밋)</span>
+│   ├── webAccTools.js                  <span class="comment"># 일반 번들</span>
+│   ├── webAccTools.min.js              <span class="comment"># 압축 번들</span>
+│   ├── webAccTools.standalone.min.js   <span class="comment"># 단일 파일 (CDN·오프라인)</span>
+│   ├── watInit.js                      <span class="comment"># 초기화 스크립트 예시</span>
+│   └── assets/
+│       ├── css/                        <span class="comment"># webAccTools.css (스타일 원본)</span>
+│       ├── fonts/                      <span class="comment"># Koddi 온고딕 웹폰트</span>
+│       ├── images/                     <span class="comment"># 아이콘</span>
+│       └── locales/                    <span class="comment"># 언어 파일 (ko·en-US·en-GB·ja·zh·de)</span>
 │
-├── 📁 dist/                   <span class="comment"># 배포용 파일</span>
-│   ├── 📄 webAccTools.js      <span class="comment"># 메인 스크립트</span>
-│   └── � assets/             <span class="comment"># 정적 리소스</span>
-│       ├── 📁 css/            <span class="comment"># 스타일시트</span>
-│       ├── 📁 fonts/          <span class="comment"># 웹폰트</span>
-│       ├── 📁 images/         <span class="comment"># 이미지</span>
-│       ├── 📁 js/             <span class="comment"># 자바스크립트</span>
-│       │   └── 📄 webAccTools.js <span class="comment"># 메인 스크립트</span>
-│       └── 📁 locales/        <span class="comment"># 언어팩</span>
-│
-└── 📄 LICENSE                 <span class="comment"># 라이선스</span></pre>
+├── examples/                           <span class="comment"># 예제 (index·basic·auto-init·standalone·custom-examples·api-examples·color-filter)</span>
+├── tests/                              <span class="comment"># Jest 단위 테스트(unit), 수동 점검표(manual)</span>
+├── docs/                               <span class="comment"># 이 페이지, 아키텍처 다이어그램, 스크린샷</span>
+├── scripts/                            <span class="comment"># config 생성(.env), 배포 zip, CSS 셀렉터 검사</span>
+├── packaging/                          <span class="comment"># 배포 zip에 넣는 설치 안내·예제</span>
+├── rollup.config.js                    <span class="comment"># 빌드 설정</span>
+├── config.example.json                 <span class="comment"># 설정 예시 (config.json은 git 제외)</span>
+└── LICENSE · NOTICE                    <span class="comment"># Apache-2.0</span></pre>
 					</div>
 
-					<h3>🏗️ 모듈 구조</h3>
+					<h3>모듈 구조</h3>
 					<div class="diagram-container">
 						<div class="module-diagram">
 							<div class="module-layer">
-								<h4>🏛️ WAT Framework Core</h4>
+								<h4>WAT Framework Core (src/wat · src/core)</h4>
 								<div class="module-group">
 									<div class="module-item core">WAT.js</div>
 									<div class="connection">→</div>
 									<div class="module-item core">StateManager</div>
-									<div class="connection">→</div>
-									<div class="module-item core">EventHandler</div>
-									<div class="connection">→</div>
-									<div class="module-item core">ConfigManager</div>
+									<div class="module-item core">ConfigurationManager</div>
+									<div class="module-item core">OptionsProcessor</div>
+									<div class="module-item core">ErrorHandler</div>
 								</div>
 							</div>
-							
+
 							<div class="module-layer">
-								<h4>🎵 TTS Modules</h4>
+								<h4>TTS Modules (src/tts)</h4>
 								<div class="module-group">
 									<div class="module-item tts">TTSManager</div>
 									<div class="connection">→</div>
 									<div class="module-item tts">AutoTTS</div>
-									<div class="connection">→</div>
 									<div class="module-item tts">FocusTTS</div>
-									<div class="connection">→</div>
 									<div class="module-item tts">KeyboardTTS</div>
+									<div class="module-item tts">BaseTTS (Focus·Keyboard 공통 부모)</div>
+									<div class="module-item tts">TextExtractor</div>
 								</div>
 							</div>
-							
+
 							<div class="module-layer">
-								<h4>🎤 STT Modules</h4>
+								<h4>STT Modules (src/stt)</h4>
 								<div class="module-group">
 									<div class="module-item stt">STTManager</div>
 									<div class="connection">→</div>
-									<div class="module-item stt">SpeechRecognition</div>
-									<div class="connection">→</div>
-									<div class="module-item stt">CommandProcessor</div>
+									<div class="module-item stt">VoiceCommand (Web Speech API SpeechRecognition)</div>
 								</div>
 							</div>
-							
+
 							<div class="module-layer">
-								<h4>🖥️ UI Components</h4>
+								<h4>UI Components (src/wat · src/core)</h4>
 								<div class="module-group">
-									<div class="module-item ui">UIManager</div>
-									<div class="connection">→</div>
-									<div class="module-item ui">ControlPanel</div>
-									<div class="connection">→</div>
-									<div class="module-item ui">SettingsPanel</div>
-									<div class="connection">→</div>
-									<div class="module-item ui">StatusIndicator</div>
+									<div class="module-item ui">PanelBuilder</div>
+									<div class="module-item ui">CustomColorEditor</div>
+									<div class="module-item ui">PageStructure</div>
+									<div class="module-item ui">OverlayManager</div>
+									<div class="module-item ui">ContainerManager</div>
 								</div>
 							</div>
-							
+
 							<div class="module-layer">
-								<h4>🔧 Utility Modules</h4>
+								<h4>Feature · Utility Modules</h4>
 								<div class="module-group">
-									<div class="module-item util">DictionaryManager</div>
-									<div class="module-item util">MediaController</div>
-									<div class="module-item util">AccessibilityTools</div>
+									<div class="module-item util">SettingsApplier</div>
+									<div class="module-item util">CustomColorTheme</div>
+									<div class="module-item util">Dictionary</div>
+									<div class="module-item util">IframeStyler</div>
+									<div class="module-item util">StyleBatchProcessor</div>
+									<div class="module-item util">colorContrast</div>
+									<div class="module-item util">autoInit</div>
 								</div>
 							</div>
 						</div>
 					</div>
 
-					<h3>📊 클래스 다이어그램</h3>
+					<h3>클래스 다이어그램</h3>
 					<div class="diagram-container">
 						<div class="class-diagram">
 							<div class="class-card main">
@@ -1346,45 +1297,55 @@ wat.sttManager.toggleVoiceCommand();</code></pre>
 									<div class="property">+ state: StateManager</div>
 									<div class="property">+ ttsManager: TTSManager</div>
 									<div class="property">+ sttManager: STTManager</div>
+									<div class="property">+ settingsApplier: SettingsApplier</div>
+									<div class="property">+ panelBuilder: PanelBuilder</div>
 								</div>
 								<div class="class-methods">
 									<div class="method">+ init(): Promise</div>
-									<div class="method">+ destroy(): void</div>
+									<div class="method">+ cleanup(): void</div>
+									<div class="method">+ changeColorTheme(theme): void</div>
+									<div class="method">+ setCustomColors({ bg, fg }): boolean</div>
+									<div class="method">+ applyProfileSettings(profileName)</div>
 								</div>
 							</div>
-							
+
 							<div class="class-card">
 								<h4>StateManager</h4>
 								<div class="class-properties">
 									<div class="property">- _state: Object</div>
 									<div class="property">- _observers: Map</div>
+									<div class="property">- _history: Array</div>
 								</div>
 								<div class="class-methods">
-									<div class="method">+ setState(path, value): void</div>
-									<div class="method">+ getState(path): any</div>
+									<div class="method">+ get(path, defaultValue): any</div>
+									<div class="method">+ set(path, value): void</div>
 									<div class="method">+ subscribe(path, callback): Function</div>
+									<div class="method">+ getState(): Object</div>
 								</div>
 							</div>
-							
+
 							<div class="class-card">
 								<h4>TTSManager</h4>
 								<div class="class-properties">
 									<div class="property">+ autoTTS: AutoTTS</div>
 									<div class="property">+ focusTTS: FocusTTS</div>
 									<div class="property">+ keyboardTTS: KeyboardTTS</div>
+									<div class="property">+ currentState: string</div>
 								</div>
 								<div class="class-methods">
 									<div class="method">+ toggleAutoTTS(): void</div>
 									<div class="method">+ toggleFocusTTS(): void</div>
+									<div class="method">+ executeKeyboardTTS(): void</div>
 									<div class="method">+ setSpeechRate(rate): void</div>
+									<div class="method">+ setVoice(voiceURI): void</div>
 								</div>
 							</div>
-							
+
 							<div class="class-card">
 								<h4>STTManager</h4>
 								<div class="class-properties">
-									<div class="property">+ recognition: SpeechRecognition</div>
-									<div class="property">+ isListening: boolean</div>
+									<div class="property">+ voiceCommand: VoiceCommand</div>
+									<div class="property">+ currentState: string</div>
 								</div>
 								<div class="class-methods">
 									<div class="method">+ toggleVoiceCommand(): void</div>
@@ -1393,7 +1354,7 @@ wat.sttManager.toggleVoiceCommand();</code></pre>
 								</div>
 							</div>
 						</div>
-						
+
 						<div class="class-relationships">
 							<div class="relationship">
 								<div class="relation-item">WAT</div>
@@ -1404,83 +1365,122 @@ wat.sttManager.toggleVoiceCommand();</code></pre>
 								<div class="relation-item">WAT</div>
 								<div class="relation-arrow">→</div>
 								<div class="relation-item">TTSManager</div>
+								<div class="relation-arrow">→</div>
+								<div class="relation-item">AutoTTS · FocusTTS · KeyboardTTS</div>
 							</div>
 							<div class="relationship">
 								<div class="relation-item">WAT</div>
 								<div class="relation-arrow">→</div>
 								<div class="relation-item">STTManager</div>
+								<div class="relation-arrow">→</div>
+								<div class="relation-item">VoiceCommand</div>
+							</div>
+							<div class="relationship">
+								<div class="relation-item">WAT</div>
+								<div class="relation-arrow">→</div>
+								<div class="relation-item">SettingsApplier · PanelBuilder · Dictionary 등</div>
 							</div>
 						</div>
 					</div>
 
-					<h3>🔄 데이터 플로우</h3>
+					<h3>데이터 플로우</h3>
 					<div class="architecture-flow">
 						<div class="flow-step">
 							<div class="flow-number">1</div>
 							<div class="flow-content">
 								<h4>사용자 입력</h4>
-								<p>UI 상호작용, 키보드 이벤트, 음성 명령 등</p>
+								<p>패널 조작, 단축키(Alt+Shift+T·D·S), 포커스 이동, 더블클릭, 음성 명령 등</p>
 							</div>
 						</div>
-						
+
 						<div class="flow-step">
 							<div class="flow-number">2</div>
 							<div class="flow-content">
 								<h4>이벤트 처리</h4>
-								<p>EventHandler가 입력을 받아 적절한 모듈로 라우팅</p>
+								<p>WAT가 등록한 클릭·키보드·포커스 리스너가 해당 WAT 메서드나 TTSManager·STTManager를 호출</p>
 							</div>
 						</div>
-						
+
 						<div class="flow-step">
 							<div class="flow-number">3</div>
 							<div class="flow-content">
-								<h4>상태 업데이트</h4>
-								<p>StateManager가 애플리케이션 상태를 중앙집중식으로 관리</p>
+								<h4>페이지에 적용</h4>
+								<p>&lt;html&gt; data-* 속성과 StyleBatchProcessor의 일괄 스타일로 페이지와 iframe에 반영</p>
 							</div>
 						</div>
-						
+
 						<div class="flow-step">
 							<div class="flow-number">4</div>
 							<div class="flow-content">
-								<h4>모듈 실행</h4>
-								<p>해당 기능 모듈이 작업을 수행하고 결과를 반환</p>
+								<h4>상태 갱신과 저장</h4>
+								<p>StateManager 상태를 바꾸고, 설정은 localStorage(watSettings·watCustomColors)에 저장해 다음 방문 때 복원</p>
 							</div>
 						</div>
-						
+
 						<div class="flow-step">
 							<div class="flow-number">5</div>
 							<div class="flow-content">
-								<h4>UI 업데이트</h4>
-								<p>상태 변경에 따라 UI가 자동으로 업데이트됨</p>
+								<h4>UI 업데이트와 알림</h4>
+								<p>옵저버가 패널 상태를 갱신하고, document에 wat:* 이벤트를 발생시킴</p>
 							</div>
 						</div>
 					</div>
 				</div>
 			</div>
 		</div>
-	</div>
+	</main>
+
+	<footer class="site-footer">
+		<div class="wrap">Copyright 2025 DAEGU CYBER UNIVERSITY. Apache License 2.0</div>
+	</footer>
 
 	<script>
-		// 탭 전환 기능
-		function showTab(evt, tabName) {
-			// 모든 탭 콘텐츠 숨기기
-			const tabContents = document.getElementsByClassName('tab-content');
-			for (let i = 0; i < tabContents.length; i++) {
-				tabContents[i].classList.remove('active');
+		// 탭 전환 (WAI-ARIA 탭 패턴): 클릭·좌우 화살표·Home·End, 선택한 탭은 주소 #해시로 남긴다
+		// 스크립트가 없으면 모든 탭 내용이 그대로 펼쳐져 보인다
+		(function () {
+			const tabs = Array.from(document.querySelectorAll('[role="tab"]'));
+			const panels = tabs.map((tab) => document.getElementById(tab.getAttribute('aria-controls')));
+
+			function select(tab, { focus = false, updateHash = true } = {}) {
+				tabs.forEach((t, i) => {
+					const selected = t === tab;
+					t.setAttribute('aria-selected', String(selected));
+					t.tabIndex = selected ? 0 : -1;
+					panels[i].hidden = !selected;
+				});
+				if (focus) {
+					tab.focus();
+					tab.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+				}
+				if (updateHash) history.replaceState(null, '', '#' + tab.getAttribute('aria-controls'));
 			}
 
-			// 모든 탭 버튼 비활성화
-			const tabButtons = document.getElementsByClassName('nav-tab');
-			for (let i = 0; i < tabButtons.length; i++) {
-				tabButtons[i].classList.remove('active');
+			function tabFromHash() {
+				return tabs.find((tab) => '#' + tab.getAttribute('aria-controls') === location.hash);
 			}
 
-			// 선택된 탭 콘텐츠 표시
-			document.getElementById(tabName).classList.add('active');
-			
-			// 선택된 탭 버튼 활성화
-			evt.currentTarget.classList.add('active');
-		}
+			tabs.forEach((tab, i) => {
+				tab.addEventListener('click', () => select(tab));
+				tab.addEventListener('keydown', (e) => {
+					let next = null;
+					if (e.key === 'ArrowRight') next = tabs[(i + 1) % tabs.length];
+					else if (e.key === 'ArrowLeft') next = tabs[(i - 1 + tabs.length) % tabs.length];
+					else if (e.key === 'Home') next = tabs[0];
+					else if (e.key === 'End') next = tabs[tabs.length - 1];
+					if (next) {
+						e.preventDefault();
+						select(next, { focus: true });
+					}
+				});
+			});
+
+			window.addEventListener('hashchange', () => {
+				const tab = tabFromHash();
+				if (tab) select(tab, { updateHash: false });
+			});
+
+			select(tabFromHash() || tabs[0], { updateHash: false });
+		})();
 	</script>
 </body>
 </html>
