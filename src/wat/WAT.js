@@ -1625,9 +1625,12 @@ export class WAT {
 		 * @private
 		 */
 		_handleKeyDown(e) {
-			// Escape: 열려 있는 메인 패널을 닫고 포커스를 열기 버튼으로 복원
-			// (사전·페이지구조 모달은 자체 keydown 핸들러가 먼저 처리하므로 여기 도달하지 않음)
-			if (e.key === 'Escape' && this.container && !this.container.classList.contains('hide')) {
+			// Escape: 열려 있는 메인 패널을 닫고 포커스를 열기 버튼으로 복원.
+			// 위젯 안에서 누른 Esc만 처리한다 — 호스트 입력칸의 Esc까지 가로채면 안 된다.
+			// 패널 안 컨트롤이 이미 처리한 Esc(defaultPrevented)도 건너뛴다
+			// (사전·페이지구조 모달은 body에 붙고 자체 핸들러가 전파를 막으므로 여기 도달하지 않음)
+			if (e.key === 'Escape' && this.container && !this.container.classList.contains('hide') &&
+				!e.defaultPrevented && e.target instanceof Node && this.container.contains(e.target)) {
 				const closeBtn = document.getElementById('wat_btnClose');
 				if (closeBtn) {
 					e.preventDefault();
