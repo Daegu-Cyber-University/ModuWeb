@@ -186,12 +186,9 @@ export class PageStructure {
 				}
 				li.textContent = text;
 				li.classList.add('pgStruct_item', 'heading', heading.tagName.toLowerCase());
-				li.appendChild(this._createMarkerButton());
+				li.appendChild(this._createMarkerButton(text));
 
-				li.addEventListener('click', () => {
-					this.closePageStructure();
-					heading.scrollIntoView({ behavior: 'smooth' });
-				});
+				li.addEventListener('click', () => this._moveTo(heading));
 				panelList.appendChild(li);
 			});
 		} else if (tab.id === 'pgStruct_landmark') {
@@ -203,12 +200,9 @@ export class PageStructure {
 				// 역할명은 로케일의 자연어 표기 사용 (미정의 역할은 토큰 폴백), 이름이 있으면 병기
 				const roleLabel = this.plugin.getLocalizedText(`panel.personal.options.pageStructure.landmarks.${role}`) || role;
 				li.textContent = label ? `${roleLabel} — ${label}` : roleLabel;
-				li.appendChild(this._createMarkerButton());
+				li.appendChild(this._createMarkerButton(li.textContent));
 
-				li.addEventListener('click', () => {
-					this.closePageStructure();
-					element.scrollIntoView({ behavior: 'smooth' });
-				});
+				li.addEventListener('click', () => this._moveTo(element));
 				panelList.appendChild(li);
 			});
 		} else if (tab.id === 'pgStruct_link') {
@@ -244,11 +238,8 @@ export class PageStructure {
 				tag_a.appendChild(img_link);
 				li.appendChild(tag_a);
 
-				const btn_marker = this._createMarkerButton();
-				btn_marker.addEventListener('click', () => {
-					this.closePageStructure();
-					link.scrollIntoView({ behavior: 'smooth' });
-				});
+				const btn_marker = this._createMarkerButton(linkLabel);
+				btn_marker.addEventListener('click', () => this._moveTo(link));
 				li.appendChild(btn_marker);
 				panelList.appendChild(li);
 			});
@@ -355,14 +346,36 @@ export class PageStructure {
 	}
 
 	/**
+	 * 대화상자를 닫고 고른 항목 위치로 이동하며 포커스도 옮깁니다
+	 * @param {Element} target - 이동할 제목·랜드마크·링크
+	 * @returns {void}
+	 * @private
+	 * @description 대화상자만 닫으면 포커스가 body로 사라진다 (WCAG 2.4.3). 제목·랜드마크처럼 포커스를
+	 *              받을 수 없는 요소는 임시 tabindex=-1을 주고, 포커스가 떠나면 지워 페이지 탭 순서를 바꾸지 않는다
+	 */
+	_moveTo(target) {
+		this.closePageStructure();
+		const focusable = target.matches('a[href], area[href], button, input, select, textarea, [tabindex], [contenteditable="true"]');
+		if (!focusable) {
+			target.setAttribute('tabindex', '-1');
+			target.addEventListener('blur', () => target.removeAttribute('tabindex'), { once: true });
+		}
+		target.focus({ preventScroll: true });
+		target.scrollIntoView({ behavior: 'smooth' });
+	}
+
+	/**
 	 * 항목 위치로 이동하는 마커 버튼(위치 표시 아이콘)을 생성합니다
+	 * @param {string} [itemText] - 이동할 항목의 텍스트 — 버튼 이름에 넣어 버튼마다 이름이 달라지게 한다 (WCAG 2.4.6)
 	 * @returns {HTMLButtonElement}
 	 * @private
 	 */
-	_createMarkerButton() {
+	_createMarkerButton(itemText) {
 		const btn_marker = document.createElement('button');
 		btn_marker.classList.add('btn_marker');
-		const markerLabel = this.plugin.getLocalizedText('panel.personal.options.pageStructure.options.marker');
+		const markerText = this.plugin.getLocalizedText('panel.personal.options.pageStructure.options.marker');
+		const trimmedItemText = (itemText || '').trim();
+		const markerLabel = trimmedItemText ? `${trimmedItemText} ${markerText}` : markerText;
 		const img = document.createElement('img');
 		img.classList.add('img_icon', 'marker');
 		img.src = this.plugin._assetUrl('assets/images/icon_pgStructure_marker.svg');
