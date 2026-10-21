@@ -76,6 +76,7 @@
 						"hex": "{slot} 색상 코드",
 						"hexHint": "예: #1a2b3c",
 						"hexError": "#과 16진수 6자리(또는 3자리)로 입력해 주세요.",
+						"hexErrorAnnounce": "{slot} 색상 코드가 올바르지 않습니다. {error}",
 						"suggest": {
 							"title": "{slot} 추천",
 							"detail": "{name}, 대비 {ratio} 대 1",

@@ -20,6 +20,7 @@ function pressKey(target, key, options = {}) {
 function makePlugin() {
 	const plugin = {
 		trapFocus: WAT.prototype.trapFocus,
+		_applyWidgetLang: WAT.prototype._applyWidgetLang,
 		getConfigValue: jest.fn((path, fallback) => fallback),
 		getLocalizedText: jest.fn((key) => `[${key}]`),
 		selector: '#wat',

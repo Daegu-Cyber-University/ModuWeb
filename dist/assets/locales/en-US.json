@@ -76,6 +76,7 @@
 						"hex": "{slot}: color code",
 						"hexHint": "e.g. #1a2b3c",
 						"hexError": "Enter # followed by 6 (or 3) hexadecimal digits.",
+						"hexErrorAnnounce": "{slot}: invalid color code. {error}",
 						"suggest": {
 							"title": "{slot} suggestion",
 							"detail": "{name}, contrast {ratio} to 1",

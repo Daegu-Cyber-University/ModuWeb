@@ -284,6 +284,7 @@ export class Dictionary {
 			pronunciationElement.className = 'wat-diction-pronunciation';
 			const pronunciationLabel = document.createElement('strong');
 			pronunciationLabel.textContent = `${this.plugin.getLocalizedText('dictionary.pronunciation')}:`;
+			this.plugin._applyWidgetLang(pronunciationLabel);
 			pronunciationElement.appendChild(pronunciationLabel);
 			pronunciationElement.appendChild(document.createTextNode(` ${item.pronunciation}`));
 			layer.appendChild(pronunciationElement);
@@ -303,6 +304,9 @@ export class Dictionary {
 
 		const closeButton = document.createElement('button');
 		closeButton.textContent = this.plugin.getLocalizedText('tags.button.text.close');
+		// 대화상자는 사전 결과가 대부분이라 페이지 언어 그대로 두고, 위젯 문구(닫기·발음 라벨)에만 위젯 언어를 단다.
+		// 열 때마다 지정해 위젯 언어를 바꾼 뒤에도 따라간다 (WCAG 3.1.2)
+		this.plugin._applyWidgetLang(closeButton);
 		closeButton.addEventListener('click', () => {
 			// 레이어·오버레이 제거 + 스크롤 잠금 정리(교차 모달 안전) + 포커스 복원 — OverlayManager로 통합
 			this.plugin.overlayManager.teardown(layer, overlay);

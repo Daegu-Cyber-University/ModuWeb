@@ -76,6 +76,7 @@
 						"hex": "{slot}のカラーコード",
 						"hexHint": "例: #1a2b3c",
 						"hexError": "#に続けて16進数6桁(または3桁)で入力してください。",
+						"hexErrorAnnounce": "{slot}のカラーコードが正しくありません。{error}",
 						"suggest": {
 							"title": "{slot}の提案",
 							"detail": "{name}、コントラスト比 {ratio} 対 1",

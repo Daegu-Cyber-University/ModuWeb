@@ -16,7 +16,8 @@ function makePageStructure() {
 	const plugin = {
 		selector: '#watContainer',
 		getLocalizedText: jest.fn((key) => (key === 'panel.personal.options.pageStructure.options.marker' ? MARKER : `[${key}]`)),
-		_assetUrl: jest.fn((path) => `/${path}`)
+		_assetUrl: jest.fn((path) => `/${path}`),
+		_applyWidgetLang: jest.fn()
 	};
 	plugin.overlayManager = new OverlayManager(plugin);
 	plugin.trapFocus = (layer, previous, overlay) => plugin.overlayManager.trap(layer, previous, overlay);

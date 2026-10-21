@@ -76,6 +76,7 @@
 						"hex": "{slot}: Farbcode",
 						"hexHint": "z. B. #1a2b3c",
 						"hexError": "Bitte # und 6 (oder 3) Hexadezimalziffern eingeben.",
+						"hexErrorAnnounce": "{slot}: ungültiger Farbcode. {error}",
 						"suggest": {
 							"title": "Vorschlag für {slot}",
 							"detail": "{name}, Kontrast {ratio} zu 1",
