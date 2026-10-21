@@ -660,15 +660,32 @@ wat.setSTTLanguage(language);
 
 ### 이벤트
 
-#### `wat:initialized`
-도구 초기화가 완료되면 `document`에 발생하는 유일한 커스텀 이벤트입니다.
+위젯은 아래 커스텀 이벤트를 `document`에 발생시킵니다. 모두 버블링하고(`bubbles: true`) 취소할 수 없습니다. `event.detail`에는 표의 값과 함께 `timestamp`(발생 시각, `Date.now()`)와 `plugin`(WAT 인스턴스)이 들어 있습니다.
+
+| 이벤트 | 발생 시점 | `detail`의 주요 값 |
+|---|---|---|
+| `wat:initialized` | 초기화를 마쳤을 때 | `version`, `language`, `features`(`tts`·`stt`·`dictionary`·`focusDetection`), `state` |
+| `wat:settings:saved` | 설정을 localStorage에 저장할 때 (패널에서 항목을 바꿀 때 등) | `settings` |
+| `wat:settings:loaded` | 초기화 중 저장된 설정을 불러왔을 때 | `settings`, `wasEmpty`(저장된 설정이 없었으면 `true`) |
+| `wat:stt:stateChanged` | 음성 명령을 켜거나 끌 때 (마이크 권한 거부 등으로 스스로 멈출 때 포함) | `isActive`, `state`(`'voiceCommand'`·`'inactive'`), `previousState`, `mode` |
+| `wat:media:stopStateChanged` | 미디어 정지를 켜거나 끌 때 (`toggleMediaStop()`) | `isStopped`, `state`(`'stopped'`·`'allowed'`), `affectedElementsCount` |
+| `wat:media:muteStateChanged` | 미디어 음소거를 켜거나 끌 때 (`toggleMediaMute()`) | `isMuted`, `state`(`'muted'`·`'unmuted'`), `affectedElementsCount` |
+| `wat:dictionary:searchStarted` | 사전 검색을 시작할 때 | `searchTerm` |
+| `wat:dictionary:searchSuccess` | 검색 결과를 받았을 때 | `searchTerm`(조사를 뗀 검색어), `originalTerm`, `result` |
+| `wat:dictionary:searchNotFound` | 검색 결과가 없을 때 | `searchTerm`, `originalTerm` |
+| `wat:dictionary:searchError` | 사전 서버 요청이 실패했을 때 | `searchTerm`, `originalTerm`, `error` |
+
 ```javascript
 document.addEventListener('wat:initialized', (event) => {
-    console.log('WAT 초기화 완료', event.detail);
+	console.log('WAT 초기화 완료', event.detail.version);
+});
+
+document.addEventListener('wat:settings:saved', (event) => {
+	console.log('설정 저장', event.detail.settings);
 });
 ```
 
-> **참고**: 이전 문서에 있던 `wat:settingsChanged`, `wat:fontSizeChanged`, `wat:stt:stateChanged` 이벤트는 현재 코드에서 발생시키지 않습니다. 설정/상태 변화는 `StateManager`의 옵저버로 내부 처리됩니다.
+> **참고**: 사전 서버 주소(`api.dictionary.serverEndpoint`)가 없거나 https 주소가 아니면 `wat:dictionary:searchStarted`만 발생하고 결과 이벤트는 발생하지 않습니다. TTS 상태 이벤트(`wat:tts:*`)와 이전 문서에 있던 `wat:settingsChanged`, `wat:fontSizeChanged`는 발생하지 않습니다. 개별 설정이 바뀐 것을 알고 싶으면 `wat:settings:saved`를 구독하세요.
 
 ## 예제
 
@@ -681,19 +698,22 @@ document.addEventListener('wat:initialized', (event) => {
 
 ## 브라우저 지원
 
-| 브라우저 | 최소 버전 |
-|---------|----------|
-| Chrome | 60+ |
-| Firefox | 55+ |
-| Safari | 12+ |
-| Edge | 79+ |
-| Opera | 47+ |
+| 브라우저 | 최소 버전 | 비고 |
+|---------|----------|------|
+| Chrome | 90+ | |
+| Edge | 90+ | |
+| Firefox | 88+ | 음성 명령(STT) 미지원 — 음성 인식 API(`SpeechRecognition`)가 없음 |
+| Safari | 14.1+ | |
+
+Opera·Whale 등 Chromium 기반 브라우저는 Chromium 90 이상을 쓰는 버전이면 됩니다.
 
 ## 모바일 지원
 
-- iOS Safari 12+
-- Android Chrome 60+
-- Samsung Internet 8.0+
+- iOS Safari 14.5+
+- Android Chrome 90+
+- Samsung Internet 14+
+
+배포 파일(`dist/*.js`)은 트랜스파일하지 않아 정적 클래스 필드(`static X = …`)와 옵셔널 체이닝(`?.`)을 그대로 쓰고, 색상 모드 CSS는 `:is()` 선택자를 씁니다. 위 버전보다 오래된 브라우저에서는 스크립트가 아예 실행되지 않거나 색상 모드가 적용되지 않습니다. 화면 낭독(TTS)과 음성 명령(STT)은 브라우저의 Web Speech API를 쓰므로, 쓸 수 있는 음성과 인식 언어는 브라우저와 운영체제에 따라 다릅니다.
 
 ## 접근성 기준
 

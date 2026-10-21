@@ -18,7 +18,7 @@
 - **One-line install** — a single `<script>` tag with `data-wat-auto`. No build step, no framework required.
 - **Works offline / in air-gapped networks** — `webAccTools.standalone.min.js` inlines CSS, icons and Korean locale data into **one file**. No external network needed.
 - **TTS & STT without API keys** — screen reading and voice commands run on the browser's Web Speech API. Nothing to sign up for, nothing to pay.
-- **Built to WCAG 2.1 AA · KWCAG 2.1** — designed around both the international standard and the Korean government accessibility standard, making it a fit for Korean public-sector sites. The panel UI itself is audited against WCAG 2.2 AA (target size, contrast, focus management), and issues found are fixed and logged in the [CHANGELOG](CHANGELOG.md).
+- **Aims for WCAG 2.1 AA · KWCAG 2.1** — designed around both the international standard and the Korean government accessibility standard, making it a fit for Korean public-sector sites. The panel UI itself is audited against WCAG 2.2 AA (target size, contrast, focus management), and issues found are fixed and logged in the [CHANGELOG](CHANGELOG.md).
 - **6 UI languages** — Korean, English (US/GB), Japanese, Chinese, German.
 - **7 accessibility profiles** — one-click presets for low vision, color blindness, dyslexia, visual impairment, seniors, motion sensitivity and physical disability.
 - **Custom colors** — visitors pick their own background and text colors; the panel shows the contrast ratio and suggests a 7:1 counterpart color (WCAG 1.4.8).
@@ -114,9 +114,19 @@ For IIS add the same header under `system.webServer/httpProtocol/customHeaders` 
 | Keyboard | Full keyboard navigation, focus indicators, shortcuts |
 | Profiles | 7 one-click presets per disability type, settings persistence, export/import |
 
+## Browser support
+
+| Desktop | Mobile |
+|---|---|
+| Chrome 90+, Edge 90+, Firefox 88+, Safari 14.1+ | iOS Safari 14.5+, Android Chrome 90+, Samsung Internet 14+ |
+
+The files in `dist/` are not transpiled: they use static class fields and optional chaining as written, and the color modes rely on the CSS `:is()` selector, so older browsers either don't run the script or don't apply the color modes. Voice commands (STT) don't work in Firefox, which has no `SpeechRecognition`. TTS and STT use the browser's Web Speech API, so the available voices and recognition languages depend on the browser and OS.
+
 ## Documentation
 
 Full documentation (configuration options, API reference, developer guide) currently lives in the Korean [README.md](README.md) and [ARCHITECTURE.md](ARCHITECTURE.md). The library UI itself supports 6 languages. Contributions translating the docs are very welcome — see [CONTRIBUTING.md](CONTRIBUTING.md).
+
+The widget dispatches custom events on `document` that your page can listen to: `wat:initialized`, `wat:settings:saved` / `wat:settings:loaded`, `wat:stt:stateChanged`, `wat:media:stopStateChanged` / `wat:media:muteStateChanged`, and `wat:dictionary:searchStarted` / `wat:dictionary:searchSuccess` / `wat:dictionary:searchNotFound` / `wat:dictionary:searchError`. Each one bubbles and carries `timestamp` and `plugin` (the WAT instance) in `event.detail`; the table under "API 문서 > 이벤트" in [README.md](README.md#이벤트) lists the other fields.
 
 ## License
 

@@ -58,7 +58,7 @@ npm install
 
 **소스 코드는 `dist/`가 아니라 `src/` 폴더에서 편집합니다.** `dist/`의 파일은 Rollup 빌드 산출물이므로 직접 수정하지 마세요 (다음 빌드 시 덮어써집니다).
 
-`src/`는 19개 모듈로 구성됩니다 (`wat/` 2, `core/` 9, `tts/` 5, `stt/` 2, `index.js`). 자세한 구조는 [`ARCHITECTURE.md`](./ARCHITECTURE.md)의 "소스 모듈 레이아웃"을 참고하세요.
+`src/`는 34개 파일로 구성됩니다 (`wat/` 10, `core/` 14, `tts/` 6, `stt/` 2, 진입점 `index.js`·`standalone.js`). 자세한 구조는 [`ARCHITECTURE.md`](./ARCHITECTURE.md)의 "소스 모듈 레이아웃"을 참고하세요.
 
 ```bash
 # 프로덕션 번들 생성 (dist/webAccTools.js 등)
