@@ -82,6 +82,31 @@ describe('parseAutoInitOptions', () => {
 });
 
 // ──────────────────────────────────────────────────
+// 컨테이너 셀렉터 → 실제 삽입 위치 (README·autoInit이 안내하는 data-wat-container)
+// ──────────────────────────────────────────────────
+describe('컨테이너 셀렉터가 실제 삽입 위치를 바꾼다', () => {
+	beforeEach(() => {
+		document.body.innerHTML = '<header id="top"></header><div id="x"><p>본문</p></div>';
+	});
+
+	test('data-wat-container="#x"면 위젯 컨테이너가 #x 안 맨 앞에 삽입된다', () => {
+		const script = makeScript({ 'data-wat-container': '#x' });
+
+		const instance = new WAT(parseAutoInitOptions(script));
+
+		const target = document.getElementById('x');
+		expect(instance.container.parentElement).toBe(target);
+		expect(target.firstElementChild).toBe(instance.container);
+	});
+
+	test('new WAT({ containerSelector: "#x" })도 #x 안에 삽입된다', () => {
+		const instance = new WAT({ containerSelector: '#x' });
+
+		expect(instance.container.parentElement).toBe(document.getElementById('x'));
+	});
+});
+
+// ──────────────────────────────────────────────────
 // maybeAutoInit — opt-in 스위치와 중복 가드
 // ──────────────────────────────────────────────────
 describe('maybeAutoInit', () => {
