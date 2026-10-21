@@ -10,7 +10,7 @@
  *   - data-wat-auto              자동 초기화 활성화 (필수 스위치)
  *   - data-wat-config="..."      config.json 경로(스크립트 위치 기준) 또는 인라인 JSON('{'로 시작)
  *   - data-wat-language="ko"     기본 언어
- *   - data-wat-container="#id"   컨테이너 셀렉터
+ *   - data-wat-container="#id"   UI를 삽입할 기준 요소 셀렉터 (containerTargetSelector 별칭)
  *   - data-wat-inject-css="false" CSS 자동 주입 끄기
  */
 
