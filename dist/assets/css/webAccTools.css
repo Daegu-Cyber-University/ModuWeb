@@ -856,7 +856,9 @@ html[data-wat-viewmode="list"] #wat .setWrap.button .opt_lists .btn_basic {heigh
 :is(html[data-wat-viewmode="icon"], .wat-minimized) #wat .setWrap.radio .setCont .opt_lists		{grid-column: 2 / 3; display: flex; flex-wrap: wrap; overflow: hidden; text-align: center; text-overflow: ellipsis; white-space: nowrap;}
 :is(html[data-wat-viewmode="icon"], .wat-minimized) #wat .setWrap.radio .setCont .opt_lists .opt_item {display: block; position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); clip-path: inset(50%);}
 :is(html[data-wat-viewmode="icon"], .wat-minimized) #wat .setWrap.radio .setCont .opt_lists .opt_item.selectOn {position: static; width: 100%; height: auto; margin: 0; clip: auto; clip-path: none; overflow: hidden}
-:is(html[data-wat-viewmode="icon"], .wat-minimized) #wat .setWrap.radio .setCont input[type="radio"]:focus-visible + label {outline: 2px solid #0D6EFD; outline-offset: 2px}
+/* label을 감싼 .opt_lists·.opt_item.selectOn이 label과 같은 크기에 overflow:hidden이라 바깥 outline은 잘린다 —
+   음수 offset으로 label 안쪽에 그려야 포커스가 보인다 (WCAG 2.4.7) */
+:is(html[data-wat-viewmode="icon"], .wat-minimized) #wat .setWrap.radio .setCont input[type="radio"]:focus-visible + label {outline: 2px solid #0D6EFD; outline-offset: -2px}
 :is(html[data-wat-viewmode="icon"], .wat-minimized) #wat .setWrap.radio .setCont .opt_lists .opt_item.selectOn label {width: 100%; min-height: 24px; display: flex; align-items: center; justify-content: center; font-size: calc(var(--wat-font-size) * 0.8); cursor: pointer; flex: 1 1 auto; text-align: center; border: none; margin: 0; padding: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;}
 /* 아이콘 모드: 폰트 변경 — 긴 폰트명을 2줄까지 표시(한 줄 말줄임 완화), 중앙 열 폭 수축 허용 */
 :is(html[data-wat-viewmode="icon"], .wat-minimized) #wat .personalOpt_item.fontFamily .setWrap.radio .setCont .opt_lists		{min-width: 0; white-space: normal; overflow: hidden; text-overflow: unset; align-self: center}
