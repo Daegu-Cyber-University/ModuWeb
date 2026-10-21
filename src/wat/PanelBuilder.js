@@ -229,6 +229,8 @@ export class PanelBuilder {
 	 */
 	createSettingsItem(itemType, titleText, optionName, optionItems) {
 		const plugin = this.plugin;
+		// 라이브 리전 안내는 textContent로 들어가므로 이스케이프 전 원문을 쓴다
+		const plainTitleText = titleText;
 		// config/로케일 유래 값이 innerHTML 템플릿에 삽입되므로 전부 이스케이프 (XSS 방지)
 		titleText = escapeHTML(titleText);
 		const itemsHtml = optionItems.map(item => {
@@ -243,8 +245,10 @@ export class PanelBuilder {
 			const itemValue = escapeHTML(item.value);
 			const itemSrc = escapeHTML(item.src || '');
 			const labelTitleAttr = itemLabel ? ` title="${itemLabel}"` : '';
+			// 라디오 묶음 ul은 radiogroup 역할이라 li의 listitem 역할을 지워 라디오가 그룹에 직접 속하게 한다 (WCAG 1.3.1)
+			const itemRoleAttr = itemType === 'radio' ? ' role="none"' : '';
 			let htmlString = `
-				<li class='opt_item wat-item-li'>
+				<li class='opt_item wat-item-li'${itemRoleAttr}>
 					<input type="${itemType}" class="wat-items wat-item-type-radio" id="wat-${itemType}-${elementId}" name="${optionName}" title="${titleText} ${itemLabel}" value="${itemValue}" ${checkedAttr} ${disabledAttr}><label for="wat-${itemType}-${elementId}"${labelTitleAttr}>${itemLabel}</label>
 				</li>
 				`;
@@ -326,14 +330,22 @@ export class PanelBuilder {
 			}
 		});
 
+		// 제목·이전/다음 버튼으로 바꾸면 포커스가 제목·버튼에 머물러 바뀐 값이 읽히지 않으므로 알린다 (WCAG 4.1.3)
+		const announceValue = (valueText) => {
+			plugin._announceToLiveRegion(`${plainTitleText}: ${valueText}`);
+		};
+
 		// 라디오 순환 선택 공통 처리 (제목 클릭/이전·다음 버튼)
 		const cycleRadio = (direction) => {
 			const radioElements = setWrapElement.querySelectorAll('.setCont input[type="radio"]');
 			const targetIndex = plugin.getRadioTargetIndex(setWrapElement, direction);
-			if (radioElements[targetIndex]) {
-				radioElements[targetIndex].checked = true;
+			const targetRadio = radioElements[targetIndex];
+			if (targetRadio) {
+				targetRadio.checked = true;
 				// change 이벤트를 수동으로 트리거
-				radioElements[targetIndex].dispatchEvent(new Event('change', { bubbles: true }));
+				targetRadio.dispatchEvent(new Event('change', { bubbles: true }));
+				const targetLabel = targetRadio.labels && targetRadio.labels[0];
+				announceValue(targetLabel ? targetLabel.textContent : targetRadio.value);
 			}
 		};
 
@@ -353,6 +365,8 @@ export class PanelBuilder {
 				checkboxElement.checked = !checkboxElement.checked;
 				// change 이벤트를 수동으로 트리거
 				checkboxElement.dispatchEvent(new Event('change', { bubbles: true }));
+				const stateElement = setWrapElement.querySelector('.switch-state');
+				announceValue(stateElement ? stateElement.getAttribute('data-stateText-' + (checkboxElement.checked ? 'on' : 'off')) : '');
 			};
 			// 제목(role=button)만 직접 토글한다. 스위치 트랙(label.switch-label)은 for로 연결된 input을
 			// 브라우저가 토글하고 change를 보내므로(비활성이면 무시) 라벨에 리스너를 또 달면
@@ -492,7 +506,10 @@ export class PanelBuilder {
 				const input = plugin.createElementWithAttrs('input', { type: 'checkbox', class: ['watSet-checkbox', 'profileListItemInput'], id: `watSet_checkbox_${profile}_${item}`, name: `${profile}_${item}`, value: profileItems[item], 'data-key': item });
 				input.checked = profileValues[profile].enabled[item];
 				const label = plugin.createElementWithAttrs('label', { class: ['watSet_label', 'watSet-profile-item-label'], for: `watSet_checkbox_${profile}_${item}` });
-				label.textContent = plugin.getLocalizedText(`panel.personal.options.${item}.title`);
+				// 로케일 그룹명이 설정 키와 다른 항목(stopAni→animationControl 등)은 개인 옵션과 같은 그룹명으로 조회한다
+				// — 설정 키로 찾으면 라벨이 빈 문자열이 된다
+				const labelGroup = (OPTION_DEFS[item] && OPTION_DEFS[item].group) || item;
+				label.textContent = plugin.getLocalizedText(`panel.personal.options.${labelGroup}.title`);
 				profileListItem.appendChild(input);
 				profileListItem.appendChild(label);
 				profileListInner.appendChild(profileListItem);

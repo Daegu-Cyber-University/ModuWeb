@@ -508,7 +508,8 @@
 				"toggled": "\"{target}\" wurde umgeschaltet.",
 				"executeFailed": "Der Befehl konnte nicht ausgeführt werden."
 			}
-		}
+		},
+		"openTool": "Web-Zugänglichkeitsunterstützungstool öffnen"
 	},
 	"patterns": {
 		"__comment__": "Suchmusterverwaltung. Legen Sie die Titel und Suchbegriffe fest.",

@@ -508,7 +508,8 @@
 				"toggled": "已切换\"{target}\"。",
 				"executeFailed": "无法执行命令。"
 			}
-		}
+		},
+		"openTool": "打开网页无障碍辅助工具"
 	},
 	"patterns": {
 		"__comment__": "搜索模式管理。设置搜索模式的标题和搜索词。",
