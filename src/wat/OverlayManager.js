@@ -83,6 +83,9 @@ export class OverlayManager {
 					}
 				}
 			} else if (e.key === 'Escape') {
+				// 모달이 처리한 Esc가 document까지 올라가면 패널 닫기(_handleKeyDown)까지 실행된다
+				e.preventDefault();
+				e.stopPropagation();
 				self.teardown(layer, overlay);
 				self.restoreFocus(previousFocusedElement);
 			}
