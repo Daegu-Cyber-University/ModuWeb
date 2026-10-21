@@ -43,6 +43,102 @@
 							"de": "Deutsch"
 						}
 					},
+					"customColors": {
+						"title": "Eigene Farben",
+						"desc": "Hintergrund- und Textfarbe selbst wählen. Beim Speichern wechselt der Farbmodus zu „Eigene Farben“.",
+						"filterNotice": "Sättigungsänderung oder Farbfehlsichtigkeits-Korrektur ist aktiv; der tatsächliche Kontrast auf dem Bildschirm kann von der Anzeige hier abweichen.",
+						"presetsTitle": "Beispielkombinationen",
+						"presets": {
+							"yellowOnBlack": "Gelbe Schrift auf Schwarz",
+							"brownOnCream": "Dunkelbraune Schrift auf Creme",
+							"whiteOnNavy": "Weiße Schrift auf Marineblau",
+							"blackOnLightYellow": "Schwarze Schrift auf Hellgelb",
+							"navyOnLightBlue": "Marineblaue Schrift auf Hellblau",
+							"lightGrayOnDarkGray": "Hellgraue Schrift auf Dunkelgrau"
+						},
+						"chipSample": "Aa",
+						"previewTitle": "Vorschau",
+						"previewText": "So sieht der Fließtext aus.",
+						"previewLink": "So sehen Links aus",
+						"contrast": {
+							"label": "Kontrast {ratio} zu 1",
+							"aaa": "Sehr gut lesbar (AAA)",
+							"aa": "Gut lesbar (AA)",
+							"low": "Zu wenig Kontrast – Text ist evtl. schwer lesbar"
+						},
+						"slots": {
+							"bg": "Hintergrundfarbe",
+							"fg": "Textfarbe"
+						},
+						"current": "Aktuell: {name}",
+						"picker": "{slot} frei wählen",
+						"hex": "{slot}: Farbcode",
+						"hexHint": "z. B. #1a2b3c",
+						"hexError": "Bitte # und 6 (oder 3) Hexadezimalziffern eingeben.",
+						"suggest": {
+							"title": "Vorschlag für {slot}",
+							"detail": "{name}, Kontrast {ratio} zu 1",
+							"apply": "Vorschlag übernehmen",
+							"manual": "Selbst wählen",
+							"request": "Vorschlag anzeigen",
+							"announce": "Vorschlag für {slot}: {name}, Kontrast {ratio} zu 1. Wählen Sie „Vorschlag übernehmen“ oder „Selbst wählen“.",
+							"applied": "Vorschlag für {slot} übernommen: {name}"
+						},
+						"presetApplied": "Beispiel übernommen: {name}, Kontrast {ratio} zu 1",
+						"contrastAnnounce": "{slot}: {name}. Kontrast {ratio} zu 1, {level}",
+						"actions": {
+							"save": "Speichern und anwenden",
+							"cancel": "Abbrechen"
+						},
+						"msg": {
+							"saved": "Eigene Farben gespeichert und angewendet.",
+							"savedLow": "Eigene Farben gespeichert. Der Kontrast beträgt nur {ratio} zu 1; Text ist evtl. schwer lesbar.",
+							"saveFailed": "Eigene Farben konnten nicht gespeichert werden.",
+							"canceled": "Änderungen verworfen, gespeicherte Farben wiederhergestellt."
+						},
+						"colorNames": {
+							"black": "Schwarz",
+							"darkGray": "Dunkelgrau",
+							"gray": "Grau",
+							"lightGray": "Hellgrau",
+							"white": "Weiß",
+							"cream": "Creme",
+							"lightYellow": "Hellgelb",
+							"apricot": "Apricot",
+							"lightPink": "Hellrosa",
+							"lightPurple": "Helllila",
+							"lightBlue": "Hellblau",
+							"mint": "Mint",
+							"navy": "Marineblau",
+							"ink": "Tintenschwarz",
+							"darkBrown": "Dunkelbraun",
+							"darkGreen": "Dunkelgrün",
+							"yellow": "Gelb",
+							"amber": "Bernstein",
+							"skyBlue": "Himmelblau"
+						},
+						"hues": {
+							"red": "Rot",
+							"orange": "Orange",
+							"yellow": "Gelb",
+							"yellowGreen": "Gelbgrün",
+							"green": "Grün",
+							"teal": "Blaugrün",
+							"sky": "Himmelblau",
+							"blue": "Blau",
+							"indigo": "Indigo",
+							"purple": "Violett",
+							"magenta": "Magenta",
+							"pink": "Rosa"
+						},
+						"tones": {
+							"veryDark": "sehr dunkel",
+							"dark": "dunkel",
+							"light": "hell",
+							"veryLight": "sehr hell"
+						},
+						"colorPattern": "{hue} ({tone})"
+					},
 					"storage": {
 						"title": "Speichereinstellungen",
 						"desc": "Sie können Ihre Einstellungen speichern oder zurücksetzen.",
@@ -117,7 +213,8 @@
 						"initial": "Standard",
 						"light": "Hell",
 						"dark": "Dunkel",
-						"reverse": "Invertiert"
+						"reverse": "Invertiert",
+						"custom": "Eigene Farben"
 					}
 				},
 				"saturation": {

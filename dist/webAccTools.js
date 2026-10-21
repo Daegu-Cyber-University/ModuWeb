@@ -20,7 +20,9 @@ var WATPlugin = (function (exports) {
 			SETTINGS: 'watSettings',
 			CONTAINER: 'watContainer',
 			SELECTED_PROFILE: 'selectedProfile',
-			PANEL_STATE: 'watPanelState'
+			PANEL_STATE: 'watPanelState',
+			// 내 색상(배경·글자색) — watSettings는 savePreferences가 통째로 덮어쓰므로 별도 키로 둔다
+			CUSTOM_COLORS: 'watCustomColors'
 		};
 
 		static ELEMENT_IDS = {
@@ -1313,6 +1315,523 @@ var WATPlugin = (function (exports) {
 	}
 
 	/**
+	 * @fileoverview 안전한 JSON 파싱 유틸리티
+	 * @module src/core/safeParseJSON
+	 */
+
+	/**
+	 * localStorage 등 외부 유래 문자열의 안전한 JSON 파싱 — 손상된 값이 초기화 전체를 중단시키지 않도록
+	 * @param {string|null} raw - 파싱할 원본 문자열
+	 * @param {*} [fallback={}] - 파싱 실패/빈 값일 때 반환할 기본값
+	 * @returns {*} 파싱 결과 또는 기본값
+	 */
+	function safeParseJSON(raw, fallback = {}) {
+		if (raw === null || raw === undefined) return fallback;
+		try {
+			return JSON.parse(raw);
+		} catch (e) {
+			console.warn('[WAT] 저장된 설정 값이 손상되어 기본값을 사용합니다:', e.message);
+			return fallback;
+		}
+	}
+
+	/**
+	 * @fileoverview 색 변환·명도 대비 계산 유틸리티 (WCAG 2.x 상대 휘도 기준)
+	 * @module src/core/colorContrast
+	 * @description '내 색상'의 추천색·파생 색(링크·보조색) 계산을 맡는 순수 함수 모음. DOM에 의존하지 않는다.
+	 */
+
+	/** 명도 대비 기준값 — AA(1.4.3), AAA(1.4.6), 링크와 주변 본문의 구분(1.4.1 기법 G183) */
+	const CONTRAST = Object.freeze({ AA: 4.5, AAA: 7, LINK_VS_TEXT: 3 });
+
+	const HEX_PATTERN = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i;
+	// 임계 휘도와 정확히 같은 값에서 부동소수 오차로 대비가 6.9999…가 되는 것을 막는 여유
+	const EPSILON = 1e-12;
+	// 검정·흰색과의 대비가 같아지는 휘도(약 0.179) — 이보다 어두운 배경에는 밝은 색이 대비가 크다
+	const MID_LUMINANCE = Math.sqrt(1.05 * 0.05) - 0.05;
+
+	/**
+	 * 색 문자열을 '#rrggbb' 소문자로 정규화합니다 ('#' 생략·3자리 허용)
+	 * @param {*} value - 검사할 값 (localStorage·가져오기 파일 등 외부 유래 값 포함)
+	 * @returns {string|null} 정규화된 hex, 형식이 다르면 null (CSS 주입 문자열도 여기서 걸러진다)
+	 */
+	function normalizeHex(value) {
+		if (typeof value !== 'string') return null;
+		const match = HEX_PATTERN.exec(value.trim());
+		if (!match) return null;
+		let digits = match[1].toLowerCase();
+		if (digits.length === 3) {
+			digits = digits.split('').map(c => c + c).join('');
+		}
+		return '#' + digits;
+	}
+
+	/**
+	 * @param {string} hex
+	 * @returns {{r:number, g:number, b:number}|null} 0~255 채널, 잘못된 색이면 null
+	 */
+	function hexToRgb(hex) {
+		const normalized = normalizeHex(hex);
+		if (!normalized) return null;
+		const n = parseInt(normalized.slice(1), 16);
+		return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+	}
+
+	/**
+	 * @param {{r:number, g:number, b:number}} rgb - 채널 값 (범위 밖 값은 0~255로 자르고 반올림)
+	 * @returns {string} '#rrggbb'
+	 */
+	function rgbToHex({ r, g, b }) {
+		return '#' + [r, g, b]
+			.map(v => Math.min(255, Math.max(0, Math.round(v))).toString(16).padStart(2, '0'))
+			.join('');
+	}
+
+	/**
+	 * @param {string} hex
+	 * @returns {{h:number, s:number, l:number}|null} h 0~360, s·l 0~1
+	 */
+	function hexToHsl(hex) {
+		const rgb = hexToRgb(hex);
+		if (!rgb) return null;
+		const r = rgb.r / 255;
+		const g = rgb.g / 255;
+		const b = rgb.b / 255;
+		const max = Math.max(r, g, b);
+		const min = Math.min(r, g, b);
+		const l = (max + min) / 2;
+		const d = max - min;
+		let h = 0;
+		let s = 0;
+		if (d !== 0) {
+			s = d / (1 - Math.abs(2 * l - 1));
+			if (max === r) {
+				h = 60 * (((g - b) / d) % 6);
+			} else if (max === g) {
+				h = 60 * ((b - r) / d + 2);
+			} else {
+				h = 60 * ((r - g) / d + 4);
+			}
+			if (h < 0) h += 360;
+		}
+		return { h, s, l };
+	}
+
+	/**
+	 * @param {{h:number, s:number, l:number}} hsl
+	 * @returns {string} '#rrggbb'
+	 */
+	function hslToHex({ h, s, l }) {
+		const c = (1 - Math.abs(2 * l - 1)) * s;
+		const hp = (((h % 360) + 360) % 360) / 60;
+		const x = c * (1 - Math.abs((hp % 2) - 1));
+		let rgb;
+		if (hp < 1) rgb = [c, x, 0];
+		else if (hp < 2) rgb = [x, c, 0];
+		else if (hp < 3) rgb = [0, c, x];
+		else if (hp < 4) rgb = [0, x, c];
+		else if (hp < 5) rgb = [x, 0, c];
+		else rgb = [c, 0, x];
+		const m = l - c / 2;
+		return rgbToHex({ r: (rgb[0] + m) * 255, g: (rgb[1] + m) * 255, b: (rgb[2] + m) * 255 });
+	}
+
+	/**
+	 * WCAG 2.x 상대 휘도
+	 * @param {string} hex
+	 * @returns {number} 0~1, 잘못된 색이면 NaN
+	 */
+	function relativeLuminance(hex) {
+		const rgb = hexToRgb(hex);
+		if (!rgb) return NaN;
+		const linear = channel => {
+			const v = channel / 255;
+			return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+		};
+		return 0.2126 * linear(rgb.r) + 0.7152 * linear(rgb.g) + 0.0722 * linear(rgb.b);
+	}
+
+	/**
+	 * 두 색의 명도 대비 (순서 무관)
+	 * @param {string} a
+	 * @param {string} b
+	 * @returns {number} 1~21 원값 (판정은 이 값으로, 표시는 floorRatio로)
+	 */
+	function contrastRatio(a, b) {
+		const la = relativeLuminance(a);
+		const lb = relativeLuminance(b);
+		return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+	}
+
+	/**
+	 * 표시용 대비 — 반올림하면 4.49가 "4.5"로 보여 기준 충족으로 오해되므로 내림한다
+	 * @param {number} ratio
+	 * @param {number} [digits=1] - 소수 자릿수
+	 * @returns {number}
+	 */
+	function floorRatio(ratio, digits = 1) {
+		const factor = Math.pow(10, digits);
+		// 여유값을 더하지 않는다 — 기준 바로 아래 값이 기준값으로 보이면 contrastLevel 판정과 어긋난다
+		return Math.floor(ratio * factor) / factor;
+	}
+
+	/**
+	 * @param {number} ratio
+	 * @returns {'aaa'|'aa'|'low'}
+	 */
+	function contrastLevel(ratio) {
+		if (ratio >= CONTRAST.AAA) return 'aaa';
+		if (ratio >= CONTRAST.AA) return 'aa';
+		return 'low';
+	}
+
+	/**
+	 * sRGB 채널 선형 보간
+	 * @param {string} a - t=0일 때의 색
+	 * @param {string} b - t=1일 때의 색
+	 * @param {number} t - 0~1
+	 * @returns {string|null}
+	 */
+	function mixHex(a, b, t) {
+		const ca = hexToRgb(a);
+		const cb = hexToRgb(b);
+		if (!ca || !cb) return null;
+		return rgbToHex({
+			r: ca.r + (cb.r - ca.r) * t,
+			g: ca.g + (cb.g - ca.g) * t,
+			b: ca.b + (cb.b - ca.b) * t
+		});
+	}
+
+	/**
+	 * 색조·채도를 고정하고 명도만 움직여 휘도 경계에 닿는 명도를 찾습니다.
+	 * 같은 h·s에서는 명도가 커질수록 RGB 각 채널이 줄지 않으므로 휘도가 단조 증가한다 — 그래서 이분 탐색이 성립한다.
+	 * (대비는 앵커 휘도를 지나며 줄었다 늘어 단조롭지 않으므로 대비로 직접 탐색하면 틀린다)
+	 * @param {number} h
+	 * @param {number} s
+	 * @param {number} limit - 휘도 경계
+	 * @param {'dark'|'light'} side - dark: 휘도 ≤ limit인 가장 큰 명도, light: 휘도 ≥ limit인 가장 작은 명도
+	 * @returns {number} 명도 (판정은 8비트로 반올림한 hex 기준이라 결과 색이 경계를 실제로 만족한다)
+	 */
+	function lightnessAtLuminance(h, s, limit, side) {
+		let lo = 0;
+		let hi = 1;
+		for (let i = 0; i < 24; i++) {
+			const mid = (lo + hi) / 2;
+			const y = relativeLuminance(hslToHex({ h, s, l: mid }));
+			if (side === 'dark') {
+				if (y <= limit) lo = mid; else hi = mid;
+			} else {
+				if (y >= limit) hi = mid; else lo = mid;
+			}
+		}
+		return side === 'dark' ? lo : hi;
+	}
+
+	/**
+	 * 앵커 색과 목표 대비를 이루는 상대편 색을 추천합니다 (상대편 색의 색조 유지, 명도만 최소 조정)
+	 * @param {string} anchorHex - 사용자가 방금 고른 색
+	 * @param {string} targetHex - 추천 대상 슬롯의 현재 색 (색조의 기준)
+	 * @param {{target?: number}} [options] - 목표 대비 (기본 7:1)
+	 * @returns {{hex:string, ratio:number, method:'keep'|'hue'|'blackWhite'}|null}
+	 *          keep: 이미 목표 이상 / hue: 같은 색조로 맞춤 / blackWhite: 같은 색조로는 불가해 검정·흰색 중 대비 큰 쪽
+	 *          (blackWhite도 항상 √21≈4.58 이상이라 AA는 보장된다)
+	 */
+	function suggestCounterpart(anchorHex, targetHex, { target = CONTRAST.AAA } = {}) {
+		const anchor = normalizeHex(anchorHex);
+		const current = normalizeHex(targetHex);
+		if (!anchor || !current) return null;
+
+		const currentRatio = contrastRatio(anchor, current);
+		if (currentRatio >= target) {
+			return { hex: current, ratio: currentRatio, method: 'keep' };
+		}
+
+		const anchorLuminance = relativeLuminance(anchor);
+		const { h, s, l } = hexToHsl(current);
+		const candidates = [];
+		const darkLimit = (anchorLuminance + 0.05) / target - 0.05 - EPSILON;
+		if (darkLimit >= 0) candidates.push(lightnessAtLuminance(h, s, darkLimit, 'dark'));
+		const lightLimit = target * (anchorLuminance + 0.05) - 0.05 + EPSILON;
+		if (lightLimit <= 1) candidates.push(lightnessAtLuminance(h, s, lightLimit, 'light'));
+
+		if (candidates.length > 0) {
+			const nearest = candidates.reduce((a, b) => (Math.abs(a - l) <= Math.abs(b - l) ? a : b));
+			const hex = hslToHex({ h, s, l: nearest });
+			return { hex, ratio: contrastRatio(anchor, hex), method: 'hue' };
+		}
+
+		const hex = contrastRatio(anchor, '#000000') >= contrastRatio(anchor, '#ffffff') ? '#000000' : '#ffffff';
+		return { hex, ratio: contrastRatio(anchor, hex), method: 'blackWhite' };
+	}
+
+	// 링크색 후보 색조 (파랑 → 보라 → 청록 → 자주 → 초록 → 주황) — 관례상 링크로 읽히는 파랑을 먼저 시도
+	const LINK_HUES = [215, 265, 190, 300, 140, 30];
+	const LINK_SATURATION = 0.9;
+
+	/**
+	 * 배경과 정확히 ratio 대비가 되는(배경에서 가장 가까운) 색을 지정 색조로 만듭니다
+	 * @returns {string|null} 그 방향으로 ratio가 불가능하면 null
+	 */
+	function colorAtContrastBoundary(bg, hue, ratio) {
+		const bgLuminance = relativeLuminance(bg);
+		if (bgLuminance < MID_LUMINANCE) {
+			const limit = ratio * (bgLuminance + 0.05) - 0.05 + EPSILON;
+			if (limit > 1) return null;
+			return hslToHex({ h: hue, s: LINK_SATURATION, l: lightnessAtLuminance(hue, LINK_SATURATION, limit, 'light') });
+		}
+		const limit = (bgLuminance + 0.05) / ratio - 0.05 - EPSILON;
+		if (limit < 0) return null;
+		return hslToHex({ h: hue, s: LINK_SATURATION, l: lightnessAtLuminance(hue, LINK_SATURATION, limit, 'dark') });
+	}
+
+	/**
+	 * 링크색을 계산합니다 — 배경과 4.5:1 이상, 가능하면 본문과 3:1 이상 구분
+	 * 배경에 가장 가까운 4.5:1 경계색을 쓰면 반대편에 있는 본문색과의 차이가 가장 커진다.
+	 * @param {string} bgHex
+	 * @param {string} fgHex
+	 * @returns {{hex:string, underline:boolean}|null} underline: 색만으로 본문과 구분되지 않아 밑줄이 필요함
+	 */
+	function deriveLinkColor(bgHex, fgHex) {
+		const bg = normalizeHex(bgHex);
+		const fg = normalizeHex(fgHex);
+		if (!bg || !fg) return null;
+
+		for (const hue of LINK_HUES) {
+			const hex = colorAtContrastBoundary(bg, hue, CONTRAST.AA);
+			if (hex && contrastRatio(hex, fg) >= CONTRAST.LINK_VS_TEXT) {
+				return { hex, underline: false };
+			}
+		}
+		// 색으로는 본문과 구분할 수 없으면 밑줄로 구분하고, 색은 배경과 더 또렷하게 (가능하면 7:1)
+		const hex = colorAtContrastBoundary(bg, LINK_HUES[0], CONTRAST.AAA) || colorAtContrastBoundary(bg, LINK_HUES[0], CONTRAST.AA);
+		return { hex, underline: true };
+	}
+
+	// 보조 배경은 주 배경에서 본문 쪽으로 이만큼 섞는다 (사전 결과·발음 상자 구분용)
+	const SUB_BG_MIX = 0.06;
+	// 보조 글자색은 본문에서 배경 쪽으로 최대 이만큼까지 흐리게
+	const SUB_FG_MAX_MIX = 35;
+
+	/**
+	 * 보조 배경색·보조 글자색을 계산합니다 (placeholder, 사전 발음 상자 등이 쓰는 --wat-*-sub)
+	 * @param {string} bgHex
+	 * @param {string} fgHex
+	 * @returns {{bgSub:string, fgSub:string}|null} 보조 글자색은 보조·주 배경 모두와 4.5:1 이상인 범위에서 가장 흐린 색
+	 *          (본문 대비가 원래 부족하면 본문색 그대로)
+	 */
+	function deriveSubColors(bgHex, fgHex) {
+		const bg = normalizeHex(bgHex);
+		const fg = normalizeHex(fgHex);
+		if (!bg || !fg) return null;
+
+		const bgSub = mixHex(bg, fg, SUB_BG_MIX);
+		let fgSub = fg;
+		// 채널마다 보간 방향이 달라 휘도가 단조롭지 않을 수 있으므로 이분 탐색 대신 1% 단위로 훑는다
+		for (let step = SUB_FG_MAX_MIX; step > 0; step--) {
+			const candidate = mixHex(fg, bg, step / 100);
+			if (contrastRatio(candidate, bgSub) >= CONTRAST.AA && contrastRatio(candidate, bg) >= CONTRAST.AA) {
+				fgSub = candidate;
+				break;
+			}
+		}
+		return { bgSub, fgSub };
+	}
+
+	/**
+	 * '내 색상' 테마에 필요한 색 전체를 계산합니다 (저장은 bg·fg만, 나머지는 적용할 때마다 이 함수로 파생)
+	 * @param {string} bgHex
+	 * @param {string} fgHex
+	 * @returns {{bg:string, fg:string, link:string, linkUnderline:boolean, bgSub:string, fgSub:string}|null}
+	 */
+	function deriveThemeColors(bgHex, fgHex) {
+		const bg = normalizeHex(bgHex);
+		const fg = normalizeHex(fgHex);
+		if (!bg || !fg) return null;
+		const link = deriveLinkColor(bg, fg);
+		const sub = deriveSubColors(bg, fg);
+		return { bg, fg, link: link.hex, linkUnderline: link.underline, bgSub: sub.bgSub, fgSub: sub.fgSub };
+	}
+
+	// [상한, 키] — 값이 상한 미만인 첫 구간
+	const NEUTRAL_STEPS = [[0.12, 'black'], [0.35, 'darkGray'], [0.65, 'gray'], [0.9, 'lightGray'], [Infinity, 'white']];
+	const TONE_STEPS = [[0.2, 'veryDark'], [0.38, 'dark'], [0.62, 'base'], [0.8, 'light'], [Infinity, 'veryLight']];
+	const HUE_STEPS = [
+		[15, 'red'], [40, 'orange'], [65, 'yellow'], [90, 'yellowGreen'], [150, 'green'], [185, 'teal'],
+		[205, 'sky'], [240, 'blue'], [265, 'indigo'], [290, 'purple'], [320, 'magenta'], [345, 'pink'], [Infinity, 'red']
+	];
+	const pickStep = (steps, value) => steps.find(([limit]) => value < limit)[1];
+
+	/**
+	 * 스크린리더가 '#2b2100'을 한 글자씩 읽지 않도록 대략적인 색 이름을 고릅니다 (문구는 로케일이 정한다)
+	 * @param {string} hex
+	 * @returns {{kind:'neutral', key:string}|{kind:'chromatic', tone:string, hue:string}|null}
+	 */
+	function describeColor(hex) {
+		const hsl = hexToHsl(hex);
+		if (!hsl) return null;
+		const { h, s, l } = hsl;
+		// 채도가 낮거나 아주 어둡고 밝은 색은 색조보다 명도로 부르는 편이 정확하다
+		if (s < 0.15 || l < 0.06 || l > 0.96) {
+			return { kind: 'neutral', key: pickStep(NEUTRAL_STEPS, l) };
+		}
+		return { kind: 'chromatic', tone: pickStep(TONE_STEPS, l), hue: pickStep(HUE_STEPS, h) };
+	}
+
+	/**
+	 * @fileoverview 내 색상(사용자 지정 배경·글자색)의 저장소와 루트 CSS 변수 경계
+	 * @module src/wat/CustomColorTheme
+	 * @description 저장은 배경·글자색 두 값만 하고, 링크·보조색은 적용할 때마다 계산한다.
+	 *              JS는 전용 변수(--wat-custom-*)에만 쓰고, CSS가 data-color-theme="custom"일 때만
+	 *              기존 테마 변수에 연결한다 — 다른 색상 모드로 바꿔도 정리할 것이 없다.
+	 */
+
+	/** 저장한 색이 없을 때 쓰는 조합 — 크림 바탕 진갈색 글자 (12.0:1, 눈부심 완화) */
+	const CUSTOM_COLOR_DEFAULTS = Object.freeze({ bg: '#fdf6e3', fg: '#3b2f1e' });
+
+	/** 파생 색 → 루트 전용 변수 이름 (webAccTools.css의 :root[data-color-theme="custom"] 블록과 짝) */
+	const CUSTOM_COLOR_VARS = Object.freeze({
+		bg: '--wat-custom-bg',
+		fg: '--wat-custom-fg',
+		link: '--wat-custom-link',
+		bgSub: '--wat-custom-bg-sub',
+		fgSub: '--wat-custom-fg-sub'
+	});
+
+	// 링크가 본문과 색으로 구분되지 않을 때 밑줄을 켜는 플래그 (data-wat-link-underline)
+	const LINK_UNDERLINE_KEY = 'watLinkUnderline';
+
+	/** 배경색 견본 — 밝은 9색 × 어두운 글자 6색은 모두 7:1 이상 */
+	const BG_SWATCHES = Object.freeze([
+		{ id: 'white', hex: '#ffffff' },
+		{ id: 'cream', hex: '#fdf6e3' },
+		{ id: 'lightYellow', hex: '#fff8c5' },
+		{ id: 'apricot', hex: '#fde9d9' },
+		{ id: 'lightPink', hex: '#fce8ec' },
+		{ id: 'lightPurple', hex: '#eee8f7' },
+		{ id: 'lightBlue', hex: '#e6f0fa' },
+		{ id: 'mint', hex: '#e3f4ec' },
+		{ id: 'lightGray', hex: '#e8e8e8' },
+		{ id: 'darkGray', hex: '#333333' },
+		{ id: 'navy', hex: '#0b1f3a' },
+		{ id: 'black', hex: '#000000' }
+	]);
+
+	/** 글자색 견본 — 어두운 배경 3색 × 밝은 글자 6색도 모두 7:1 이상 */
+	const FG_SWATCHES = Object.freeze([
+		{ id: 'black', hex: '#000000' },
+		{ id: 'ink', hex: '#1a1a1a' },
+		{ id: 'darkBrown', hex: '#3b2f1e' },
+		{ id: 'navy', hex: '#0b1f3a' },
+		{ id: 'darkGreen', hex: '#0b3d20' },
+		// #4d4d4d는 연회색 배경(#e8e8e8)과 6.9:1이라 #444444로 낮췄다
+		{ id: 'darkGray', hex: '#444444' },
+		{ id: 'white', hex: '#ffffff' },
+		{ id: 'lightGray', hex: '#d9d9d9' },
+		{ id: 'cream', hex: '#fdf6e3' },
+		{ id: 'yellow', hex: '#ffff00' },
+		{ id: 'amber', hex: '#ffd54f' },
+		{ id: 'skyBlue', hex: '#7fdbff' }
+	]);
+
+	/** 출발점으로 쓰는 견본 조합 */
+	const CUSTOM_COLOR_PRESETS = Object.freeze([
+		{ id: 'yellowOnBlack', bg: '#000000', fg: '#ffff00' },
+		{ id: 'brownOnCream', bg: '#fdf6e3', fg: '#3b2f1e' },
+		{ id: 'whiteOnNavy', bg: '#0b1f3a', fg: '#ffffff' },
+		{ id: 'blackOnLightYellow', bg: '#fff8c5', fg: '#000000' },
+		{ id: 'navyOnLightBlue', bg: '#e6f0fa', fg: '#0b1f3a' },
+		// 빛에 민감한 사용자용 — 휘도가 낮은 조합
+		{ id: 'lightGrayOnDarkGray', bg: '#333333', fg: '#d9d9d9' }
+	]);
+
+	/**
+	 * 저장된 내 색상을 불러옵니다
+	 * 가져오기 파일은 값 검증 없이 저장되므로(SettingsApplier.importSettings) 여기서 형식을 검증한다.
+	 * @param {Storage} [storage=localStorage]
+	 * @returns {{bg:string, fg:string}|null} 없거나 손상·위조된 값이면 null
+	 */
+	function loadCustomColors(storage = globalThis.localStorage) {
+		let raw;
+		try {
+			raw = storage.getItem(Constants.STORAGE_KEYS.CUSTOM_COLORS);
+		} catch (e) {
+			return null;
+		}
+		const saved = safeParseJSON(raw, null);
+		if (!saved || typeof saved !== 'object' || Array.isArray(saved)) return null;
+		const bg = normalizeHex(saved.bg);
+		const fg = normalizeHex(saved.fg);
+		return bg && fg ? { bg, fg } : null;
+	}
+
+	/**
+	 * 내 색상을 저장합니다
+	 * @param {{bg:string, fg:string}} colors
+	 * @param {Storage} [storage=localStorage]
+	 * @returns {boolean} 저장 성공 여부 (잘못된 색·저장소 예외면 false)
+	 */
+	function saveCustomColors(colors, storage = globalThis.localStorage) {
+		const bg = normalizeHex(colors && colors.bg);
+		const fg = normalizeHex(colors && colors.fg);
+		if (!bg || !fg) return false;
+		try {
+			storage.setItem(Constants.STORAGE_KEYS.CUSTOM_COLORS, JSON.stringify({ v: 1, bg, fg }));
+			return true;
+		} catch (e) {
+			console.warn('[WAT] 내 색상 저장 실패:', e.message);
+			return false;
+		}
+	}
+
+	/**
+	 * 파생 색을 루트 요소의 전용 변수로 씁니다 (CSSOM이라 CSP의 인라인 스타일 제한에 걸리지 않는다)
+	 * @param {HTMLElement} root - 대상 루트 (문서 또는 iframe의 documentElement)
+	 * @param {{bg:string, fg:string}|null} colors - null이면 변수와 플래그를 지운다
+	 * @returns {Object|null} 적용한 파생 색 (deriveThemeColors 결과)
+	 */
+	function applyCustomColorVars(root, colors) {
+		if (!root || !root.style) return null;
+		const theme = colors ? deriveThemeColors(colors.bg, colors.fg) : null;
+		Object.entries(CUSTOM_COLOR_VARS).forEach(([key, name]) => {
+			if (theme) {
+				root.style.setProperty(name, theme[key]);
+			} else {
+				root.style.removeProperty(name);
+			}
+		});
+		if (theme && theme.linkUnderline) {
+			root.dataset[LINK_UNDERLINE_KEY] = 'true';
+		} else {
+			delete root.dataset[LINK_UNDERLINE_KEY];
+		}
+		return theme;
+	}
+
+	/**
+	 * 전용 변수와 밑줄 플래그를 다른 루트로 복사합니다 (원본에 없으면 대상에서도 지운다)
+	 * @param {HTMLElement} fromRoot - 메인 문서 루트
+	 * @param {HTMLElement} toRoot - 같은 출처 iframe 문서 루트
+	 * @returns {void}
+	 */
+	function copyCustomColorVars(fromRoot, toRoot) {
+		if (!fromRoot || !fromRoot.style || !toRoot || !toRoot.style) return;
+		Object.values(CUSTOM_COLOR_VARS).forEach(name => {
+			const value = fromRoot.style.getPropertyValue(name);
+			if (value) {
+				toRoot.style.setProperty(name, value);
+			} else {
+				toRoot.style.removeProperty(name);
+			}
+		});
+		if (fromRoot.dataset[LINK_UNDERLINE_KEY]) {
+			toRoot.dataset[LINK_UNDERLINE_KEY] = fromRoot.dataset[LINK_UNDERLINE_KEY];
+		} else {
+			delete toRoot.dataset[LINK_UNDERLINE_KEY];
+		}
+	}
+
+	/**
 	 * @fileoverview IframeStyler - 동일 출처 iframe에 대한 접근성 스타일 적용/동기화 담당
 	 * @module src/wat/IframeStyler
 	 * @description WAT.js에서 추출된 iframe 스타일링 클러스터 (Phase 6-1).
@@ -1460,6 +1979,9 @@ var WATPlugin = (function (exports) {
 					documentElement.dataset[attr] = value;
 				}
 			});
+
+			// 내 색상 값은 data 속성이 아니라 루트 CSS 변수에 있으므로 따로 복사한다
+			copyCustomColorVars(document.documentElement, documentElement);
 
 			// 폰트 패밀리 직접 적용
 			if (document.documentElement.style.fontFamily) {
@@ -1671,6 +2193,12 @@ var WATPlugin = (function (exports) {
 
 			// data 속성 설정
 			documentElement.dataset[styleType] = value;
+
+			// 색상 모드가 바뀔 때 내 색상 변수도 원본과 같게 맞춘다
+			// (변수는 data-color-theme="custom"일 때만 쓰이므로 다른 모드에서 남아 있어도 무해)
+			if (styleType === 'colorTheme') {
+				copyCustomColorVars(document.documentElement, documentElement);
+			}
 
 			// 폰트 패밀리는 직접 스타일도 적용
 			if (styleType === 'fontFamily') {
@@ -2894,8 +3422,10 @@ var WATPlugin = (function (exports) {
 		] },
 		letterSpacing: { type: 'radio', ratios: true },
 		lineHeight: { type: 'radio', ratios: true },
+		// custom(내 색상)은 환경설정 탭에서 고른 색을 쓴다. 저장값이 없어도 기본 조합으로 동작하므로
+		// 제목 순환·이전/다음 버튼으로 선택돼도 안전하다. 기존 순환 순서를 지키려고 맨 끝에 둔다.
 		colorTheme: { type: 'radio', group: 'colorMode', items: [
-			{ value: 'initial' }, { value: 'light' }, { value: 'dark' }, { value: 'reverse' }
+			{ value: 'initial' }, { value: 'light' }, { value: 'dark' }, { value: 'reverse' }, { value: 'custom' }
 		] },
 		saturation: { type: 'radio', items: [
 			{ value: 'initial' }, { value: 'low' }, { value: 'high' }, { value: 'monochrome' },
@@ -3595,6 +4125,11 @@ var WATPlugin = (function (exports) {
 			this.populateVoiceOptions(voiceSelect);
 			// ************************* TTS Voice Setting .End   *************************
 
+			// 내 색상 편집기 — 색상 모드를 끈 사이트에서는 저장한 뒤 되돌릴 곳이 없으므로 함께 숨긴다
+			if (plugin.options.colorTheme !== false) {
+				container.appendChild(plugin._getCustomColorEditor().build());
+			}
+
 			// ************************* Setting value Storage .Start *************************
 			const storageSettingContainer = plugin.createElementWithAttrs('fieldset', { id: 'watSetWrap_storage', class: ['watSet-item-container', 'storage-container'] });
 
@@ -3643,27 +4178,6 @@ var WATPlugin = (function (exports) {
 
 			container.appendChild(storageSettingContainer);
 			// ************************* Setting value Storage .End   *************************
-		}
-	}
-
-	/**
-	 * @fileoverview 안전한 JSON 파싱 유틸리티
-	 * @module src/core/safeParseJSON
-	 */
-
-	/**
-	 * localStorage 등 외부 유래 문자열의 안전한 JSON 파싱 — 손상된 값이 초기화 전체를 중단시키지 않도록
-	 * @param {string|null} raw - 파싱할 원본 문자열
-	 * @param {*} [fallback={}] - 파싱 실패/빈 값일 때 반환할 기본값
-	 * @returns {*} 파싱 결과 또는 기본값
-	 */
-	function safeParseJSON(raw, fallback = {}) {
-		if (raw === null || raw === undefined) return fallback;
-		try {
-			return JSON.parse(raw);
-		} catch (e) {
-			console.warn('[WAT] 저장된 설정 값이 손상되어 기본값을 사용합니다:', e.message);
-			return fallback;
 		}
 	}
 
@@ -4628,6 +5142,500 @@ var WATPlugin = (function (exports) {
 				if (!hadTabindex) body.setAttribute('tabindex', '-1');
 				body.focus();
 				if (!hadTabindex) body.removeAttribute('tabindex');
+			}
+		}
+	}
+
+	/**
+	 * @fileoverview 내 색상 편집기 — 환경설정 탭에서 배경·글자색을 고르는 UI
+	 * @module src/wat/CustomColorEditor
+	 * @description 견본·색 선택기·색상 코드로 두 색을 고르고, 한쪽을 바꾸면 상대편 추천색을 제안한다.
+	 *              편집 중에는 미리보기에만 반영하고 [저장하고 적용] 때 plugin.setCustomColors로 넘긴다.
+	 *
+	 *              추천 상태 모델 — 슬롯마다 default(이번 편집에서 손대지 않음) / suggested(추천 승인) / manual(직접 고름).
+	 *              자동 추천은 manual이 아닌 슬롯만 대상으로 해서, 양쪽을 직접 고른 뒤 추천이 서로 번갈아
+	 *              뜨는 일을 막는다. 두 슬롯을 모두 직접 고르면 [추천 받기]로만 추천한다.
+	 *
+	 *              패널 전역 위임과 겹치지 않도록 .wat-item-type-*, .setCont, .opt_item 클래스와
+	 *              tts_/pageScroll_가 든 id를 쓰지 않는다 (WAT._handleRadioChange, _handleButtonClick).
+	 *              패널은 언어를 바꾸면 통째로 다시 만들어지므로 상태는 DOM이 아니라 인스턴스에 둔다.
+	 */
+
+	const LOCALE_PREFIX = 'panel.settings.manage.options.customColors';
+	const ID_PREFIX = 'watSet_customColors';
+	const SLOTS = ['bg', 'fg'];
+	const SWATCHES = { bg: BG_SWATCHES, fg: FG_SWATCHES };
+	// 화살표로 견본을 훑을 때마다 낭독하지 않도록 마지막 변경 뒤 이만큼 기다린다
+	const ANNOUNCE_DELAY = 500;
+	// 대비 등급을 색만으로 전달하지 않도록 함께 쓰는 기호 (WCAG 1.4.1)
+	const LEVEL_GLYPHS = { aaa: '✓', aa: '✓', low: '⚠' };
+
+	const otherSlot = slot => (slot === 'bg' ? 'fg' : 'bg');
+
+	class CustomColorEditor {
+		/**
+		 * @param {Object} plugin - WAT 인스턴스 (요소 생성·로케일·낭독·알림·타이머·내 색상 저장 서비스)
+		 */
+		constructor(plugin) {
+			this.plugin = plugin;
+			/** @type {{bg:string, fg:string}|null} 편집 중인 색 (저장 전) */
+			this.draft = null;
+			this.slotState = { bg: 'default', fg: 'default' };
+			/** @type {'bg'|'fg'|null} 마지막으로 사용자가 바꾼 슬롯 — [추천 받기]의 대상을 정한다 */
+			this.lastEdited = null;
+			/** @type {{slot:'bg'|'fg', hex:string, ratio:number}|null} 표시 중인 추천 */
+			this.suggestion = null;
+			this.refs = null;
+			this._announceTimer = null;
+		}
+
+		/**
+		 * 편집기 DOM을 만듭니다. 다시 부르면(언어 변경) 편집 중인 초안 그대로 새로 그린다.
+		 * @returns {HTMLFieldSetElement}
+		 */
+		build() {
+			if (!this.draft) this._resetDraft();
+			const refs = { slots: {} };
+			this.refs = refs;
+
+			const root = this._el('fieldset', { id: 'watSetWrap_customColors', class: ['watSet-item-container', 'customColors-container'] });
+			root.appendChild(this._el('legend', { class: 'watSet-title' }, this._t('title')));
+			const inner = this._el('div', { class: ['watSet-inner', 'wat-cc'] });
+			root.appendChild(inner);
+
+			inner.appendChild(this._el('p', { class: 'wat-cc-desc' }, this._t('desc')));
+			refs.notice = this._el('p', { class: 'wat-cc-notice' }, this._t('filterNotice'));
+			inner.appendChild(refs.notice);
+			inner.appendChild(this._buildPresets());
+			inner.appendChild(this._buildPreview());
+
+			refs.contrast = this._el('p', { class: 'wat-cc-contrast' });
+			refs.contrastGlyph = this._el('span', { class: 'wat-cc-contrast-glyph', 'aria-hidden': 'true' });
+			refs.contrastText = this._el('span', { class: 'wat-cc-contrast-text' });
+			refs.contrast.append(refs.contrastGlyph, refs.contrastText);
+			inner.appendChild(refs.contrast);
+
+			refs.request = this._el('button', { type: 'button', id: `${ID_PREFIX}_request`, class: ['wat-cc-button', 'wat-cc-request'] }, this._t('suggest.request'));
+			refs.request.addEventListener('click', () => this._requestSuggestion());
+			inner.appendChild(refs.request);
+
+			refs.card = this._buildSuggestionCard();
+			SLOTS.forEach(slot => {
+				refs.slots[slot] = this._buildSlot(slot);
+				inner.appendChild(refs.slots[slot].fieldset);
+				// 추천 카드는 처음엔 배경 슬롯 뒤에 두고, 표시할 때 방금 바꾼 슬롯 뒤로 옮긴다
+				if (slot === 'bg') inner.appendChild(refs.card);
+			});
+			inner.appendChild(this._buildActions());
+
+			// 패널을 연 채 채도 설정을 바꿀 수 있으므로 편집기에 들어올 때마다 필터 안내를 다시 맞춘다
+			root.addEventListener('focusin', () => this._updateFilterNotice());
+
+			this._render();
+			return root;
+		}
+
+		// ========== DOM 생성 ==========
+
+		_el(tag, attrs = {}, text) {
+			const node = this.plugin.createElementWithAttrs(tag, attrs);
+			if (text !== undefined) node.textContent = text;
+			return node;
+		}
+
+		_t(key, params) {
+			return this.plugin.getLocalizedText(`${LOCALE_PREFIX}.${key}`, params);
+		}
+
+		_buildPresets() {
+			const titleId = `${ID_PREFIX}_presetsTitle`;
+			const wrap = this._el('div', { class: 'wat-cc-presets', role: 'group', 'aria-labelledby': titleId });
+			wrap.appendChild(this._el('p', { id: titleId, class: 'wat-cc-subtitle' }, this._t('presetsTitle')));
+			const list = this._el('ul', { class: 'wat-cc-preset-list' });
+			CUSTOM_COLOR_PRESETS.forEach(preset => {
+				const button = this._el('button', { type: 'button', id: `${ID_PREFIX}_preset_${preset.id}`, class: 'wat-cc-preset' });
+				button.appendChild(this._chip(preset.bg, preset.fg));
+				button.appendChild(this._el('span', { class: 'wat-cc-preset-name' }, this._t(`presets.${preset.id}`)));
+				button.addEventListener('click', () => this._applyPreset(preset));
+				const item = this._el('li');
+				item.appendChild(button);
+				list.appendChild(item);
+			});
+			wrap.appendChild(list);
+			return wrap;
+		}
+
+		/** 색 견본 칩 — 장식이므로 스크린리더에는 숨기고 이름은 옆 텍스트가 전한다 */
+		_chip(bg, fg) {
+			const chip = this._el('span', { class: 'wat-cc-chip', 'aria-hidden': 'true' }, fg ? this._t('chipSample') : undefined);
+			chip.style.backgroundColor = bg;
+			if (fg) chip.style.color = fg;
+			return chip;
+		}
+
+		_buildPreview() {
+			const wrap = this._el('div', { class: 'wat-cc-preview-wrap' });
+			wrap.appendChild(this._el('p', { class: 'wat-cc-subtitle' }, this._t('previewTitle')));
+			this.refs.preview = this._el('div', { class: 'wat-cc-preview' });
+			this.refs.preview.appendChild(this._el('p', { class: 'wat-cc-preview-text' }, this._t('previewText')));
+			// 링크 모양만 보여 주는 span — 실제 링크면 Tab이 멈추고 눌렸을 때 이동해 버린다
+			this.refs.previewLink = this._el('span', { class: 'wat-cc-preview-link' }, this._t('previewLink'));
+			this.refs.preview.appendChild(this.refs.previewLink);
+			wrap.appendChild(this.refs.preview);
+			return wrap;
+		}
+
+		_buildSlot(slot) {
+			const slotName = this._t(`slots.${slot}`);
+			const fieldset = this._el('fieldset', { class: 'wat-cc-slot', 'data-slot': slot });
+			const legend = this._el('legend', { class: 'wat-cc-slot-title' });
+			legend.appendChild(this._el('span', { class: 'wat-cc-slot-name' }, slotName));
+			const current = this._el('span', { class: 'wat-cc-current' });
+			legend.appendChild(current);
+			fieldset.appendChild(legend);
+
+			// 네이티브 라디오 묶음 — Tab 한 번으로 들어와 화살표로 고르고 "12개 중 N번째"로 안내된다
+			const list = this._el('ul', { class: 'wat-cc-swatches' });
+			const radios = SWATCHES[slot].map(swatch => {
+				const id = `${ID_PREFIX}_${slot}_${swatch.id}`;
+				const item = this._el('li', { class: 'wat-cc-swatch-item' });
+				const radio = this._el('input', { type: 'radio', id, name: `${ID_PREFIX}_${slot}`, value: swatch.hex, class: 'wat-cc-swatch-input' });
+				const label = this._el('label', { for: id, class: 'wat-cc-swatch' });
+				label.appendChild(this._chip(swatch.hex));
+				label.appendChild(this._el('span', { class: 'wat-cc-swatch-name' }, this._t(`colorNames.${swatch.id}`)));
+				// 음성 명령(STT)은 이미 체크된 라디오를 해제한 채 change를 보낼 수 있다 — 선택만 처리
+				radio.addEventListener('change', e => {
+					if (e.target.checked) this._onUserChange(slot, e.target.value);
+				});
+				item.append(radio, label);
+				list.appendChild(item);
+				return radio;
+			});
+			fieldset.appendChild(list);
+
+			const custom = this._el('div', { class: 'wat-cc-custom' });
+			const pickerId = `${ID_PREFIX}_${slot}_picker`;
+			const picker = this._el('input', { type: 'color', id: pickerId, class: 'wat-cc-picker' });
+			// 끄는 중(input)에는 미리보기만, 확정(change) 때 직접 고른 것으로 처리 — 카드 깜빡임 방지
+			picker.addEventListener('input', () => this._onPickerInput(slot));
+			picker.addEventListener('change', () => {
+				const value = normalizeHex(picker.value);
+				if (value) this._onUserChange(slot, value);
+			});
+			custom.append(this._el('label', { for: pickerId, class: 'wat-cc-custom-label' }, this._t('picker', { slot: slotName })), picker);
+
+			// 색 선택기는 브라우저·스크린리더마다 접근성이 고르지 않아 코드 입력을 함께 둔다
+			const hexId = `${ID_PREFIX}_${slot}_hex`;
+			const hintId = `${hexId}Hint`;
+			const errorId = `${hexId}Error`;
+			const hex = this._el('input', {
+				// maxlength는 두지 않는다 — 앞뒤 공백이 붙은 코드를 붙여 넣으면 잘려 거부된다 (normalizeHex가 공백을 다듬는다)
+				type: 'text', id: hexId, class: 'wat-cc-hex',
+				autocomplete: 'off', spellcheck: 'false', 'aria-describedby': hintId
+			});
+			hex.addEventListener('change', () => this._onHexCommit(slot));
+			const error = this._el('p', { id: errorId, class: 'wat-cc-error' }, this._t('hexError'));
+			error.hidden = true;
+			custom.append(
+				this._el('label', { for: hexId, class: 'wat-cc-custom-label' }, this._t('hex', { slot: slotName })),
+				hex,
+				this._el('p', { id: hintId, class: 'wat-cc-hint' }, this._t('hexHint')),
+				error
+			);
+			fieldset.appendChild(custom);
+
+			return { fieldset, current, radios, picker, hex, hintId, error };
+		}
+
+		_buildSuggestionCard() {
+			const refs = this.refs;
+			const titleId = `${ID_PREFIX}_suggestTitle`;
+			const card = this._el('div', { class: 'wat-cc-suggest', role: 'group', 'aria-labelledby': titleId });
+			card.hidden = true;
+			refs.suggestTitle = this._el('p', { id: titleId, class: 'wat-cc-subtitle' }, this._t('suggest.title', { slot: this._t('slots.fg') }));
+			const detail = this._el('p', { class: 'wat-cc-suggest-detail' });
+			refs.suggestChip = this._chip(this.draft.bg, this.draft.fg);
+			refs.suggestText = this._el('span', { class: 'wat-cc-suggest-text' });
+			detail.append(refs.suggestChip, refs.suggestText);
+
+			const actions = this._el('div', { class: 'wat-cc-suggest-actions' });
+			refs.suggestApply = this._el('button', { type: 'button', id: `${ID_PREFIX}_suggestApply`, class: ['wat-cc-button', 'wat-cc-primary'] }, this._t('suggest.apply'));
+			refs.suggestApply.addEventListener('click', () => this._applySuggestion());
+			refs.suggestManual = this._el('button', { type: 'button', id: `${ID_PREFIX}_suggestManual`, class: 'wat-cc-button' }, this._t('suggest.manual'));
+			refs.suggestManual.addEventListener('click', () => this._declineSuggestion());
+			actions.append(refs.suggestApply, refs.suggestManual);
+
+			card.append(refs.suggestTitle, detail, actions);
+			return card;
+		}
+
+		_buildActions() {
+			const actions = this._el('div', { class: 'wat-cc-actions' });
+			const save = this._el('button', { type: 'button', id: `${ID_PREFIX}_save`, class: ['wat-cc-button', 'wat-cc-primary'] }, this._t('actions.save'));
+			save.addEventListener('click', () => this._save());
+			const cancel = this._el('button', { type: 'button', id: `${ID_PREFIX}_cancel`, class: 'wat-cc-button' }, this._t('actions.cancel'));
+			cancel.addEventListener('click', () => this._cancel());
+			actions.append(save, cancel);
+			return actions;
+		}
+
+		// ========== 사용자 동작 ==========
+
+		_onUserChange(slot, hex) {
+			this._setHexError(slot, false);
+			this.draft = { ...this.draft, [slot]: hex };
+			this.slotState = { ...this.slotState, [slot]: 'manual' };
+			this.lastEdited = slot;
+			const target = otherSlot(slot);
+			this.suggestion = this.slotState[target] === 'manual' ? null : this._suggestFor(target);
+			this._render();
+			this._scheduleAnnouncement(this.suggestion ? this._suggestionMessage() : this._contrastMessage(slot));
+		}
+
+		_onPickerInput(slot) {
+			const value = normalizeHex(this.refs.slots[slot].picker.value);
+			if (!value) return;
+			this.draft = { ...this.draft, [slot]: value };
+			this._render();
+		}
+
+		_onHexCommit(slot) {
+			const value = normalizeHex(this.refs.slots[slot].hex.value);
+			if (!value) {
+				this._setHexError(slot, true);
+				return;
+			}
+			this._onUserChange(slot, value);
+		}
+
+		_applyPreset(preset) {
+			SLOTS.forEach(slot => this._setHexError(slot, false));
+			this.draft = { bg: preset.bg, fg: preset.fg };
+			this.slotState = { bg: 'default', fg: 'default' };
+			this.lastEdited = null;
+			this.suggestion = null;
+			this._render();
+			const ratio = contrastRatio(preset.bg, preset.fg);
+			this._scheduleAnnouncement(this._t('presetApplied', { name: this._t(`presets.${preset.id}`), ratio: this._formatRatio(ratio) }));
+		}
+
+		_applySuggestion() {
+			const suggestion = this.suggestion;
+			if (!suggestion) return;
+			this._setHexError(suggestion.slot, false);
+			this.draft = { ...this.draft, [suggestion.slot]: suggestion.hex };
+			this.slotState = { ...this.slotState, [suggestion.slot]: 'suggested' };
+			this.suggestion = null;
+			this._render();
+			// 카드가 숨겨지며 포커스를 잃지 않도록 바뀐 슬롯으로 옮긴다 (견본에 없는 색이면 코드 입력)
+			this._focusSlot(suggestion.slot, true);
+			this._scheduleAnnouncement(this._t('suggest.applied', {
+				slot: this._t(`slots.${suggestion.slot}`),
+				name: this._colorName(suggestion.hex, suggestion.slot)
+			}));
+		}
+
+		_declineSuggestion() {
+			const suggestion = this.suggestion;
+			if (!suggestion) return;
+			this._cancelAnnouncement();
+			this.suggestion = null;
+			this._render();
+			this._focusSlot(suggestion.slot, false);
+		}
+
+		_requestSuggestion() {
+			const target = this.lastEdited ? otherSlot(this.lastEdited) : 'fg';
+			this.suggestion = this._suggestFor(target);
+			if (!this.suggestion) return;
+			this._render();
+			this.refs.suggestApply.focus();
+			this._scheduleAnnouncement(this._suggestionMessage());
+		}
+
+		_save() {
+			this._cancelAnnouncement();
+			const colors = { ...this.draft };
+			const plugin = this.plugin;
+			if (!plugin.setCustomColors(colors)) {
+				plugin._notify(this._t('msg.saveFailed'), { type: 'error' });
+				return;
+			}
+			this.slotState = { bg: 'default', fg: 'default' };
+			this.lastEdited = null;
+			this.suggestion = null;
+			this._render();
+			// 낮은 대비가 편한 사용자도 있어 막지는 않되 알린다
+			const ratio = contrastRatio(colors.bg, colors.fg);
+			if (ratio < CONTRAST.AA) {
+				plugin._notify(this._t('msg.savedLow', { ratio: this._formatRatio(ratio) }), { type: 'warning' });
+			} else {
+				plugin._notify(this._t('msg.saved'), { type: 'success' });
+			}
+		}
+
+		_cancel() {
+			this._cancelAnnouncement();
+			SLOTS.forEach(slot => this._setHexError(slot, false));
+			this._resetDraft();
+			this._render();
+			this.plugin._announceToLiveRegion(this._t('msg.canceled'), 'polite');
+		}
+
+		// ========== 상태·표시 ==========
+
+		_resetDraft() {
+			const saved = this.plugin.getCustomColors();
+			this.draft = { ...(saved || CUSTOM_COLOR_DEFAULTS) };
+			this.slotState = { bg: 'default', fg: 'default' };
+			this.lastEdited = null;
+			this.suggestion = null;
+		}
+
+		/** 상대편 색(anchor)에 맞춘 target 슬롯 추천 — 이미 7:1 이상이면 null */
+		_suggestFor(target) {
+			const result = suggestCounterpart(this.draft[otherSlot(target)], this.draft[target]);
+			if (!result || result.method === 'keep') return null;
+			return { slot: target, hex: result.hex, ratio: result.ratio };
+		}
+
+		_render() {
+			const refs = this.refs;
+			if (!refs) return;
+			const { bg, fg } = this.draft;
+			const theme = deriveThemeColors(bg, fg);
+
+			refs.preview.style.backgroundColor = bg;
+			refs.preview.style.color = fg;
+			refs.previewLink.style.color = theme.link;
+			refs.previewLink.style.textDecorationLine = theme.linkUnderline ? 'underline' : 'none';
+
+			const ratio = contrastRatio(bg, fg);
+			const level = contrastLevel(ratio);
+			refs.contrast.dataset.level = level;
+			refs.contrastGlyph.textContent = LEVEL_GLYPHS[level];
+			refs.contrastText.textContent = `${this._t('contrast.label', { ratio: this._formatRatio(ratio) })} · ${this._t(`contrast.${level}`)}`;
+			refs.request.hidden = !(ratio < CONTRAST.AA && !this.suggestion);
+
+			SLOTS.forEach(slot => this._renderSlot(slot));
+			this._renderSuggestion();
+			this._updateFilterNotice();
+		}
+
+		_renderSlot(slot) {
+			const slotRefs = this.refs.slots[slot];
+			const value = this.draft[slot];
+			slotRefs.radios.forEach(radio => { radio.checked = radio.value === value; });
+			// 같은 값을 다시 넣으면 끄는 중인 색 선택기·입력 중인 커서가 흔들리므로 다를 때만
+			if (slotRefs.picker.value !== value) slotRefs.picker.value = value;
+			slotRefs.current.textContent = ` (${this._t('current', { name: this._colorName(value, slot) })})`;
+			// 거부된 입력은 반대편 슬롯을 바꾸는 동안에도 남겨 둔다 — 그 슬롯을 다시 고르거나 취소·견본 조합을 고르면 지운다
+			if (slotRefs.hex.hasAttribute('aria-invalid')) return;
+			if (slotRefs.hex.value !== value) slotRefs.hex.value = value;
+		}
+
+		_renderSuggestion() {
+			const refs = this.refs;
+			const suggestion = this.suggestion;
+			if (!suggestion) {
+				refs.card.hidden = true;
+				return;
+			}
+			const combo = { ...this.draft, [suggestion.slot]: suggestion.hex };
+			refs.suggestTitle.textContent = this._t('suggest.title', { slot: this._t(`slots.${suggestion.slot}`) });
+			refs.suggestChip.style.backgroundColor = combo.bg;
+			refs.suggestChip.style.color = combo.fg;
+			refs.suggestText.textContent = this._t('suggest.detail', {
+				name: this._colorName(suggestion.hex, suggestion.slot),
+				ratio: this._formatRatio(suggestion.ratio)
+			});
+			// 방금 바꾼 슬롯(추천 대상의 반대편) 바로 뒤에 둔다
+			const anchor = this.refs.slots[otherSlot(suggestion.slot)].fieldset;
+			if (anchor.nextElementSibling !== refs.card) anchor.after(refs.card);
+			refs.card.hidden = false;
+		}
+
+		_setHexError(slot, invalid) {
+			const { hex, hintId, error } = this.refs.slots[slot];
+			if (invalid) {
+				hex.setAttribute('aria-invalid', 'true');
+				hex.setAttribute('aria-describedby', `${hintId} ${error.id}`);
+			} else {
+				hex.removeAttribute('aria-invalid');
+				hex.setAttribute('aria-describedby', hintId);
+			}
+			error.hidden = !invalid;
+		}
+
+		_updateFilterNotice() {
+			if (!this.refs) return;
+			const saturation = document.documentElement.dataset.saturation;
+			this.refs.notice.hidden = !saturation || saturation === 'initial';
+		}
+
+		_focusSlot(slot, preferHex) {
+			const slotRefs = this.refs.slots[slot];
+			const checked = slotRefs.radios.find(radio => radio.checked);
+			if (checked) {
+				checked.focus();
+			} else if (preferHex) {
+				slotRefs.hex.focus();
+			} else {
+				slotRefs.radios[0].focus();
+			}
+		}
+
+		/** 소수 첫째 자리 내림 — 4.49가 "4.5"로 보여 기준 충족으로 오해되지 않게 */
+		_formatRatio(ratio) {
+			return floorRatio(ratio).toFixed(1);
+		}
+
+		/** 스크린리더가 hex를 한 글자씩 읽지 않도록 견본 이름이나 대략적인 색 이름을 쓴다 */
+		_colorName(hex, slot) {
+			const swatch = SWATCHES[slot].find(s => s.hex === hex) || SWATCHES[otherSlot(slot)].find(s => s.hex === hex);
+			if (swatch) return this._t(`colorNames.${swatch.id}`);
+			const description = describeColor(hex);
+			if (!description) return hex;
+			if (description.kind === 'neutral') return this._t(`colorNames.${description.key}`);
+			const hue = this._t(`hues.${description.hue}`);
+			if (description.tone === 'base') return hue;
+			return this._t('colorPattern', { tone: this._t(`tones.${description.tone}`), hue });
+		}
+
+		// ========== 낭독 ==========
+
+		_suggestionMessage() {
+			const suggestion = this.suggestion;
+			return this._t('suggest.announce', {
+				slot: this._t(`slots.${suggestion.slot}`),
+				name: this._colorName(suggestion.hex, suggestion.slot),
+				ratio: this._formatRatio(suggestion.ratio)
+			});
+		}
+
+		_contrastMessage(slot) {
+			const ratio = contrastRatio(this.draft.bg, this.draft.fg);
+			return this._t('contrastAnnounce', {
+				slot: this._t(`slots.${slot}`),
+				name: this._colorName(this.draft[slot], slot),
+				ratio: this._formatRatio(ratio),
+				level: this._t(`contrast.${contrastLevel(ratio)}`)
+			});
+		}
+
+		_scheduleAnnouncement(message) {
+			this._cancelAnnouncement();
+			if (!message) return;
+			this._announceTimer = this.plugin._setTimeout(() => {
+				this._announceTimer = null;
+				this.plugin._announceToLiveRegion(message, 'polite');
+			}, ANNOUNCE_DELAY);
+		}
+
+		_cancelAnnouncement() {
+			if (this._announceTimer) {
+				this.plugin._clearTimeout(this._announceTimer);
+				this._announceTimer = null;
 			}
 		}
 	}
@@ -9449,6 +10457,18 @@ var WATPlugin = (function (exports) {
 			}
 
 			/**
+			 * 내 색상 편집기 지연 접근자 — 언어 변경으로 패널을 다시 만들어도 같은 인스턴스를 써서 편집 중인 색을 유지
+			 * @private
+			 * @returns {CustomColorEditor}
+			 */
+			_getCustomColorEditor() {
+				if (!this.customColorEditor) {
+					this.customColorEditor = new CustomColorEditor(this);
+				}
+				return this.customColorEditor;
+			}
+
+			/**
 			 * 설정 패널에 프로필 설정 섹션을 생성합니다 (PanelBuilder 위임)
 			 * @param {HTMLElement} container - 프로필 설정을 추가할 컨테이너 요소
 			 * @returns {void}
@@ -11470,7 +12490,7 @@ var WATPlugin = (function (exports) {
 
 			/**
 			 * Changes the color theme of the interface (인터페이스의 색상 테마를 변경합니다)
-			 * @param {string} theme - Color theme setting ('initial', 'light', 'dark', 'reverse') (색상 테마 설정)
+			 * @param {string} theme - Color theme setting ('initial', 'light', 'dark', 'reverse', 'custom') (색상 테마 설정)
 			 * @returns {void}
 			 * @description Applies color theme changes through CSS data attributes and updates UI state
 			 *              (CSS 데이터 속성을 통해 색상 테마 변경을 적용하고 UI 상태를 업데이트합니다)
@@ -11482,11 +12502,42 @@ var WATPlugin = (function (exports) {
 			 * this.changeColorTheme('initial');
 			 */
 			changeColorTheme(theme) {
+				// 라디오·프로필·리셋·저장값 복원 등 모든 경로가 여기를 지나므로 내 색상 변수는 이 한 곳에서 쓴다
+				// (iframe 동기화가 새 값을 복사하도록 동기화보다 먼저)
+				if (theme === 'custom') this._applyCustomColorVars();
 				document.documentElement.dataset.colorTheme = theme;
 				this.updatePersonalSettingsUI('radio', 'colorTheme', theme);
 				this.savePreferences();
 				// 다른 change* 계열과 동일하게 iframe에도 동기화 (누락 시 iframe만 원래 색 유지)
 				this.syncStyleToIframes('colorTheme', theme);
+			}
+
+			/**
+			 * 저장된 내 색상(배경·글자색)을 가져옵니다
+			 * @returns {{bg:string, fg:string}|null} 저장한 적이 없거나 값이 손상됐으면 null
+			 */
+			getCustomColors() {
+				return loadCustomColors();
+			}
+
+			/**
+			 * 내 색상을 저장하고 색상 모드를 '내 색상'으로 바꿉니다
+			 * @param {{bg:string, fg:string}} colors - 배경·글자색 hex
+			 * @returns {boolean} 저장 성공 여부 (잘못된 색이면 아무것도 바꾸지 않고 false)
+			 */
+			setCustomColors(colors) {
+				if (!saveCustomColors(colors)) return false;
+				this.changeColorTheme('custom');
+				return true;
+			}
+
+			/**
+			 * 내 색상 파생 색을 문서 루트 전용 변수(--wat-custom-*)에 씁니다 (저장값이 없으면 기본 조합)
+			 * @private
+			 * @returns {void}
+			 */
+			_applyCustomColorVars() {
+				applyCustomColorVars(document.documentElement, loadCustomColors() || CUSTOM_COLOR_DEFAULTS);
 			}
 
 			/**

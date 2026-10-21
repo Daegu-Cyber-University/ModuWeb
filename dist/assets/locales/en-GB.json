@@ -43,6 +43,102 @@
 							"de": "German"
 						}
 					},
+					"customColors": {
+						"title": "My colours",
+						"desc": "Choose your own background and text colours. Saving switches Colour mode to “My colours”.",
+						"filterNotice": "Saturation or colour-blindness correction is on, so the actual contrast on screen may differ from what is shown here.",
+						"presetsTitle": "Sample combinations",
+						"presets": {
+							"yellowOnBlack": "Yellow text on black",
+							"brownOnCream": "Dark brown text on cream",
+							"whiteOnNavy": "White text on navy",
+							"blackOnLightYellow": "Black text on light yellow",
+							"navyOnLightBlue": "Navy text on light blue",
+							"lightGrayOnDarkGray": "Light grey text on dark grey"
+						},
+						"chipSample": "Aa",
+						"previewTitle": "Preview",
+						"previewText": "Body text will look like this.",
+						"previewLink": "Links will look like this",
+						"contrast": {
+							"label": "Contrast {ratio} to 1",
+							"aaa": "Very easy to read (AAA)",
+							"aa": "Easy to read (AA)",
+							"low": "Low contrast — text may be hard to read"
+						},
+						"slots": {
+							"bg": "Background colour",
+							"fg": "Text colour"
+						},
+						"current": "Current: {name}",
+						"picker": "{slot}: pick any colour",
+						"hex": "{slot}: colour code",
+						"hexHint": "e.g. #1a2b3c",
+						"hexError": "Enter # followed by 6 (or 3) hexadecimal digits.",
+						"suggest": {
+							"title": "{slot} suggestion",
+							"detail": "{name}, contrast {ratio} to 1",
+							"apply": "Use suggested colour",
+							"manual": "I'll choose myself",
+							"request": "Get a suggestion",
+							"announce": "{slot} suggestion: {name}, contrast {ratio} to 1. Choose Use suggested colour or I'll choose myself.",
+							"applied": "Suggested colour applied to {slot}: {name}"
+						},
+						"presetApplied": "Sample applied: {name}, contrast {ratio} to 1",
+						"contrastAnnounce": "{slot}: {name}. Contrast {ratio} to 1, {level}",
+						"actions": {
+							"save": "Save and apply",
+							"cancel": "Cancel"
+						},
+						"msg": {
+							"saved": "My colours saved and applied.",
+							"savedLow": "My colours saved. Contrast is only {ratio} to 1, so text may be hard to read.",
+							"saveFailed": "Could not save My colours.",
+							"canceled": "Changes canceled. Your saved colours are restored."
+						},
+						"colorNames": {
+							"black": "Black",
+							"darkGray": "Dark grey",
+							"gray": "Grey",
+							"lightGray": "Light grey",
+							"white": "White",
+							"cream": "Cream",
+							"lightYellow": "Light yellow",
+							"apricot": "Apricot",
+							"lightPink": "Light pink",
+							"lightPurple": "Light purple",
+							"lightBlue": "Light blue",
+							"mint": "Mint",
+							"navy": "Navy",
+							"ink": "Ink black",
+							"darkBrown": "Dark brown",
+							"darkGreen": "Dark green",
+							"yellow": "Yellow",
+							"amber": "Amber",
+							"skyBlue": "Sky blue"
+						},
+						"hues": {
+							"red": "red",
+							"orange": "orange",
+							"yellow": "yellow",
+							"yellowGreen": "yellow-green",
+							"green": "green",
+							"teal": "teal",
+							"sky": "sky blue",
+							"blue": "blue",
+							"indigo": "indigo",
+							"purple": "purple",
+							"magenta": "magenta",
+							"pink": "pink"
+						},
+						"tones": {
+							"veryDark": "very dark",
+							"dark": "dark",
+							"light": "light",
+							"veryLight": "very light"
+						},
+						"colorPattern": "{tone} {hue}"
+					},
 					"storage": {
 						"title": "Storage Settings",
 						"desc": "Save or reset your preferences.",
@@ -117,7 +213,8 @@
 						"initial": "Default",
 						"light": "Light",
 						"dark": "Dark",
-						"reverse": "Reverse"
+						"reverse": "Reverse",
+						"custom": "My colours"
 					}
 				},
 				"saturation": {

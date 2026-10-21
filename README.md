@@ -73,7 +73,8 @@
 - **저시력 지원**: 화면 전체 크기 조절
 
 ### 색상 인식 지원
-- **색상 모드**: 기본·밝게·어둡게·반전 4종 (첫 방문 시 OS 다크 모드 설정 자동 반영)
+- **색상 모드**: 기본·밝게·어둡게·반전·내 색상 5종 (첫 방문 시 OS 다크 모드 설정 자동 반영)
+- **내 색상**: 환경설정에서 배경색·글자색을 직접 선택, 명도 대비 표시와 7:1 짝 색 추천 (WCAG 1.4.8)
 - **채도 조절**: 채도 및 명암 조절
 - **색약 보정**: 적색약·녹색약 보정 필터
 
@@ -593,7 +594,9 @@ wat.changeTextAlign(align);      // 텍스트 정렬 변경
 ##### 색상 · 화면
 
 ```javascript
-wat.changeColorTheme(theme);     // 색상 테마(고대비 등) 변경
+wat.changeColorTheme(theme);     // 색상 테마 변경 ('initial'·'light'·'dark'·'reverse'·'custom')
+wat.getCustomColors();           // 저장된 내 색상 { bg, fg } (없으면 null)
+wat.setCustomColors({ bg, fg }); // 내 색상 저장 후 'custom' 테마 적용 ('#rrggbb', 잘못된 값이면 false)
 wat.changeSaturation(level);     // 채도 변경
 wat.changeScreenScale(scale);    // 화면 확대 단계 변경
 wat.changeReadGuide(mode);       // 읽기 가이드 모드 변경

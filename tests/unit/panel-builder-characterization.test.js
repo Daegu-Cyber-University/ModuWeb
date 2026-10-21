@@ -47,7 +47,7 @@ afterEach(() => {
 describe('개인 옵션 팩토리 — 라디오 계열', () => {
 	// [메서드명, name 속성, 기대 값 목록, 비활성 값 목록]
 	const radioCases = [
-		['createColorThemeSettings', 'colorTheme', ['initial', 'light', 'dark', 'reverse'], []],
+		['createColorThemeSettings', 'colorTheme', ['initial', 'light', 'dark', 'reverse', 'custom'], []],
 		['createSaturationSettings', 'saturation', ['initial', 'low', 'high', 'monochrome', 'protanopia', 'deuteranopia'], []],
 		['createScreenScaleSettings', 'screenScale', ['initial', 'scale-1p2x', 'scale-1p5x', 'scale-2x'], []],
 		['createTxtAlignSettings', 'txtAlign', ['initial', 'left', 'center', 'right'], []],
@@ -395,6 +395,41 @@ describe('createToolsSettings', () => {
 			'watSet_storage_save', 'watSet_storage_reset',
 			'watSet_storage_export', 'watSet_storage_import'
 		]);
+	});
+
+	test('내 색상 편집기는 저장 설정 바로 앞에 놓인다', () => {
+		const wat = makeWat();
+		const container = document.createElement('div');
+		document.body.appendChild(container);
+
+		wat.createToolsSettings(container);
+
+		const editor = container.querySelector('#watSetWrap_customColors');
+		expect(editor).not.toBeNull();
+		expect(editor.nextElementSibling.id).toBe('watSetWrap_storage');
+	});
+
+	test('사이트 설정에서 색상 모드를 끄면(options.colorTheme === false) 편집기도 만들지 않는다', () => {
+		const wat = makeWat({ options: { colorTheme: false } });
+		const container = document.createElement('div');
+		document.body.appendChild(container);
+
+		wat.createToolsSettings(container);
+
+		expect(container.querySelector('#watSetWrap_customColors')).toBeNull();
+	});
+
+	test('패널을 다시 만들어도(언어 변경) 같은 편집기 인스턴스를 써서 편집 중인 색이 유지된다', () => {
+		const wat = makeWat();
+		const first = document.createElement('div');
+		wat.createToolsSettings(first);
+		wat._getCustomColorEditor().draft = { bg: '#000000', fg: '#ffff00' };
+
+		const second = document.createElement('div');
+		wat.createToolsSettings(second);
+
+		const checked = second.querySelector('input[name="watSet_customColors_bg"]:checked');
+		expect(checked.value).toBe('#000000');
 	});
 
 	test('저장된 viewMode가 있으면 해당 라디오가 선택된다', () => {

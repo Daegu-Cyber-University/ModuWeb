@@ -39,8 +39,10 @@ const OPTION_DEFS = {
 	] },
 	letterSpacing: { type: 'radio', ratios: true },
 	lineHeight: { type: 'radio', ratios: true },
+	// custom(내 색상)은 환경설정 탭에서 고른 색을 쓴다. 저장값이 없어도 기본 조합으로 동작하므로
+	// 제목 순환·이전/다음 버튼으로 선택돼도 안전하다. 기존 순환 순서를 지키려고 맨 끝에 둔다.
 	colorTheme: { type: 'radio', group: 'colorMode', items: [
-		{ value: 'initial' }, { value: 'light' }, { value: 'dark' }, { value: 'reverse' }
+		{ value: 'initial' }, { value: 'light' }, { value: 'dark' }, { value: 'reverse' }, { value: 'custom' }
 	] },
 	saturation: { type: 'radio', items: [
 		{ value: 'initial' }, { value: 'low' }, { value: 'high' }, { value: 'monochrome' },
@@ -739,6 +741,11 @@ export class PanelBuilder {
 
 		this.populateVoiceOptions(voiceSelect);
 		// ************************* TTS Voice Setting .End   *************************
+
+		// 내 색상 편집기 — 색상 모드를 끈 사이트에서는 저장한 뒤 되돌릴 곳이 없으므로 함께 숨긴다
+		if (plugin.options.colorTheme !== false) {
+			container.appendChild(plugin._getCustomColorEditor().build());
+		}
 
 		// ************************* Setting value Storage .Start *************************
 		const storageSettingContainer = plugin.createElementWithAttrs('fieldset', { id: 'watSetWrap_storage', class: ['watSet-item-container', 'storage-container'] });

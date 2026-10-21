@@ -43,6 +43,102 @@
 							"de": "德语"
 						}
 					},
+					"customColors": {
+						"title": "自定义颜色",
+						"desc": "自行选择背景色和文字颜色。保存后颜色模式将切换为“自定义颜色”。",
+						"filterNotice": "已开启饱和度调整或色盲校正，屏幕上的实际对比度可能与此处显示不同。",
+						"presetsTitle": "示例组合",
+						"presets": {
+							"yellowOnBlack": "黑底黄字",
+							"brownOnCream": "米色底深棕字",
+							"whiteOnNavy": "藏青底白字",
+							"blackOnLightYellow": "浅黄底黑字",
+							"navyOnLightBlue": "浅蓝底藏青字",
+							"lightGrayOnDarkGray": "深灰底浅灰字"
+						},
+						"chipSample": "字",
+						"previewTitle": "预览",
+						"previewText": "正文文字将显示为这样。",
+						"previewLink": "链接将显示为这样",
+						"contrast": {
+							"label": "对比度 {ratio} 比 1",
+							"aaa": "非常清晰(AAA)",
+							"aa": "清晰(AA)",
+							"low": "对比度不足 — 文字可能难以辨认"
+						},
+						"slots": {
+							"bg": "背景色",
+							"fg": "文字颜色"
+						},
+						"current": "当前：{name}",
+						"picker": "自由选择{slot}",
+						"hex": "{slot}色值代码",
+						"hexHint": "例如：#1a2b3c",
+						"hexError": "请输入 # 加 6 位（或 3 位）十六进制数字。",
+						"suggest": {
+							"title": "{slot}建议",
+							"detail": "{name}，对比度 {ratio} 比 1",
+							"apply": "使用建议颜色",
+							"manual": "我自己选",
+							"request": "获取建议",
+							"announce": "{slot}建议：{name}，对比度 {ratio} 比 1。请选择“使用建议颜色”或“我自己选”。",
+							"applied": "已为{slot}应用建议颜色：{name}"
+						},
+						"presetApplied": "已应用示例：{name}，对比度 {ratio} 比 1",
+						"contrastAnnounce": "{slot}：{name}。对比度 {ratio} 比 1，{level}",
+						"actions": {
+							"save": "保存并应用",
+							"cancel": "取消"
+						},
+						"msg": {
+							"saved": "已保存并应用自定义颜色。",
+							"savedLow": "已保存自定义颜色。对比度仅为 {ratio} 比 1，文字可能难以辨认。",
+							"saveFailed": "无法保存自定义颜色。",
+							"canceled": "已取消更改，恢复为已保存的颜色。"
+						},
+						"colorNames": {
+							"black": "黑色",
+							"darkGray": "深灰色",
+							"gray": "灰色",
+							"lightGray": "浅灰色",
+							"white": "白色",
+							"cream": "米色",
+							"lightYellow": "浅黄色",
+							"apricot": "杏色",
+							"lightPink": "浅粉色",
+							"lightPurple": "浅紫色",
+							"lightBlue": "浅蓝色",
+							"mint": "薄荷色",
+							"navy": "藏青色",
+							"ink": "墨黑色",
+							"darkBrown": "深棕色",
+							"darkGreen": "深绿色",
+							"yellow": "黄色",
+							"amber": "琥珀色",
+							"skyBlue": "天蓝色"
+						},
+						"hues": {
+							"red": "红色",
+							"orange": "橙色",
+							"yellow": "黄色",
+							"yellowGreen": "黄绿色",
+							"green": "绿色",
+							"teal": "青绿色",
+							"sky": "天蓝色",
+							"blue": "蓝色",
+							"indigo": "靛蓝色",
+							"purple": "紫色",
+							"magenta": "品红色",
+							"pink": "粉红色"
+						},
+						"tones": {
+							"veryDark": "很深的",
+							"dark": "深",
+							"light": "浅",
+							"veryLight": "很浅的"
+						},
+						"colorPattern": "{tone}{hue}"
+					},
 					"storage": {
 						"title": "存储设置",
 						"desc": "可以保存或重置设置。",
@@ -117,7 +213,8 @@
 						"initial": "默认",
 						"light": "明亮",
 						"dark": "暗",
-						"reverse": "反转"
+						"reverse": "反转",
+						"custom": "自定义颜色"
 					}
 				},
 				"saturation": {

@@ -7,6 +7,7 @@
  *              추적형 타이머, 옵저버 레지스트리)를 위임받아 사용한다.
  */
 import { Constants } from '../core/constants.js';
+import { copyCustomColorVars } from './CustomColorTheme.js';
 
 const WAT_DEBUG_ENABLED = false;
 
@@ -153,6 +154,9 @@ export class IframeStyler {
 				documentElement.dataset[attr] = value;
 			}
 		});
+
+		// 내 색상 값은 data 속성이 아니라 루트 CSS 변수에 있으므로 따로 복사한다
+		copyCustomColorVars(document.documentElement, documentElement);
 
 		// 폰트 패밀리 직접 적용
 		if (document.documentElement.style.fontFamily) {
@@ -374,6 +378,12 @@ export class IframeStyler {
 
 		// data 속성 설정
 		documentElement.dataset[styleType] = value;
+
+		// 색상 모드가 바뀔 때 내 색상 변수도 원본과 같게 맞춘다
+		// (변수는 data-color-theme="custom"일 때만 쓰이므로 다른 모드에서 남아 있어도 무해)
+		if (styleType === 'colorTheme') {
+			copyCustomColorVars(document.documentElement, documentElement);
+		}
 
 		// 폰트 패밀리는 직접 스타일도 적용
 		if (styleType === 'fontFamily') {
