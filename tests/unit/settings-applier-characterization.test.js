@@ -103,6 +103,26 @@ describe('savePreferences', () => {
 		expect(wat._dispatchStateEvent).toHaveBeenCalledWith('settings:saved', expect.any(Object));
 	});
 
+	test('축소 상태 저장 후 savePreferences를 호출해도 isMinimized가 유지된다', () => {
+		const wat = makeWat();
+		// 툴바 축소 — saveMinimizeState가 같은 키에 isMinimized를 끼워 넣는다
+		wat.saveMinimizeState(false);
+		document.documentElement.dataset.fontSize = 'size-2x';
+
+		wat.savePreferences();
+
+		const saved = JSON.parse(localStorage.getItem(Constants.STORAGE_KEYS.SETTINGS));
+		expect(saved.isMinimized).toBe(true);
+		expect(saved.fontSize).toBe('size-2x');
+	});
+
+	test('축소한 적이 없으면 isMinimized를 새로 기록하지 않는다', () => {
+		const wat = makeWat();
+		wat.savePreferences();
+		const saved = JSON.parse(localStorage.getItem(Constants.STORAGE_KEYS.SETTINGS));
+		expect(saved).not.toHaveProperty('isMinimized');
+	});
+
 	test('_skipSavePreferences 중에는 저장하지 않는다', () => {
 		const wat = makeWat({ _skipSavePreferences: true });
 		wat.savePreferences();

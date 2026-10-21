@@ -4122,7 +4122,12 @@ var WATPlugin = (function (exports) {
 				ttsVoice: document.documentElement.dataset.watTtsVoice || defaultSettings.ttsVoice
 			};
 
-			localStorage.setItem(Constants.STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
+			// 축소 상태는 saveMinimizeState가 같은 키에 따로 기록하므로 덮어써 잃지 않도록 이어받는다
+			const stored = safeParseJSON(localStorage.getItem(Constants.STORAGE_KEYS.SETTINGS), {});
+			const toStore = (stored && typeof stored.isMinimized === 'boolean')
+				? { ...settings, isMinimized: stored.isMinimized }
+				: settings;
+			localStorage.setItem(Constants.STORAGE_KEYS.SETTINGS, JSON.stringify(toStore));
 
 			// StateManager 설정도 함께 갱신
 			plugin.state.set('settings', settings);
