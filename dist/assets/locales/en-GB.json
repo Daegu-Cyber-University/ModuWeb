@@ -508,7 +508,8 @@
 				"toggled": "Toggled \"{target}\".",
 				"executeFailed": "Could not execute the command."
 			}
-		}
+		},
+		"openTool": "Open Web Accessibility Support Tool"
 	},
 	"patterns": {
 		"__comment__": "Search pattern management. Set the titles and search terms.",
