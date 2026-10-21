@@ -2142,7 +2142,8 @@ export class WAT {
 
 			// Create tab buttons (탭 버튼들 생성)
 			tabsData.forEach((tab, index) => {
-				const tabItemElement = document.createElement('li');
+				// ul에 tablist 역할을 줬으므로 li의 listitem 역할을 지워 탭이 tablist에 직접 속하게 한다 (WCAG 1.3.1)
+				const tabItemElement = this.createElementWithAttrs('li', { role: 'none' });
 				const tabButtonElement = this.createElementWithAttrs('button', {
 					role: 'tab',
 					'aria-selected': index === 0 ? 'true' : 'false',

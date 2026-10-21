@@ -245,8 +245,10 @@ export class PanelBuilder {
 			const itemValue = escapeHTML(item.value);
 			const itemSrc = escapeHTML(item.src || '');
 			const labelTitleAttr = itemLabel ? ` title="${itemLabel}"` : '';
+			// 라디오 묶음 ul은 radiogroup 역할이라 li의 listitem 역할을 지워 라디오가 그룹에 직접 속하게 한다 (WCAG 1.3.1)
+			const itemRoleAttr = itemType === 'radio' ? ' role="none"' : '';
 			let htmlString = `
-				<li class='opt_item wat-item-li'>
+				<li class='opt_item wat-item-li'${itemRoleAttr}>
 					<input type="${itemType}" class="wat-items wat-item-type-radio" id="wat-${itemType}-${elementId}" name="${optionName}" title="${titleText} ${itemLabel}" value="${itemValue}" ${checkedAttr} ${disabledAttr}><label for="wat-${itemType}-${elementId}"${labelTitleAttr}>${itemLabel}</label>
 				</li>
 				`;
