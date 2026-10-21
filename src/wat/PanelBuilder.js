@@ -506,7 +506,10 @@ export class PanelBuilder {
 				const input = plugin.createElementWithAttrs('input', { type: 'checkbox', class: ['watSet-checkbox', 'profileListItemInput'], id: `watSet_checkbox_${profile}_${item}`, name: `${profile}_${item}`, value: profileItems[item], 'data-key': item });
 				input.checked = profileValues[profile].enabled[item];
 				const label = plugin.createElementWithAttrs('label', { class: ['watSet_label', 'watSet-profile-item-label'], for: `watSet_checkbox_${profile}_${item}` });
-				label.textContent = plugin.getLocalizedText(`panel.personal.options.${item}.title`);
+				// 로케일 그룹명이 설정 키와 다른 항목(stopAni→animationControl 등)은 개인 옵션과 같은 그룹명으로 조회한다
+				// — 설정 키로 찾으면 라벨이 빈 문자열이 된다
+				const labelGroup = (OPTION_DEFS[item] && OPTION_DEFS[item].group) || item;
+				label.textContent = plugin.getLocalizedText(`panel.personal.options.${labelGroup}.title`);
 				profileListItem.appendChild(input);
 				profileListItem.appendChild(label);
 				profileListInner.appendChild(profileListItem);

@@ -1807,11 +1807,16 @@ export class WAT {
 		 * this.updateTextLocalization();
 		 */
 		updateTextLocalization() {
-			const localizedText = this.getLocalizedText('panel.settings.profile.options.visualImpairment.title');
-			const profileTitleLabel = document.querySelector('.watSet-profile-title-label');
-			if (profileTitleLabel) {
-				profileTitleLabel.textContent = localizedText;
-			}
+			// 프로필 제목은 프로필마다 자기 로케일 키로 맞춘다 — 예전에는 첫 제목(저시력)을 '시각 장애'로 덮어썼다
+			const root = this.container || document;
+			root.querySelectorAll('.watSet-profile-item-container[data-profile]').forEach(profileContainer => {
+				const profile = profileContainer.getAttribute('data-profile');
+				const titleLabel = profileContainer.querySelector('.watSet-profile-title-label');
+				const localizedText = this.getLocalizedText(`panel.settings.profile.options.${profile}.title`);
+				if (titleLabel && localizedText) {
+					titleLabel.textContent = localizedText;
+				}
+			});
 		}
 
 		/**
