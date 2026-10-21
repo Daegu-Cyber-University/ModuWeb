@@ -1703,36 +1703,28 @@ var WATPlugin = (function (exports) {
 	// 링크가 본문과 색으로 구분되지 않을 때 밑줄을 켜는 플래그 (data-wat-link-underline)
 	const LINK_UNDERLINE_KEY = 'watLinkUnderline';
 
-	/** 배경색 견본 — 밝은 9색 × 어두운 글자 6색은 모두 7:1 이상 */
+	/** 배경색 견본 — 밝은 5색 × 어두운 글자 4색은 모두 7:1 이상 (견본 조합에 쓰인 색은 모두 포함) */
 	const BG_SWATCHES = Object.freeze([
 		{ id: 'white', hex: '#ffffff' },
 		{ id: 'cream', hex: '#fdf6e3' },
 		{ id: 'lightYellow', hex: '#fff8c5' },
-		{ id: 'apricot', hex: '#fde9d9' },
-		{ id: 'lightPink', hex: '#fce8ec' },
-		{ id: 'lightPurple', hex: '#eee8f7' },
 		{ id: 'lightBlue', hex: '#e6f0fa' },
-		{ id: 'mint', hex: '#e3f4ec' },
 		{ id: 'lightGray', hex: '#e8e8e8' },
 		{ id: 'darkGray', hex: '#333333' },
 		{ id: 'navy', hex: '#0b1f3a' },
 		{ id: 'black', hex: '#000000' }
 	]);
 
-	/** 글자색 견본 — 어두운 배경 3색 × 밝은 글자 6색도 모두 7:1 이상 */
+	/** 글자색 견본 — 어두운 배경 3색 × 밝은 글자 4색도 모두 7:1 이상 */
 	const FG_SWATCHES = Object.freeze([
 		{ id: 'black', hex: '#000000' },
-		{ id: 'ink', hex: '#1a1a1a' },
 		{ id: 'darkBrown', hex: '#3b2f1e' },
 		{ id: 'navy', hex: '#0b1f3a' },
-		{ id: 'darkGreen', hex: '#0b3d20' },
 		// #4d4d4d는 연회색 배경(#e8e8e8)과 6.9:1이라 #444444로 낮췄다
 		{ id: 'darkGray', hex: '#444444' },
 		{ id: 'white', hex: '#ffffff' },
 		{ id: 'lightGray', hex: '#d9d9d9' },
-		{ id: 'cream', hex: '#fdf6e3' },
 		{ id: 'yellow', hex: '#ffff00' },
-		{ id: 'amber', hex: '#ffd54f' },
 		{ id: 'skyBlue', hex: '#7fdbff' }
 	]);
 
@@ -5208,7 +5200,8 @@ var WATPlugin = (function (exports) {
 	/**
 	 * @fileoverview 내 색상 편집기 — 환경설정 탭에서 배경·글자색을 고르는 UI
 	 * @module src/wat/CustomColorEditor
-	 * @description 견본·색 선택기·색상 코드로 두 색을 고르고, 한쪽을 바꾸면 상대편 추천색을 제안한다.
+	 * @description 견본·색 선택기·색상 코드로 두 색을 고르고, 대비가 7:1에 못 미치면 추천 카드로
+	 *              '글자색을 바꾸는 안'과 '배경색을 바꾸는 안'을 함께 보여 사용자가 바꿀 쪽을 고르게 한다.
 	 *              편집 중에는 미리보기에만 반영하고 [저장하고 적용] 때 plugin.setCustomColors로 넘긴다.
 	 *
 	 *              추천 상태 모델 — 슬롯마다 default(이번 편집에서 손대지 않음) / suggested(추천 승인) / manual(직접 고름).
@@ -5242,7 +5235,10 @@ var WATPlugin = (function (exports) {
 			this.slotState = { bg: 'default', fg: 'default' };
 			/** @type {'bg'|'fg'|null} 마지막으로 사용자가 바꾼 슬롯 — [추천 받기]의 대상을 정한다 */
 			this.lastEdited = null;
-			/** @type {{slot:'bg'|'fg', hex:string, ratio:number}|null} 표시 중인 추천 */
+			/**
+			 * 표시 중인 추천 — 두 슬롯 각각을 바꾸는 안과, 먼저 보여 줄 슬롯(방금 바꾼 쪽의 반대편)
+			 * @type {{primary:'bg'|'fg', options:{bg:{hex:string, ratio:number}, fg:{hex:string, ratio:number}}}|null}
+			 */
 			this.suggestion = null;
 			this.refs = null;
 			this._announceTimer = null;
@@ -5353,7 +5349,7 @@ var WATPlugin = (function (exports) {
 			legend.appendChild(current);
 			fieldset.appendChild(legend);
 
-			// 네이티브 라디오 묶음 — Tab 한 번으로 들어와 화살표로 고르고 "12개 중 N번째"로 안내된다
+			// 네이티브 라디오 묶음 — Tab 한 번으로 들어와 화살표로 고르고 "8개 중 N번째"로 안내된다
 			const list = this._el('ul', { class: 'wat-cc-swatches' });
 			const radios = SWATCHES[slot].map(swatch => {
 				const id = `${ID_PREFIX}_${slot}_${swatch.id}`;
@@ -5411,20 +5407,28 @@ var WATPlugin = (function (exports) {
 			const titleId = `${ID_PREFIX}_suggestTitle`;
 			const card = this._el('div', { class: 'wat-cc-suggest', role: 'group', 'aria-labelledby': titleId });
 			card.hidden = true;
-			refs.suggestTitle = this._el('p', { id: titleId, class: 'wat-cc-subtitle' }, this._t('suggest.title', { slot: this._t('slots.fg') }));
-			const detail = this._el('p', { class: 'wat-cc-suggest-detail' });
-			refs.suggestChip = this._chip(this.draft.bg, this.draft.fg);
-			refs.suggestText = this._el('span', { class: 'wat-cc-suggest-text' });
-			detail.append(refs.suggestChip, refs.suggestText);
+			card.appendChild(this._el('p', { id: titleId, class: 'wat-cc-subtitle' }, this._t('suggest.heading')));
 
-			const actions = this._el('div', { class: 'wat-cc-suggest-actions' });
-			refs.suggestApply = this._el('button', { type: 'button', id: `${ID_PREFIX}_suggestApply`, class: ['wat-cc-button', 'wat-cc-primary'] }, this._t('suggest.apply'));
-			refs.suggestApply.addEventListener('click', () => this._applySuggestion());
+			// 슬롯마다 한 줄: 그쪽을 바꿨을 때의 조합 칩, 추천 색 설명, 적용 버튼 (줄 순서는 표시할 때 정한다)
+			refs.suggestOptions = {};
+			SLOTS.forEach(slot => {
+				const row = this._el('div', { class: 'wat-cc-suggest-option', 'data-slot': slot });
+				const chip = this._chip(this.draft.bg, this.draft.fg);
+				const text = this._el('span', { class: 'wat-cc-suggest-text' });
+				const apply = this._el('button', {
+					type: 'button', id: `${ID_PREFIX}_suggestApply_${slot}`, class: 'wat-cc-button'
+				}, this._t(slot === 'bg' ? 'suggest.applyBg' : 'suggest.applyFg'));
+				apply.addEventListener('click', () => this._applySuggestion(slot));
+				row.append(chip, text, apply);
+				card.appendChild(row);
+				refs.suggestOptions[slot] = { row, chip, text, apply };
+			});
+
+			refs.suggestActions = this._el('div', { class: 'wat-cc-suggest-actions' });
 			refs.suggestManual = this._el('button', { type: 'button', id: `${ID_PREFIX}_suggestManual`, class: 'wat-cc-button' }, this._t('suggest.manual'));
 			refs.suggestManual.addEventListener('click', () => this._declineSuggestion());
-			actions.append(refs.suggestApply, refs.suggestManual);
-
-			card.append(refs.suggestTitle, detail, actions);
+			refs.suggestActions.appendChild(refs.suggestManual);
+			card.appendChild(refs.suggestActions);
 			return card;
 		}
 
@@ -5446,7 +5450,8 @@ var WATPlugin = (function (exports) {
 			this.slotState = { ...this.slotState, [slot]: 'manual' };
 			this.lastEdited = slot;
 			const target = otherSlot(slot);
-			this.suggestion = this.slotState[target] === 'manual' ? null : this._suggestFor(target);
+			// 반대편을 직접 고른 상태면 자동으로 띄우지 않는다(추천 핑퐁 방지) — 띄울 때는 반대편을 먼저 보인다
+			this.suggestion = this.slotState[target] === 'manual' ? null : this._suggestOptions(target);
 			this._render();
 			this._scheduleAnnouncement(this.suggestion ? this._suggestionMessage() : this._contrastMessage(slot));
 		}
@@ -5482,19 +5487,21 @@ var WATPlugin = (function (exports) {
 			this._scheduleAnnouncement(this._t('presetApplied', { name: this._t(`presets.${preset.id}`), ratio: this._formatRatio(ratio) }));
 		}
 
-		_applySuggestion() {
+		/** 사용자가 고른 쪽(slot)을 추천 색으로 바꾼다 — 다른 쪽은 그대로 둔다 */
+		_applySuggestion(slot) {
 			const suggestion = this.suggestion;
 			if (!suggestion) return;
-			this._setHexError(suggestion.slot, false);
-			this.draft = { ...this.draft, [suggestion.slot]: suggestion.hex };
-			this.slotState = { ...this.slotState, [suggestion.slot]: 'suggested' };
+			const option = suggestion.options[slot];
+			this._setHexError(slot, false);
+			this.draft = { ...this.draft, [slot]: option.hex };
+			this.slotState = { ...this.slotState, [slot]: 'suggested' };
 			this.suggestion = null;
 			this._render();
 			// 카드가 숨겨지며 포커스를 잃지 않도록 바뀐 슬롯으로 옮긴다 (견본에 없는 색이면 코드 입력)
-			this._focusSlot(suggestion.slot, true);
+			this._focusSlot(slot, true);
 			this._scheduleAnnouncement(this._t('suggest.applied', {
-				slot: this._t(`slots.${suggestion.slot}`),
-				name: this._colorName(suggestion.hex, suggestion.slot)
+				slot: this._t(`slots.${slot}`),
+				name: this._colorName(option.hex, slot)
 			}));
 		}
 
@@ -5504,15 +5511,15 @@ var WATPlugin = (function (exports) {
 			this._cancelAnnouncement();
 			this.suggestion = null;
 			this._render();
-			this._focusSlot(suggestion.slot, false);
+			this._focusSlot(suggestion.primary, false);
 		}
 
 		_requestSuggestion() {
-			const target = this.lastEdited ? otherSlot(this.lastEdited) : 'fg';
-			this.suggestion = this._suggestFor(target);
+			const primary = this.lastEdited ? otherSlot(this.lastEdited) : 'fg';
+			this.suggestion = this._suggestOptions(primary);
 			if (!this.suggestion) return;
 			this._render();
-			this.refs.suggestApply.focus();
+			this.refs.suggestOptions[primary].apply.focus();
 			this._scheduleAnnouncement(this._suggestionMessage());
 		}
 
@@ -5555,11 +5562,29 @@ var WATPlugin = (function (exports) {
 			this.suggestion = null;
 		}
 
-		/** 상대편 색(anchor)에 맞춘 target 슬롯 추천 — 이미 7:1 이상이면 null */
-		_suggestFor(target) {
-			const result = suggestCounterpart(this.draft[otherSlot(target)], this.draft[target]);
-			if (!result || result.method === 'keep') return null;
-			return { slot: target, hex: result.hex, ratio: result.ratio };
+		/**
+		 * 두 슬롯 각각을 바꾸는 추천 — 슬롯마다 다른 쪽 색을 그대로 두고 그 색조를 유지한 채 7:1에 맞춘다
+		 * @param {'bg'|'fg'} primary - 먼저 보여 줄 슬롯
+		 * @returns {Object|null} 이미 7:1 이상이면 null (같은 조합이라 두 슬롯 모두 'keep')
+		 */
+		_suggestOptions(primary) {
+			const options = {};
+			for (const slot of SLOTS) {
+				const result = suggestCounterpart(this.draft[otherSlot(slot)], this.draft[slot]);
+				if (!result || result.method === 'keep') return null;
+				options[slot] = { hex: result.hex, ratio: result.ratio };
+			}
+			return { primary, options };
+		}
+
+		/** 추천 한 줄의 설명 — "글자색: 밝은 주황 · 대비 7.0 대 1" */
+		_optionText(slot) {
+			const option = this.suggestion.options[slot];
+			return this._t('suggest.detail', {
+				slot: this._t(`slots.${slot}`),
+				name: this._colorName(option.hex, slot),
+				ratio: this._formatRatio(option.ratio)
+			});
 		}
 
 		_render() {
@@ -5604,16 +5629,18 @@ var WATPlugin = (function (exports) {
 				refs.card.hidden = true;
 				return;
 			}
-			const combo = { ...this.draft, [suggestion.slot]: suggestion.hex };
-			refs.suggestTitle.textContent = this._t('suggest.title', { slot: this._t(`slots.${suggestion.slot}`) });
-			refs.suggestChip.style.backgroundColor = combo.bg;
-			refs.suggestChip.style.color = combo.fg;
-			refs.suggestText.textContent = this._t('suggest.detail', {
-				name: this._colorName(suggestion.hex, suggestion.slot),
-				ratio: this._formatRatio(suggestion.ratio)
+			// 먼저 보여 줄 쪽을 위에 두고 그쪽 버튼만 강조한다 — 막 고른 색을 지키는 안이 보통 원하는 선택
+			[suggestion.primary, otherSlot(suggestion.primary)].forEach(slot => {
+				const view = refs.suggestOptions[slot];
+				const combo = { ...this.draft, [slot]: suggestion.options[slot].hex };
+				view.chip.style.backgroundColor = combo.bg;
+				view.chip.style.color = combo.fg;
+				view.text.textContent = this._optionText(slot);
+				view.apply.classList.toggle('wat-cc-primary', slot === suggestion.primary);
+				refs.card.insertBefore(view.row, refs.suggestActions);
 			});
-			// 방금 바꾼 슬롯(추천 대상의 반대편) 바로 뒤에 둔다
-			const anchor = this.refs.slots[otherSlot(suggestion.slot)].fieldset;
+			// 방금 바꾼 슬롯(먼저 보여 줄 쪽의 반대편) 바로 뒤에 둔다
+			const anchor = this.refs.slots[otherSlot(suggestion.primary)].fieldset;
 			if (anchor.nextElementSibling !== refs.card) anchor.after(refs.card);
 			refs.card.hidden = false;
 		}
@@ -5668,11 +5695,10 @@ var WATPlugin = (function (exports) {
 		// ========== 낭독 ==========
 
 		_suggestionMessage() {
-			const suggestion = this.suggestion;
+			const { primary } = this.suggestion;
 			return this._t('suggest.announce', {
-				slot: this._t(`slots.${suggestion.slot}`),
-				name: this._colorName(suggestion.hex, suggestion.slot),
-				ratio: this._formatRatio(suggestion.ratio)
+				first: this._optionText(primary),
+				second: this._optionText(otherSlot(primary))
 			});
 		}
 

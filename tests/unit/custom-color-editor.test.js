@@ -11,6 +11,7 @@ import { WAT } from '../../src/wat/WAT.js';
 import { Defaults } from '../../src/core/defaults.js';
 import { CONTRAST, contrastRatio } from '../../src/core/colorContrast.js';
 import { CustomColorEditor } from '../../src/wat/CustomColorEditor.js';
+import { BG_SWATCHES, FG_SWATCHES } from '../../src/wat/CustomColorTheme.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ko = JSON.parse(readFileSync(join(__dirname, '..', '..', 'dist', 'assets', 'locales', 'ko.json'), 'utf8'));
@@ -40,6 +41,8 @@ const q = (root, selector) => root.querySelector(selector);
 const slotRadios = (root, slot) => Array.from(root.querySelectorAll(`input[type="radio"][name="watSet_customColors_${slot}"]`));
 const checkedValue = (root, slot) => (slotRadios(root, slot).find(r => r.checked) || {}).value || null;
 const suggestCard = root => q(root, '.wat-cc-suggest');
+const applyButton = (root, slot) => q(root, `#watSet_customColors_suggestApply_${slot}`);
+const optionOrder = root => Array.from(suggestCard(root).querySelectorAll('.wat-cc-suggest-option')).map(row => row.dataset.slot);
 const isShown = el => !el.hidden;
 
 function pickSwatch(root, slot, hex) {
@@ -88,11 +91,11 @@ describe('구조와 이름', () => {
 		});
 	});
 
-	test('슬롯마다 같은 name의 견본 라디오 12개가 있고 모두 라벨이 연결된다', () => {
+	test('슬롯마다 같은 name의 견본 라디오 8개가 있고 모두 라벨이 연결된다', () => {
 		const { root } = mount();
 		['bg', 'fg'].forEach(slot => {
 			const radios = slotRadios(root, slot);
-			expect(radios).toHaveLength(12);
+			expect(radios).toHaveLength(8);
 			radios.forEach(radio => {
 				const label = q(root, `label[for="${radio.id}"]`);
 				expect(label).not.toBeNull();
@@ -116,6 +119,18 @@ describe('구조와 이름', () => {
 		const presets = root.querySelectorAll('.wat-cc-preset');
 		expect(presets).toHaveLength(6);
 		presets.forEach(button => expect(button.textContent.trim()).not.toBe(''));
+	});
+
+	test('로케일의 색 이름(colorNames)에는 견본과 무채색 이름으로 쓰이는 키만 있다', () => {
+		const used = new Set([
+			...BG_SWATCHES.map(s => s.id),
+			...FG_SWATCHES.map(s => s.id),
+			// describeColor가 무채색에 돌려주는 키
+			'black', 'darkGray', 'gray', 'lightGray', 'white'
+		]);
+		const names = Object.keys(ko.panel.settings.manage.options.customColors.colorNames);
+		expect(names.filter(key => !used.has(key))).toEqual([]);
+		expect([...used].filter(key => !names.includes(key))).toEqual([]);
 	});
 
 	test('ko 로케일의 모든 legend·label·button 문구가 비어 있지 않다', () => {
@@ -183,41 +198,65 @@ describe('처음 그리기', () => {
 });
 
 describe('추천 흐름', () => {
-	test('배경색을 바꾸면 글자색 추천 카드가 나타나고, 추천색은 새 배경과 7:1 이상이다', () => {
+	test('배경색을 바꾸면 추천 카드에 글자색·배경색 두 선택지가 나오고, 각 추천은 남는 쪽 색과 7:1 이상이다', () => {
 		const { root, editor } = mount();
 		pickSwatch(root, 'bg', '#0b1f3a');
 
 		expect(isShown(suggestCard(root))).toBe(true);
-		expect(editor.suggestion.slot).toBe('fg');
-		expect(contrastRatio('#0b1f3a', editor.suggestion.hex)).toBeGreaterThanOrEqual(CONTRAST.AAA);
-		expect(q(root, '#watSet_customColors_suggestApply')).not.toBeNull();
+		const { fg, bg } = editor.suggestion.options;
+		// 글자색을 바꾸는 선택지는 새 배경(남색)을 그대로 두고, 배경색을 바꾸는 선택지는 지금 글자색(진갈색)을 그대로 둔다
+		expect(contrastRatio('#0b1f3a', fg.hex)).toBeGreaterThanOrEqual(CONTRAST.AAA);
+		expect(contrastRatio('#3b2f1e', bg.hex)).toBeGreaterThanOrEqual(CONTRAST.AAA);
+		expect(applyButton(root, 'fg')).not.toBeNull();
+		expect(applyButton(root, 'bg')).not.toBeNull();
 		expect(q(root, '#watSet_customColors_suggestManual')).not.toBeNull();
 	});
 
-	test('추천 카드는 방금 바꾼 슬롯 바로 뒤에 놓인다', () => {
+	test('두 적용 버튼은 이름이 서로 달라 어느 쪽을 바꾸는지 구분된다', () => {
 		const { root } = mount();
 		pickSwatch(root, 'bg', '#0b1f3a');
-		expect(q(root, 'fieldset.wat-cc-slot[data-slot="bg"]').nextElementSibling).toBe(suggestCard(root));
+		const fgName = applyButton(root, 'fg').textContent.trim();
+		const bgName = applyButton(root, 'bg').textContent.trim();
+		expect(fgName).not.toBe('');
+		expect(bgName).not.toBe('');
+		expect(fgName).not.toBe(bgName);
 	});
 
-	test('추천 안내는 잠시 기다렸다가 한 번만 낭독한다 (화살표로 견본을 옮길 때 연달아 읽지 않게)', () => {
+	test('방금 바꾼 쪽의 반대편이 첫 번째 선택지다 (막 고른 색을 지키는 쪽이 먼저)', () => {
+		const bgFirst = mount();
+		pickSwatch(bgFirst.root, 'bg', '#0b1f3a');
+		expect(optionOrder(bgFirst.root)).toEqual(['fg', 'bg']);
+		expect(bgFirst.editor.suggestion.primary).toBe('fg');
+		bgFirst.root.remove();
+
+		const fgFirst = mount();
+		pickSwatch(fgFirst.root, 'fg', '#ffffff');
+		expect(optionOrder(fgFirst.root)).toEqual(['bg', 'fg']);
+		expect(fgFirst.editor.suggestion.primary).toBe('bg');
+	});
+
+	test('추천 카드는 방금 바꾼 슬롯 바로 뒤에 놓인다 (배경·글자 대칭)', () => {
+		const bgFirst = mount();
+		pickSwatch(bgFirst.root, 'bg', '#0b1f3a');
+		expect(q(bgFirst.root, 'fieldset.wat-cc-slot[data-slot="bg"]').nextElementSibling).toBe(suggestCard(bgFirst.root));
+		bgFirst.root.remove();
+
+		const fgFirst = mount();
+		pickSwatch(fgFirst.root, 'fg', '#ffffff');
+		expect(q(fgFirst.root, 'fieldset.wat-cc-slot[data-slot="fg"]').nextElementSibling).toBe(suggestCard(fgFirst.root));
+	});
+
+	test('추천 안내는 잠시 기다렸다가 한 번만, 두 선택지를 함께 낭독한다', () => {
 		const { root, plugin } = mount();
 		pickSwatch(root, 'bg', '#333333');
 		pickSwatch(root, 'bg', '#0b1f3a');
 		expect(plugin._announceToLiveRegion).not.toHaveBeenCalled();
 		jest.advanceTimersByTime(ANNOUNCE_DELAY);
 		expect(plugin._announceToLiveRegion).toHaveBeenCalledTimes(1);
-		expect(plugin._announceToLiveRegion.mock.calls[0][0]).not.toBe('');
-	});
-
-	test('글자색을 먼저 바꿔도 대칭으로 배경색 추천 카드가 나타난다', () => {
-		const { root, editor } = mount();
-		pickSwatch(root, 'fg', '#ffffff');
-
-		expect(isShown(suggestCard(root))).toBe(true);
-		expect(editor.suggestion.slot).toBe('bg');
-		expect(contrastRatio('#ffffff', editor.suggestion.hex)).toBeGreaterThanOrEqual(CONTRAST.AAA);
-		expect(q(root, 'fieldset.wat-cc-slot[data-slot="fg"]').nextElementSibling).toBe(suggestCard(root));
+		const message = plugin._announceToLiveRegion.mock.calls[0][0];
+		const slots = ko.panel.settings.manage.options.customColors.slots;
+		expect(message).toContain(slots.fg);
+		expect(message).toContain(slots.bg);
 	});
 
 	test('새 조합이 이미 7:1 이상이면 추천 카드를 띄우지 않는다', () => {
@@ -226,43 +265,57 @@ describe('추천 흐름', () => {
 		expect(isShown(suggestCard(root))).toBe(false);
 	});
 
-	test('[추천색 적용]: 글자색이 추천색으로 바뀌고 카드가 사라지며 포커스는 글자색 슬롯으로 간다', () => {
+	test('[글자색 바꾸기]: 글자색이 추천색으로 바뀌고 카드가 사라지며 포커스는 글자색 슬롯으로 간다', () => {
 		const { root, editor } = mount();
 		pickSwatch(root, 'bg', '#0b1f3a');
-		const suggested = editor.suggestion.hex;
+		const suggested = editor.suggestion.options.fg.hex;
 
-		q(root, '#watSet_customColors_suggestApply').click();
+		applyButton(root, 'fg').click();
 
-		expect(editor.draft.fg).toBe(suggested);
+		expect(editor.draft).toEqual({ bg: '#0b1f3a', fg: suggested });
 		expect(editor.slotState.fg).toBe('suggested');
 		expect(isShown(suggestCard(root))).toBe(false);
 		expect(q(root, 'fieldset.wat-cc-slot[data-slot="fg"]').contains(document.activeElement)).toBe(true);
 		expect(q(root, '#watSet_customColors_fg_hex').value).toBe(suggested);
 	});
 
+	test('[배경색 바꾸기]: 방금 고른 배경 대신 글자색에 맞춘 배경으로 바뀌고 포커스는 배경색 슬롯으로 간다', () => {
+		const { root, editor } = mount();
+		pickSwatch(root, 'bg', '#0b1f3a');
+		const suggested = editor.suggestion.options.bg.hex;
+
+		applyButton(root, 'bg').click();
+
+		expect(editor.draft).toEqual({ bg: suggested, fg: '#3b2f1e' });
+		expect(editor.slotState.bg).toBe('suggested');
+		expect(isShown(suggestCard(root))).toBe(false);
+		expect(q(root, 'fieldset.wat-cc-slot[data-slot="bg"]').contains(document.activeElement)).toBe(true);
+		expect(q(root, '.wat-cc-contrast').dataset.level).toBe('aaa');
+	});
+
 	test('추천을 승인한 뒤에도 글자색을 직접 바꿀 수 있다', () => {
 		const { root, editor } = mount();
 		pickSwatch(root, 'bg', '#0b1f3a');
-		q(root, '#watSet_customColors_suggestApply').click();
+		applyButton(root, 'fg').click();
 
-		pickSwatch(root, 'fg', '#ffd54f');
+		pickSwatch(root, 'fg', '#7fdbff');
 
-		expect(editor.draft.fg).toBe('#ffd54f');
+		expect(editor.draft.fg).toBe('#7fdbff');
 		expect(editor.slotState.fg).toBe('manual');
 	});
 
 	test('승인한 글자색은 배경을 다시 바꾸면 다시 추천 대상이 된다', () => {
 		const { root, editor } = mount();
 		pickSwatch(root, 'bg', '#0b1f3a');
-		q(root, '#watSet_customColors_suggestApply').click();
+		applyButton(root, 'fg').click();
 
 		pickSwatch(root, 'bg', '#fdf6e3');
 
 		expect(isShown(suggestCard(root))).toBe(true);
-		expect(editor.suggestion.slot).toBe('fg');
+		expect(editor.suggestion.primary).toBe('fg');
 	});
 
-	test('[직접 고를게요]: 초안은 그대로, 카드가 사라지고 포커스는 글자색 견본으로 간다', () => {
+	test('[직접 고를게요]: 초안은 그대로, 카드가 사라지고 포커스는 첫 선택지(글자색) 견본으로 간다', () => {
 		const { root, editor } = mount();
 		pickSwatch(root, 'bg', '#0b1f3a');
 		const before = { ...editor.draft };
@@ -287,10 +340,10 @@ describe('추천 흐름', () => {
 
 		request.click();
 
-		// 마지막으로 바꾼 쪽(글자색)의 반대편인 배경색을 추천
+		// 두 선택지를 모두 보여 주되, 마지막으로 바꾼 쪽(글자색)의 반대편인 배경색이 먼저
 		expect(isShown(suggestCard(root))).toBe(true);
-		expect(editor.suggestion.slot).toBe('bg');
-		expect(document.activeElement.id).toBe('watSet_customColors_suggestApply');
+		expect(optionOrder(root)).toEqual(['bg', 'fg']);
+		expect(document.activeElement.id).toBe('watSet_customColors_suggestApply_bg');
 	});
 
 	test('대비가 충분하면 [추천 받기]는 숨긴다', () => {
@@ -435,7 +488,7 @@ describe('저장과 취소', () => {
 		expect(editor.slotState).toEqual({ bg: 'default', fg: 'default' });
 
 		pickSwatch(root, 'bg', '#fdf6e3');
-		expect(editor.suggestion.slot).toBe('fg');
+		expect(editor.suggestion.primary).toBe('fg');
 	});
 
 	test('[취소]는 저장하지 않고 저장된 색으로 되돌린다', () => {

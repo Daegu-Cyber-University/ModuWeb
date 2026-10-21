@@ -3,7 +3,7 @@
  */
 import { jest, describe, test, expect, beforeEach, afterEach } from '@jest/globals';
 import { Constants } from '../../src/core/constants.js';
-import { CONTRAST, normalizeHex, contrastRatio, deriveThemeColors } from '../../src/core/colorContrast.js';
+import { CONTRAST, normalizeHex, contrastRatio, relativeLuminance, deriveThemeColors } from '../../src/core/colorContrast.js';
 import {
 	CUSTOM_COLOR_DEFAULTS,
 	CUSTOM_COLOR_VARS,
@@ -165,9 +165,34 @@ describe('copyCustomColorVars', () => {
 describe('견본과 기본값', () => {
 	test('견본 색은 모두 유효한 hex이고 슬롯 안에서 id가 겹치지 않는다', () => {
 		[BG_SWATCHES, FG_SWATCHES].forEach(list => {
-			expect(list.length).toBe(12);
+			expect(list.length).toBe(8);
 			list.forEach(swatch => expect(normalizeHex(swatch.hex)).toBe(swatch.hex));
 			expect(new Set(list.map(s => s.id)).size).toBe(list.length);
+		});
+	});
+
+	test('견본 조합에 쓰인 색은 모두 해당 슬롯 견본에 있다 (조합을 고르면 견본이 체크되도록)', () => {
+		CUSTOM_COLOR_PRESETS.forEach(preset => {
+			expect(BG_SWATCHES.map(s => s.hex)).toContain(preset.bg);
+			expect(FG_SWATCHES.map(s => s.hex)).toContain(preset.fg);
+		});
+	});
+
+	test('밝은 배경 × 어두운 글자, 어두운 배경 × 밝은 글자 조합은 모두 7:1 이상이다', () => {
+		// 검정·흰색과의 대비가 같아지는 휘도(약 0.179)를 경계로 밝고 어두움을 나눈다
+		const isLight = hex => relativeLuminance(hex) > 0.179;
+		BG_SWATCHES.forEach(bg => {
+			FG_SWATCHES.filter(fg => isLight(fg.hex) !== isLight(bg.hex)).forEach(fg => {
+				expect(contrastRatio(bg.hex, fg.hex)).toBeGreaterThanOrEqual(CONTRAST.AAA);
+			});
+		});
+	});
+
+	test('슬롯마다 밝은 색과 어두운 색을 3개 이상씩 둔다 (어느 쪽으로 고르든 짝이 될 견본이 있게)', () => {
+		const isLight = hex => relativeLuminance(hex) > 0.179;
+		[BG_SWATCHES, FG_SWATCHES].forEach(list => {
+			expect(list.filter(s => isLight(s.hex)).length).toBeGreaterThanOrEqual(3);
+			expect(list.filter(s => !isLight(s.hex)).length).toBeGreaterThanOrEqual(3);
 		});
 	});
 
