@@ -11,20 +11,23 @@
 
 **🔗 Live Demo: <https://daegu-cyber-university.github.io/ModuWeb/>**
 
-[![ModuWeb accessibility panel screenshot](docs/assets/screenshots/panel-main.png)](https://daegu-cyber-university.github.io/ModuWeb/)
+[![The ModuWeb panel open on its personal settings tab, next to an example page with the dark color mode and 1.5× font size applied](docs/assets/screenshots/panel-main.png)](https://daegu-cyber-university.github.io/ModuWeb/)
 
 ## Why ModuWeb?
 
 - **One-line install** — a single `<script>` tag with `data-wat-auto`. No build step, no framework required.
 - **Works offline / in air-gapped networks** — `webAccTools.standalone.min.js` inlines CSS, icons and Korean locale data into **one file**. No external network needed.
 - **TTS & STT without API keys** — screen reading and voice commands run on the browser's Web Speech API. Nothing to sign up for, nothing to pay.
-- **WCAG 2.1 AA · KWCAG 2.1** — designed for both the international standard and the Korean government accessibility standard, making it a fit for Korean public-sector sites. The panel UI itself is checked against WCAG 2.2 AA, including measured 24×24 CSS px target sizes across all 166 controls.
+- **Built to WCAG 2.1 AA · KWCAG 2.1** — designed around both the international standard and the Korean government accessibility standard, making it a fit for Korean public-sector sites. The panel UI itself is audited against WCAG 2.2 AA (target size, contrast, focus management), and issues found are fixed and logged in the [CHANGELOG](CHANGELOG.md).
 - **6 UI languages** — Korean, English (US/GB), Japanese, Chinese, German.
-- **Accessibility profiles** — one-click presets for low vision, color blindness, and dyslexia.
+- **7 accessibility profiles** — one-click presets for low vision, color blindness, dyslexia, visual impairment, seniors, motion sensitivity and physical disability.
+- **Custom colors** — visitors pick their own background and text colors; the panel shows the contrast ratio and suggests a 7:1 counterpart color (WCAG 1.4.8).
 
-| Dark mode + 1.5× font applied | Accessibility profiles |
+| Custom colors — suggests a 7:1 pair when contrast is low | 7 accessibility profiles |
 |---|---|
-| ![Page with dark color theme and enlarged font](docs/assets/screenshots/panel-styled.png) | ![Profile settings for low vision, color blindness, dyslexia](docs/assets/screenshots/panel-settings.png) |
+| ![The custom colors editor on the settings tab: after switching the background to navy, it warns that the contrast with the dark brown text is only 1.2:1 and suggests a light orange text color at 7.0:1](docs/assets/screenshots/panel-custom-colors.png) | ![The profile list on the settings tab: seven profiles, with low vision switched on and its options (font size, typeface, letter spacing) expanded](docs/assets/screenshots/panel-profiles.png) |
+
+<sub>The screenshots show the Korean UI; the panel also ships in English (US/GB), Japanese, Chinese and German.</sub>
 
 ## Quick Start
 
@@ -34,7 +37,7 @@
 <script src="https://cdn.jsdelivr.net/gh/Daegu-Cyber-University/ModuWeb@2/dist/webAccTools.standalone.min.js" data-wat-auto></script>
 ```
 
-`@2` serves the latest 2.x release, so new releases reach your site without downloading anything. Use `@2.3` to receive patch releases only, or a tag such as `@v2.3.10` to pin a version. Don't use `@main`: it serves unreleased commits. A new release can take up to 7 days to reach every visitor (jsDelivr's version-range cache plus browser caches); purging the CDN cache with the [jsDelivr purge tool](https://www.jsdelivr.com/tools/purge) makes new visitors get it right away. jsDelivr also serves the other locales with an `Access-Control-Allow-Origin` header, so no server setup is needed.
+`@2` serves the latest 2.x release, so new releases reach your site without downloading anything. Use `@2.3` to receive patch releases only, or a tag such as `@v2.3.11` to pin a version. Don't use `@main`: it serves unreleased commits. A new release can take up to 7 days to reach every visitor (jsDelivr's version-range cache plus browser caches); purging the CDN cache with the [jsDelivr purge tool](https://www.jsdelivr.com/tools/purge) makes new visitors get it right away. jsDelivr also serves the other locales with an `Access-Control-Allow-Origin` header, so no server setup is needed.
 
 Configure declaratively with `data-wat-*` attributes:
 
@@ -103,13 +106,13 @@ For IIS add the same header under `system.webServer/httpProtocol/customHeaders` 
 
 | Category | Features |
 |---|---|
-| Visual | Font size / typeface, text alignment & spacing, full-page magnification |
-| Color | High-contrast themes, color inversion, saturation control, custom text/background colors with contrast suggestions |
-| Focus | Cursor highlighting, reading guide, media & animation control |
+| Visual | Font size / typeface, text alignment & spacing, full-page magnification, hiding images or showing their alt text |
+| Color | Light / dark / inverted color modes, custom text & background colors with 7:1 contrast suggestions, saturation control, red/green color-blindness correction |
+| Focus | Reading guide (mask / underline) and large cursor, media & animation control, auto page scroll |
 | Audio | TTS screen reading (auto / focus / keyboard modes), STT voice commands |
-| Extras | Dictionary lookup (shown only when a dictionary server endpoint is configured), simplified reading mode, page structure viewer |
+| Extras | Dictionary lookup (shown only when a dictionary server endpoint is configured), page structure viewer |
 | Keyboard | Full keyboard navigation, focus indicators, shortcuts |
-| Profiles | One-click presets per disability type, settings persistence, export/import |
+| Profiles | 7 one-click presets per disability type, settings persistence, export/import |
 
 ## Documentation
 

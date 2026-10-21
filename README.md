@@ -8,15 +8,15 @@
 
 > 모두를 위한 웹 - 웹 접근성 향상을 위한 통합 도구
 >
-> **ModuWeb** is a drop-in web accessibility widget for any website — screen reader (TTS), voice commands (STT), magnification, color adjustment, and an offline-ready single-file bundle. WCAG 2.1 AA · KWCAG 2.1 compliant. — **[English README](README.en.md)**
+> **ModuWeb** is a drop-in web accessibility widget for any website — screen reader (TTS), voice commands (STT), magnification, color adjustment, and an offline-ready single-file bundle. Built to WCAG 2.1 AA · KWCAG 2.1. — **[English README](README.en.md)**
 
 **🔗 라이브 데모 (Live Demo): <https://daegu-cyber-university.github.io/ModuWeb/>**
 
-[![ModuWeb 접근성 패널 스크린샷](docs/assets/screenshots/panel-main.png)](https://daegu-cyber-university.github.io/ModuWeb/)
+[![색상 모드 '어둡게'와 폰트 크기 1.5배를 적용한 예제 페이지 오른쪽에 ModuWeb 패널의 개별 설정 탭이 열린 화면](docs/assets/screenshots/panel-main.png)](https://daegu-cyber-university.github.io/ModuWeb/)
 
-| 다크 모드 + 폰트 1.5배 적용 | 장애 유형별 프로필 설정 |
+| 내 색상 — 대비가 부족하면 7:1 짝 색 추천 | 장애 유형별 프로필 7종 |
 |---|---|
-| ![다크 모드와 폰트 확대가 적용된 화면](docs/assets/screenshots/panel-styled.png) | ![저시력·색맹·난독증 프로필 설정 화면](docs/assets/screenshots/panel-settings.png) |
+| ![환경설정 탭의 내 색상 편집기. 배경색을 남색으로 바꾸자 진갈색 글자와의 명도 대비가 1.2 대 1이라는 경고가 뜨고, 대비 7.0 대 1인 밝은 주황 글자색을 추천하는 화면](docs/assets/screenshots/panel-custom-colors.png) | ![환경설정 탭의 프로필 목록. 저시력·색맹·난독증·시각 장애·고령자·움직임 민감·신체 장애 7종 가운데 저시력을 켜고 옵션(폰트 크기·폰트 변경·글자 간격)을 펼친 화면](docs/assets/screenshots/panel-profiles.png) |
 
 ---
 
@@ -58,8 +58,8 @@
 - 간편한 통합: 단 몇 줄의 코드로 웹사이트에 접근성 기능을 추가합니다.
 - 다국어 지원: 한국어, 영어, 일본어, 중국어, 독일어 지원
 - 반응형 설계: 데스크톱과 모바일 모두 지원
-- WCAG 2.1 AA 준수: 국제 웹 접근성 표준을 지향합니다.
-- 도구 자신의 접근성 검증: 패널 UI를 WCAG 2.2 AA 기준으로 점검했습니다 — 조작 대상 24×24 CSS 픽셀 실측(조작 요소 166개 미달 0건), 색 대비, 초점 관리 포함
+- WCAG 2.1 AA·KWCAG 2.1 지향: 국제 웹 접근성 표준과 한국형 웹 콘텐츠 접근성 지침을 목표로 개발합니다.
+- 도구 자신의 접근성 점검: 패널 UI도 WCAG 2.2 AA 기준(조작 대상 크기, 색 대비, 초점 관리 등)으로 점검하고, 발견한 문제와 수정 내역은 [CHANGELOG](./CHANGELOG.md)에 기록합니다.
 - 커스터마이징 가능: 다양한 테마와 설정 옵션
 - 기능: TTS, STT, 화면 확대, 색상 조절 등
 
@@ -71,6 +71,7 @@
 - **글꼴 조절**: 텍스트 크기 및 폰트 종류를 조절
 - **텍스트 정렬**: 텍스트 좌우 정렬 및 간격 조절
 - **저시력 지원**: 화면 전체 크기 조절
+- **이미지 표시 모드**: 이미지를 숨기거나 대체텍스트로 바꿔 표시
 
 ### 색상 인식 지원
 - **색상 모드**: 기본·밝게·어둡게·반전·내 색상 5종 (첫 방문 시 OS 다크 모드 설정 자동 반영)
@@ -82,6 +83,7 @@
 - **커서 도구**: 마우스 위치 강조
 - **읽기 지원**: 웹페이지 콘텐츠 읽기를 위한 집중력 지원
 - **미디어 제어**: 미디어 콘텐츠 및 애니메이션 제어
+- **페이지 스크롤**: 자동 스크롤과 위·아래 이동
 
 ### 청각적 접근성
 - **TTS (Text-to-Speech)**: 텍스트를 음성으로 변환 (환경설정에서 낭독 음성 선택 가능)
@@ -89,9 +91,8 @@
 
 ### 보조 지원도구
 - **사전 기능**: 오픈 사전 검색 지원 (사전 서버 `serverEndpoint`가 설정된 사이트에서만 패널에 나타남)
-- **읽기 모드**: 집중 읽기를 위한 단순화된 화면
 - **페이지 구조 탐색**: 제목·랜드마크·링크 목록으로 페이지 개요 확인과 위치 이동
-- **다국어 지원**: 한국어, 영어, 일본어, 중국어 지원
+- **다국어 지원**: 한국어, 영어(미국·영국), 일본어, 중국어, 독일어 6개 언어
 
 ### 키보드 접근성
 - **키보드 내비게이션**: 마우스 없이 모든 기능 접근 가능
@@ -99,7 +100,7 @@
 - **단축키**: `Alt+Shift+T`(선택 영역 낭독) / `Alt+Shift+D`(사전 검색, 사전 서버가 설정된 경우) / `Alt+Shift+S`(음성 명령). `settings.ui.keyboardShortcuts: false`로 비활성화 가능
 
 ### 설정 관리
-- **프로필 기능**: 장애 유형별 프로필 일괄 적용
+- **프로필 기능**: 장애 유형별 프로필 7종(저시력·색맹·난독증·시각 장애·고령자·움직임 민감·신체 장애) 일괄 적용
 - **설정 저장**: 도구 사용성 지원을 위한 설정 저장
 
 ## 빠른 시작
@@ -118,7 +119,7 @@ HTML에 script 태그 한 줄만 추가하면 됩니다. CSS·아이콘·한국�
 |---|---|
 | `@2` (권장) | 2.x 가운데 최신 릴리스 — 수정과 새 기능이 자동으로 반영 |
 | `@2.3` | 2.3.x 가운데 최신 릴리스 — 수정(패치)만 자동으로 반영 |
-| `@v2.3.10` | 그 버전에 고정 — 업데이트하려면 주소를 직접 바꿈 |
+| `@v2.3.11` | 그 버전에 고정 — 업데이트하려면 주소를 직접 바꿈 |
 
 - `@main`은 쓰지 마세요. 릴리스 전에 개발 중인 코드까지 바로 사이트에 나갑니다.
 - 새 버전이 모든 방문자에게 퍼지기까지 최대 7일이 걸릴 수 있습니다(jsDelivr의 버전 범위 캐시와 방문자 브라우저 캐시). 급한 수정은 릴리스 뒤 [jsDelivr 퍼지 도구](https://www.jsdelivr.com/tools/purge)로 CDN 캐시를 비우면 새로 받는 방문자부터 바로 반영됩니다.
@@ -262,7 +263,7 @@ npm run package:only   # 현재 dist/ 로 zip 만 생성
 | 위치 | 내용 |
 |---|---|
 | `src/wat/WAT.js` | 메인 클래스 (오케스트레이션) |
-| `src/wat/*.js` | 기능 모듈 — `PanelBuilder`(설정 패널 UI), `SettingsApplier`(설정 저장/프로필), `OverlayManager`(모달), `Dictionary`, `PageStructure`, `IframeStyler`, `StateManager` |
+| `src/wat/*.js` | 기능 모듈 — `PanelBuilder`(설정 패널 UI), `SettingsApplier`(설정 저장/프로필), `CustomColorEditor`·`CustomColorTheme`(내 색상), `OverlayManager`(모달), `Dictionary`, `PageStructure`, `IframeStyler`, `StateManager` |
 | `src/tts/`, `src/stt/` | 음성 읽기(TTS)·음성 명령(STT) |
 | `src/core/` | 공통(상수·기본값·로케일·설정 관리·유틸) |
 | `dist/assets/css/webAccTools.css` | **스타일 원본** (여기서 직접 편집 — 빌드가 이 파일을 standalone에 인라인함) |
@@ -635,8 +636,8 @@ wat.ttsManager.toggleAutoTTS();
 wat.ttsManager.toggleFocusTTS();
 
 // 읽기 속도 조절
-wat.changeTTSSpeed(speed);       // 속도 단계 변경
-wat.setTTSSpeechRate(rate);      // speechSynthesis 발화 속도 직접 설정
+wat.setTTSSpeechRate(rate);      // speechSynthesis 발화 속도 설정 (0.1~10)
+wat.getTTSSpeechRate();          // 현재 발화 속도
 
 // 낭독 음성 선택 (voiceURI는 speechSynthesis.getVoices()의 값, 빈 문자열이면 브라우저 기본 음성)
 wat.changeTTSVoice(voiceURI);
@@ -694,9 +695,9 @@ document.addEventListener('wat:initialized', (event) => {
 - Android Chrome 60+
 - Samsung Internet 8.0+
 
-## 접근성 준수
+## 접근성 기준
 
-이 라이브러리는 다음 접근성 표준을 준수합니다:
+이 라이브러리는 다음 접근성 표준을 목표로 개발합니다:
 
 - **WCAG 2.1 AA**: Web Content Accessibility Guidelines
 - **KWCAG 2.1**: 한국형 웹 콘텐츠 접근성 가이드라인
