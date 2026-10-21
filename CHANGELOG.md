@@ -21,6 +21,7 @@
 - **열기 버튼의 이름이 '열기'뿐이던 문제 (WCAG 2.4.6)**: 페이지 어디서든 탭으로 만나는 열기 버튼의 접근 이름(`aria-label`·`title`)이 '열기'뿐이라 무엇을 여는 버튼인지 알 수 없었다 (2.0.0부터). '웹 접근성 지원 도구 열기'(영어 'Open Web Accessibility Support Tool' 등 6개 언어)로 수정 (로케일 키 `command.openTool` 추가)
 - **탭 목록·라디오 그룹 안의 목록 항목이 역할 구조를 깨던 문제 (WCAG 1.3.1)**: 패널 탭(`ul[role=tablist]`)과 개인 옵션 라디오 묶음(`ul[role=radiogroup]`) 안의 `li`가 목록 항목 역할을 그대로 가져, 탭·라디오가 그룹에 직접 속하지 않고 목록 밖 목록 항목이 생겼다(axe `aria-required-children`·`aria-required-parent`·`listitem` 위반, 탭 목록은 2.0.0부터, 라디오 그룹은 2.1.0부터). 이 `li`에 `role="none"`을 주도록 수정. 스위치·버튼 항목의 목록은 그대로
 - **프로필 옵션의 빈 라벨과 언어 변경 뒤 바뀌는 프로필 이름 (WCAG 1.3.1·4.1.2)**: 움직임 민감 프로필의 옵션을 열면 애니메이션·미디어 정지 체크박스에 이름이 없었다. 라벨을 설정 키로 찾는데 이 두 항목은 로케일 그룹명이 달라(`animationControl`·`mediaControl`) 빈 문자열이 됐기 때문 (2.2.0부터). 개별 설정과 같은 이름('애니메이션 제어'·'미디어 제어')이 붙도록 수정. 또 언어를 바꾸면 저시력 프로필 이름이 '시각 장애'로 덮어써져, 같은 이름의 프로필이 두 개로 보이고 읽혔다 (2.0.0부터). 프로필마다 자기 이름으로 맞추도록 수정
+- **`data-wat-container`를 지정해도 위젯이 늘 `<body>` 맨 앞에 들어가던 문제**: 자동 초기화(`data-wat-auto`)는 `data-wat-container` 값을 `containerSelector` 옵션으로 넘기는데, 삽입 위치를 정하는 코드는 `containerTargetSelector`만 읽어 이 값이 무시됐다. 생성자 JSDoc 예시대로 `new WAT({ containerSelector: '#…' })`를 써도 같았다 (`data-wat-container`가 생긴 2.1.0부터). `containerSelector`를 `containerTargetSelector`의 별칭으로 받도록 수정. 둘 다 주면 `containerTargetSelector`가 우선하고, 위젯은 지정한 요소 안 맨 앞(`containerTargetPosition: 'after'`면 맨 뒤)에 들어간다. 생성자 JSDoc 예시도 `containerTargetSelector`로 고쳤다
 
 ---
 
