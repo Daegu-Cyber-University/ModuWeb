@@ -102,7 +102,6 @@
 						"colorNames": {
 							"black": "黒",
 							"darkGray": "濃い灰色",
-							"gray": "灰色",
 							"lightGray": "薄い灰色",
 							"white": "白",
 							"cream": "クリーム色",
@@ -125,7 +124,8 @@
 							"indigo": "藍",
 							"purple": "紫",
 							"magenta": "赤紫",
-							"pink": "ピンク"
+							"pink": "ピンク",
+							"gray": "灰色"
 						},
 						"tones": {
 							"veryDark": "とても暗い",
@@ -133,7 +133,8 @@
 							"light": "明るい",
 							"veryLight": "とても明るい"
 						},
-						"colorPattern": "{tone}{hue}"
+						"colorPattern": "{tone}{hue}",
+						"similar": "{name}系"
 					},
 					"storage": {
 						"title": "保存設定",

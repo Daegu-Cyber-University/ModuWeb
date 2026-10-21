@@ -102,7 +102,6 @@
 						"colorNames": {
 							"black": "Schwarz",
 							"darkGray": "Dunkelgrau",
-							"gray": "Grau",
 							"lightGray": "Hellgrau",
 							"white": "Weiß",
 							"cream": "Creme",
@@ -125,7 +124,8 @@
 							"indigo": "Indigo",
 							"purple": "Violett",
 							"magenta": "Magenta",
-							"pink": "Rosa"
+							"pink": "Rosa",
+							"gray": "Grau"
 						},
 						"tones": {
 							"veryDark": "sehr dunkel",
@@ -133,7 +133,8 @@
 							"light": "hell",
 							"veryLight": "sehr hell"
 						},
-						"colorPattern": "{hue} ({tone})"
+						"colorPattern": "{hue} ({tone})",
+						"similar": "{name}-Ton"
 					},
 					"storage": {
 						"title": "Speichereinstellungen",

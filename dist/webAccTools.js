@@ -1656,7 +1656,6 @@ var WATPlugin = (function (exports) {
 	}
 
 	// [상한, 키] — 값이 상한 미만인 첫 구간
-	const NEUTRAL_STEPS = [[0.12, 'black'], [0.35, 'darkGray'], [0.65, 'gray'], [0.9, 'lightGray'], [Infinity, 'white']];
 	const TONE_STEPS = [[0.2, 'veryDark'], [0.38, 'dark'], [0.62, 'base'], [0.8, 'light'], [Infinity, 'veryLight']];
 	const HUE_STEPS = [
 		[15, 'red'], [40, 'orange'], [65, 'yellow'], [90, 'yellowGreen'], [150, 'green'], [185, 'teal'],
@@ -1666,8 +1665,10 @@ var WATPlugin = (function (exports) {
 
 	/**
 	 * 스크린리더가 '#2b2100'을 한 글자씩 읽지 않도록 대략적인 색 이름을 고릅니다 (문구는 로케일이 정한다)
+	 * 무채색도 '밝은 회색'처럼 명도 단계 + 회색으로 부른다 — 견본 이름(검정·진회색·연회색·흰색)을 쓰면
+	 * 견본과 다른 색이 같은 이름으로 불려 같은 색으로 오해된다.
 	 * @param {string} hex
-	 * @returns {{kind:'neutral', key:string}|{kind:'chromatic', tone:string, hue:string}|null}
+	 * @returns {{kind:'neutral'|'chromatic', tone:string, hue:string}|null} 무채색의 hue는 'gray'
 	 */
 	function describeColor(hex) {
 		const hsl = hexToHsl(hex);
@@ -1675,7 +1676,7 @@ var WATPlugin = (function (exports) {
 		const { h, s, l } = hsl;
 		// 채도가 낮거나 아주 어둡고 밝은 색은 색조보다 명도로 부르는 편이 정확하다
 		if (s < 0.15 || l < 0.06 || l > 0.96) {
-			return { kind: 'neutral', key: pickStep(NEUTRAL_STEPS, l) };
+			return { kind: 'neutral', tone: pickStep(TONE_STEPS, l), hue: 'gray' };
 		}
 		return { kind: 'chromatic', tone: pickStep(TONE_STEPS, l), hue: pickStep(HUE_STEPS, h) };
 	}
@@ -5686,10 +5687,18 @@ var WATPlugin = (function (exports) {
 			if (swatch) return this._t(`colorNames.${swatch.id}`);
 			const description = describeColor(hex);
 			if (!description) return hex;
-			if (description.kind === 'neutral') return this._t(`colorNames.${description.key}`);
 			const hue = this._t(`hues.${description.hue}`);
-			if (description.tone === 'base') return hue;
-			return this._t('colorPattern', { tone: this._t(`tones.${description.tone}`), hue });
+			const name = description.tone === 'base'
+				? hue
+				: this._t('colorPattern', { tone: this._t(`tones.${description.tone}`), hue });
+			// 견본에 없는 색이 견본 이름('노랑' 등)으로 불리면 같은 색으로 오해한다 — 겹치면 '계열'을 붙여 구분
+			return this._isSwatchName(name) ? this._t('similar', { name }) : name;
+		}
+
+		/** 현재 로케일에서 견본 이름과 같은지 (영어는 대소문자만 다를 수 있어 무시) */
+		_isSwatchName(name) {
+			const lower = name.toLowerCase();
+			return [...BG_SWATCHES, ...FG_SWATCHES].some(s => this._t(`colorNames.${s.id}`).toLowerCase() === lower);
 		}
 
 		// ========== 낭독 ==========

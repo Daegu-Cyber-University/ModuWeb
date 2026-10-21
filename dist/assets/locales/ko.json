@@ -102,7 +102,6 @@
 						"colorNames": {
 							"black": "검정",
 							"darkGray": "진회색",
-							"gray": "회색",
 							"lightGray": "연회색",
 							"white": "흰색",
 							"cream": "크림색",
@@ -125,7 +124,8 @@
 							"indigo": "남색",
 							"purple": "보라",
 							"magenta": "자주",
-							"pink": "분홍"
+							"pink": "분홍",
+							"gray": "회색"
 						},
 						"tones": {
 							"veryDark": "아주 어두운",
@@ -133,7 +133,8 @@
 							"light": "밝은",
 							"veryLight": "아주 밝은"
 						},
-						"colorPattern": "{tone} {hue}"
+						"colorPattern": "{tone} {hue}",
+						"similar": "{name} 계열"
 					},
 					"storage": {
 						"title": "저장 설정",

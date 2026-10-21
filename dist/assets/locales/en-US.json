@@ -102,7 +102,6 @@
 						"colorNames": {
 							"black": "Black",
 							"darkGray": "Dark gray",
-							"gray": "Gray",
 							"lightGray": "Light gray",
 							"white": "White",
 							"cream": "Cream",
@@ -125,7 +124,8 @@
 							"indigo": "indigo",
 							"purple": "purple",
 							"magenta": "magenta",
-							"pink": "pink"
+							"pink": "pink",
+							"gray": "gray"
 						},
 						"tones": {
 							"veryDark": "very dark",
@@ -133,7 +133,8 @@
 							"light": "light",
 							"veryLight": "very light"
 						},
-						"colorPattern": "{tone} {hue}"
+						"colorPattern": "{tone} {hue}",
+						"similar": "shade of {name}"
 					},
 					"storage": {
 						"title": "Storage Settings",

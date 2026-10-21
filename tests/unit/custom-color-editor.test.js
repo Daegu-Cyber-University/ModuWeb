@@ -121,16 +121,47 @@ describe('구조와 이름', () => {
 		presets.forEach(button => expect(button.textContent.trim()).not.toBe(''));
 	});
 
-	test('로케일의 색 이름(colorNames)에는 견본과 무채색 이름으로 쓰이는 키만 있다', () => {
+	test('로케일의 색 이름(colorNames)에는 견본 이름으로 쓰이는 키만 있다', () => {
 		const used = new Set([
 			...BG_SWATCHES.map(s => s.id),
-			...FG_SWATCHES.map(s => s.id),
-			// describeColor가 무채색에 돌려주는 키
-			'black', 'darkGray', 'gray', 'lightGray', 'white'
+			...FG_SWATCHES.map(s => s.id)
 		]);
 		const names = Object.keys(ko.panel.settings.manage.options.customColors.colorNames);
 		expect(names.filter(key => !used.has(key))).toEqual([]);
 		expect([...used].filter(key => !names.includes(key))).toEqual([]);
+	});
+
+	test('견본에 없는 색은 견본 이름으로 부르지 않는다 — 6개 언어, 무작위 색 400개', () => {
+		const swatchHexes = new Set([...BG_SWATCHES, ...FG_SWATCHES].map(s => s.hex));
+		let seed = 20261021;
+		const rand = () => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648; };
+		const colors = ['#bebebe', '#808080', '#f0f0f0', '#101010', '#e0d000', '#0f2244'];
+		while (colors.length < 400) {
+			const hex = '#' + [0, 1, 2].map(() => Math.floor(rand() * 256).toString(16).padStart(2, '0')).join('');
+			if (!swatchHexes.has(hex)) colors.push(hex);
+		}
+		['ko', 'en-US', 'en-GB', 'ja', 'zh', 'de'].forEach(lang => {
+			const locale = JSON.parse(readFileSync(join(__dirname, '..', '..', 'dist', 'assets', 'locales', `${lang}.json`), 'utf8'));
+			const plugin = makePlugin();
+			plugin.state.get = jest.fn(key => (key === 'locale' ? locale : undefined));
+			const editor = new CustomColorEditor(plugin);
+			const swatchNames = new Set(Object.values(locale.panel.settings.manage.options.customColors.colorNames).map(n => n.toLowerCase()));
+			colors.forEach(hex => {
+				const name = editor._colorName(hex, 'bg');
+				expect(name).not.toBe('');
+				if (swatchNames.has(name.toLowerCase())) throw new Error(`${lang} ${hex} → 견본 이름 "${name}"`);
+			});
+			// 견본과 정확히 같은 색은 견본 이름 그대로
+			expect(editor._colorName('#e8e8e8', 'bg')).toBe(locale.panel.settings.manage.options.customColors.colorNames.lightGray);
+		});
+	});
+
+	test('추천으로 나온 회색(#bebebe)은 견본 "연회색"이 아니라 "밝은 회색"으로 표시된다', () => {
+		const { root } = mount();
+		typeHex(root, 'bg', '#bebebe');
+		const current = q(root, 'fieldset.wat-cc-slot[data-slot="bg"] .wat-cc-current').textContent;
+		expect(current).toContain('밝은 회색');
+		expect(current).not.toContain('연회색');
 	});
 
 	test('ko 로케일의 모든 legend·label·button 문구가 비어 있지 않다', () => {
