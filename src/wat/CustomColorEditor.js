@@ -266,6 +266,10 @@ export class CustomColorEditor {
 		const value = normalizeHex(this.refs.slots[slot].hex.value);
 		if (!value) {
 			this._setHexError(slot, true);
+			// 오류 문구는 입력칸 설명으로만 연결돼 있어, Tab으로 벗어나며 확정하면 듣지 못한다 — 확정 때 한 번 알린다.
+			// 직전 변경의 대기 중 안내가 뒤늦게 오류 안내를 덮지 않도록 먼저 취소한다 (WCAG 3.3.1·4.1.3)
+			this._cancelAnnouncement();
+			this.plugin._announceToLiveRegion(this._t('hexErrorAnnounce', { slot: this._t(`slots.${slot}`), error: this._t('hexError') }), 'polite');
 			return;
 		}
 		this._onUserChange(slot, value);

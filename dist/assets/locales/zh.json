@@ -76,6 +76,7 @@
 						"hex": "{slot}色值代码",
 						"hexHint": "例如：#1a2b3c",
 						"hexError": "请输入 # 加 6 位（或 3 位）十六进制数字。",
+						"hexErrorAnnounce": "{slot}色值代码无效。{error}",
 						"suggest": {
 							"title": "{slot}建议",
 							"detail": "{name}，对比度 {ratio} 比 1",

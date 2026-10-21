@@ -327,6 +327,28 @@ describe('색상 코드 입력과 색 선택기', () => {
 		expect(editor.draft.bg).toBe('#fdf6e3');
 	});
 
+	test('잘못된 코드를 확정하면 어느 칸이 왜 틀렸는지 라이브 리전으로 한 번 알린다 (WCAG 3.3.1·4.1.3)', () => {
+		const { root, plugin } = mount();
+		const cc = ko.panel.settings.manage.options.customColors;
+		const expected = cc.hexErrorAnnounce.replace('{slot}', cc.slots.bg).replace('{error}', cc.hexError);
+
+		typeHex(root, 'bg', 'zzz');
+		jest.advanceTimersByTime(ANNOUNCE_DELAY);
+
+		expect(plugin._announceToLiveRegion).toHaveBeenCalledTimes(1);
+		expect(plugin._announceToLiveRegion).toHaveBeenCalledWith(expected, 'polite');
+	});
+
+	test('직전 변경의 대기 중 안내가 오류 안내를 덮어쓰지 않는다', () => {
+		const { root, plugin } = mount();
+		pickSwatch(root, 'bg', '#0b1f3a');
+		typeHex(root, 'bg', 'zzz');
+		jest.advanceTimersByTime(ANNOUNCE_DELAY);
+
+		expect(plugin._announceToLiveRegion).toHaveBeenCalledTimes(1);
+		expect(plugin._announceToLiveRegion.mock.calls[0][0]).toContain(ko.panel.settings.manage.options.customColors.hexError);
+	});
+
 	test('3자리·# 생략 코드는 정규화해 받아들이고 오류 표시를 지운다', () => {
 		const { root, editor } = mount();
 		typeHex(root, 'bg', 'zzz');
