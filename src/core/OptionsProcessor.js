@@ -155,6 +155,8 @@ export class OptionsProcessor {
 
 	/**
 	 * Processes container configuration options
+	 * containerSelector는 containerTargetSelector의 별칭 — autoInit이 data-wat-container를 이 이름으로
+	 * 넘기고, 예전 JSDoc 예시대로 new WAT({ containerSelector })를 쓰는 사이트도 있다. 둘 다 있으면 containerTargetSelector가 우선
 	 * @param {Object} options - Input options
 	 * @param {Object} constants - WAT constants
 	 * @param {Object} defaults - Default configuration
@@ -163,7 +165,7 @@ export class OptionsProcessor {
 	static processContainerOptions(options, constants, defaults) {
 		return {
 			id: options.containerID || constants.STORAGE_KEYS.CONTAINER,
-			targetSelector: options.containerTargetSelector || defaults.OPTIONS.containerSelector,
+			targetSelector: options.containerTargetSelector || options.containerSelector || defaults.OPTIONS.containerSelector,
 			position: options.containerTargetPosition || 'before'
 		};
 	}

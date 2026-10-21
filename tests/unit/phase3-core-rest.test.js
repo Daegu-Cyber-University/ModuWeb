@@ -137,6 +137,24 @@ describe('OptionsProcessor - processContainerOptions()', () => {
 		expect(result.targetSelector).toBe('body');
 		expect(result.position).toBe('before');
 	});
+
+	test('containerSelector는 containerTargetSelector의 별칭으로 받는다 (data-wat-container 경로)', () => {
+		const result = OptionsProcessor.processContainerOptions(
+			{ containerSelector: '#legacy' },
+			{ STORAGE_KEYS: { CONTAINER: 'watContainer' } },
+			{ OPTIONS: { containerSelector: 'body' } }
+		);
+		expect(result.targetSelector).toBe('#legacy');
+	});
+
+	test('둘 다 있으면 containerTargetSelector가 우선한다', () => {
+		const result = OptionsProcessor.processContainerOptions(
+			{ containerTargetSelector: '#main', containerSelector: '#legacy' },
+			{ STORAGE_KEYS: { CONTAINER: 'watContainer' } },
+			{ OPTIONS: { containerSelector: 'body' } }
+		);
+		expect(result.targetSelector).toBe('#main');
+	});
 });
 
 describe('OptionsProcessor - processStyleOptions()', () => {
