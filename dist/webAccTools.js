@@ -902,6 +902,8 @@ var WATPlugin = (function (exports) {
 
 		/**
 		 * Processes container configuration options
+		 * containerSelector는 containerTargetSelector의 별칭 — autoInit이 data-wat-container를 이 이름으로
+		 * 넘기고, 예전 JSDoc 예시대로 new WAT({ containerSelector })를 쓰는 사이트도 있다. 둘 다 있으면 containerTargetSelector가 우선
 		 * @param {Object} options - Input options
 		 * @param {Object} constants - WAT constants
 		 * @param {Object} defaults - Default configuration
@@ -910,7 +912,7 @@ var WATPlugin = (function (exports) {
 		static processContainerOptions(options, constants, defaults) {
 			return {
 				id: options.containerID || constants.STORAGE_KEYS.CONTAINER,
-				targetSelector: options.containerTargetSelector || defaults.OPTIONS.containerSelector,
+				targetSelector: options.containerTargetSelector || options.containerSelector || defaults.OPTIONS.containerSelector,
 				position: options.containerTargetPosition || 'before'
 			};
 		}
@@ -8043,7 +8045,9 @@ var WATPlugin = (function (exports) {
 		 * Creates a new WAT instance with optional configuration
 			 * @constructor
 			 * @param {Object} [options={}] - Configuration options for the plugin (플러그인 설정 옵션)
-			 * @param {string} [options.containerSelector='body'] - CSS selector for the container element (컨테이너 요소의 CSS 선택자)
+			 * @param {string} [options.containerTargetSelector='body'] - CSS selector of the element the UI is inserted into (UI를 삽입할 기준 요소의 CSS 선택자)
+			 * @param {string} [options.containerSelector] - Alias of containerTargetSelector, used by data-wat-container (containerTargetSelector의 별칭 — 둘 다 있으면 containerTargetSelector 우선)
+			 * @param {string} [options.containerTargetPosition='before'] - 'before' inserts as the target's first child, 'after' as its last (기준 요소 안 맨 앞/맨 뒤 삽입)
 			 * @param {string} [options.language='ko'] - Default language for the plugin ('ko' or 'en') (플러그인의 기본 언어)
 			 * @param {string} [options.styleCssPath] - Custom path for the style CSS file (스타일 CSS 파일의 커스텀 경로)
 			 * @param {Object} [options.config] - Inline configuration object, takes precedence over configPath (인라인 설정 객체 — configPath보다 우선, fetch 없이 동기 확정)
@@ -8058,7 +8062,7 @@ var WATPlugin = (function (exports) {
 			 * 
 			 * // Custom initialization
 			 * const plugin = new WAT({
-			 *   containerSelector: '#main-content',
+			 *   containerTargetSelector: '#main-content',
 			 *   language: 'en',
 			 *   enableCache: false
 			 * });
@@ -14302,7 +14306,7 @@ var WATPlugin = (function (exports) {
 	 *   - data-wat-auto              자동 초기화 활성화 (필수 스위치)
 	 *   - data-wat-config="..."      config.json 경로(스크립트 위치 기준) 또는 인라인 JSON('{'로 시작)
 	 *   - data-wat-language="ko"     기본 언어
-	 *   - data-wat-container="#id"   컨테이너 셀렉터
+	 *   - data-wat-container="#id"   UI를 삽입할 기준 요소 셀렉터 (containerTargetSelector 별칭)
 	 *   - data-wat-inject-css="false" CSS 자동 주입 끄기
 	 */
 

@@ -86,7 +86,9 @@ export class WAT {
 	 * Creates a new WAT instance with optional configuration
 		 * @constructor
 		 * @param {Object} [options={}] - Configuration options for the plugin (플러그인 설정 옵션)
-		 * @param {string} [options.containerSelector='body'] - CSS selector for the container element (컨테이너 요소의 CSS 선택자)
+		 * @param {string} [options.containerTargetSelector='body'] - CSS selector of the element the UI is inserted into (UI를 삽입할 기준 요소의 CSS 선택자)
+		 * @param {string} [options.containerSelector] - Alias of containerTargetSelector, used by data-wat-container (containerTargetSelector의 별칭 — 둘 다 있으면 containerTargetSelector 우선)
+		 * @param {string} [options.containerTargetPosition='before'] - 'before' inserts as the target's first child, 'after' as its last (기준 요소 안 맨 앞/맨 뒤 삽입)
 		 * @param {string} [options.language='ko'] - Default language for the plugin ('ko' or 'en') (플러그인의 기본 언어)
 		 * @param {string} [options.styleCssPath] - Custom path for the style CSS file (스타일 CSS 파일의 커스텀 경로)
 		 * @param {Object} [options.config] - Inline configuration object, takes precedence over configPath (인라인 설정 객체 — configPath보다 우선, fetch 없이 동기 확정)
@@ -101,7 +103,7 @@ export class WAT {
 		 * 
 		 * // Custom initialization
 		 * const plugin = new WAT({
-		 *   containerSelector: '#main-content',
+		 *   containerTargetSelector: '#main-content',
 		 *   language: 'en',
 		 *   enableCache: false
 		 * });
