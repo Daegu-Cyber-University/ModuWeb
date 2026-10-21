@@ -43,10 +43,22 @@
 	--wat-bgColor-main: #333;
 	--wat-bgColor-sub: #4a4a4a; /* #666은 --wat-color-sub(#ccc)와 3.6:1로 AA 미달 */
 }
-/* 다크/밝게 공통 평탄화 — 팔레트만 변수로 갈린다.
+/* 내 색상 — 사용자가 고른 배경·글자색과 그로부터 계산한 링크·보조색(CustomColorTheme.js가 루트에 씀).
+   폴백은 기본 조합(크림 바탕 진갈색 글자)에서 계산한 값으로, custom-color-css-contract 테스트가 JS와 맞춘다.
+   --wat-color-point-tp1은 흰 바탕 위젯 안의 포커스 테두리에만 쓰이므로 바꾸지 않는다. */
+:root[data-color-theme="custom"] {
+	--wat-color-main: var(--wat-custom-fg, #3b2f1e);
+	--wat-color-sub: var(--wat-custom-fg-sub, #716755);
+	--wat-color-link: var(--wat-custom-link, #094fb2);
+
+	--wat-bgColor-main: var(--wat-custom-bg, #fdf6e3);
+	--wat-bgColor-sub: var(--wat-custom-bg-sub, #f1ead7);
+}
+/* 다크/밝게/내 색상 공통 평탄화 — 팔레트만 변수로 갈린다.
    .designWrap(호스트 페이지용 제외 탈출구)과 .wat-exclude(위젯 자신) 트리는 건드리지 않는다. */
 :root[data-color-theme="dark"] *:not(.designWrap):not(.designWrap *):not(.wat-exclude):not(.wat-exclude *),
-:root[data-color-theme="light"] *:not(.designWrap):not(.designWrap *):not(.wat-exclude):not(.wat-exclude *) {
+:root[data-color-theme="light"] *:not(.designWrap):not(.designWrap *):not(.wat-exclude):not(.wat-exclude *),
+:root[data-color-theme="custom"] *:not(.designWrap):not(.designWrap *):not(.wat-exclude):not(.wat-exclude *) {
 	background-color: var(--wat-bgColor-main) !important;
 	color: var(--wat-color-main) !important;
 }
@@ -56,6 +68,8 @@
 :root[data-color-theme="dark"] :is(a, abbr, b, cite, code, dfn, em, i, kbd, label,
 mark, q, s, samp, small, span, strong, sub, sup, time, u, var):not(.designWrap):not(.designWrap *):not(.wat-exclude):not(.wat-exclude *),
 :root[data-color-theme="light"] :is(a, abbr, b, cite, code, dfn, em, i, kbd, label,
+mark, q, s, samp, small, span, strong, sub, sup, time, u, var):not(.designWrap):not(.designWrap *):not(.wat-exclude):not(.wat-exclude *),
+:root[data-color-theme="custom"] :is(a, abbr, b, cite, code, dfn, em, i, kbd, label,
 mark, q, s, samp, small, span, strong, sub, sup, time, u, var):not(.designWrap):not(.designWrap *):not(.wat-exclude):not(.wat-exclude *) {
 	background-color: transparent !important;
 }
@@ -64,7 +78,9 @@ mark, q, s, samp, small, span, strong, sub, sup, time, u, var):not(.designWrap):
 :root[data-color-theme="dark"] *:not(.designWrap):not(.designWrap *):not(.wat-exclude):not(.wat-exclude *)::before,
 :root[data-color-theme="dark"] *:not(.designWrap):not(.designWrap *):not(.wat-exclude):not(.wat-exclude *)::after,
 :root[data-color-theme="light"] *:not(.designWrap):not(.designWrap *):not(.wat-exclude):not(.wat-exclude *)::before,
-:root[data-color-theme="light"] *:not(.designWrap):not(.designWrap *):not(.wat-exclude):not(.wat-exclude *)::after {
+:root[data-color-theme="light"] *:not(.designWrap):not(.designWrap *):not(.wat-exclude):not(.wat-exclude *)::after,
+:root[data-color-theme="custom"] *:not(.designWrap):not(.designWrap *):not(.wat-exclude):not(.wat-exclude *)::before,
+:root[data-color-theme="custom"] *:not(.designWrap):not(.designWrap *):not(.wat-exclude):not(.wat-exclude *)::after {
 	color: var(--wat-color-main) !important;
 }
 /* 링크는 본문색으로 덮으면 본문과 구분이 사라진다 — 링크색을 유지한다. */
@@ -75,16 +91,27 @@ mark, q, s, samp, small, span, strong, sub, sup, time, u, var):not(.designWrap):
 :root[data-color-theme="light"] a:not(.designWrap):not(.designWrap *):not(.wat-exclude):not(.wat-exclude *),
 :root[data-color-theme="light"] a:not(.designWrap):not(.designWrap *):not(.wat-exclude):not(.wat-exclude *) *,
 :root[data-color-theme="light"] a:not(.designWrap):not(.designWrap *):not(.wat-exclude):not(.wat-exclude *)::before,
-:root[data-color-theme="light"] a:not(.designWrap):not(.designWrap *):not(.wat-exclude):not(.wat-exclude *)::after {
+:root[data-color-theme="light"] a:not(.designWrap):not(.designWrap *):not(.wat-exclude):not(.wat-exclude *)::after,
+:root[data-color-theme="custom"] a:not(.designWrap):not(.designWrap *):not(.wat-exclude):not(.wat-exclude *),
+:root[data-color-theme="custom"] a:not(.designWrap):not(.designWrap *):not(.wat-exclude):not(.wat-exclude *) *,
+:root[data-color-theme="custom"] a:not(.designWrap):not(.designWrap *):not(.wat-exclude):not(.wat-exclude *)::before,
+:root[data-color-theme="custom"] a:not(.designWrap):not(.designWrap *):not(.wat-exclude):not(.wat-exclude *)::after {
 	color: var(--wat-color-link) !important;
+}
+/* 내 색상은 사용자 조합에 따라 링크색이 본문과 3:1 이상 구분되지 않을 수 있다 —
+   그때는 CustomColorTheme가 플래그를 켜고 밑줄로 구분한다 (WCAG 1.4.1) */
+:root[data-color-theme="custom"][data-wat-link-underline="true"] a:not(.designWrap):not(.designWrap *):not(.wat-exclude):not(.wat-exclude *) {
+	text-decoration-line: underline !important;
 }
 /* 폼 컨트롤은 배경만 바뀌면 입력값·플레이스홀더가 보이지 않는다. */
 :root[data-color-theme="dark"] :is(input, textarea, select, button):not(.designWrap):not(.designWrap *):not(.wat-exclude):not(.wat-exclude *),
-:root[data-color-theme="light"] :is(input, textarea, select, button):not(.designWrap):not(.designWrap *):not(.wat-exclude):not(.wat-exclude *) {
+:root[data-color-theme="light"] :is(input, textarea, select, button):not(.designWrap):not(.designWrap *):not(.wat-exclude):not(.wat-exclude *),
+:root[data-color-theme="custom"] :is(input, textarea, select, button):not(.designWrap):not(.designWrap *):not(.wat-exclude):not(.wat-exclude *) {
 	color: var(--wat-color-main) !important;
 }
 :root[data-color-theme="dark"] :is(input, textarea):not(.designWrap):not(.designWrap *):not(.wat-exclude):not(.wat-exclude *)::placeholder,
-:root[data-color-theme="light"] :is(input, textarea):not(.designWrap):not(.designWrap *):not(.wat-exclude):not(.wat-exclude *)::placeholder {
+:root[data-color-theme="light"] :is(input, textarea):not(.designWrap):not(.designWrap *):not(.wat-exclude):not(.wat-exclude *)::placeholder,
+:root[data-color-theme="custom"] :is(input, textarea):not(.designWrap):not(.designWrap *):not(.wat-exclude):not(.wat-exclude *)::placeholder {
 	color: var(--wat-color-sub) !important;
 }
 :root[data-color-theme="reverse"] {
@@ -703,6 +730,49 @@ html[data-wat-viewmode="list"] #wat .setTitle	{font-size: 0.8em}
 #watWrap .watSet-item-container .watSet-list-type-button .wat-set-item-type-button {padding: 5px 10px; margin: 5px; border: #aaa 1px solid; border-radius: 5px; cursor: pointer; transition: background-color 0.3s}
 #watWrap .watSet-item-container .watSet-list-type-button .wat-set-item-type-button:hover {background-color: #bdd7ff;}
 #watWrap .watSet-item-container .watSet-list-type-button .wat-set-item-type-button.active {background-color: #0D6EFD; color: white; border-color: #0D6EFD;}
+
+/* 내 색상 편집기 (CustomColorEditor) — 환경설정 탭.
+   추천 카드·오류 문구 등은 hidden 속성으로 숨기는데, author의 display 규칙이 이기지 않도록 고정한다.
+   색 칩·미리보기는 사용자가 고른 색이 그대로 보여야 하므로 강제 색상(Windows 고대비) 모드에서도 덮지 않는다. */
+#watWrap .wat-cc [hidden]				{display: none !important}
+#watWrap .wat-cc					{display: block; min-width: 0}
+#watWrap .wat-cc-desc				{margin: 4px 0; font-size: 0.9em; color: #333}
+#watWrap .wat-cc-notice				{margin: 4px 0; padding: 6px 8px; font-size: 0.9em; color: #333; background-color: #fff8c5; border: 1px solid #8a6d00; border-radius: 5px}
+#watWrap .wat-cc-subtitle				{margin: 8px 0 4px; font-weight: bold}
+#watWrap .wat-cc-preset-list			{display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 6px}
+#watWrap .wat-cc-preset				{display: flex; align-items: center; gap: 6px; width: 100%; min-height: 36px; padding: 4px 8px; box-sizing: border-box; font-size: 0.9em; font-family: inherit; text-align: left; color: #333; background-color: #fff; border: 1px solid #767676; border-radius: 5px; cursor: pointer}
+#watWrap .wat-cc-chip				{display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 28px; height: 28px; box-sizing: border-box; font-weight: bold; border: 1px solid #767676; border-radius: 4px; forced-color-adjust: none}
+#watWrap .wat-cc-preview				{padding: 10px 12px; border: 1px solid #767676; border-radius: 5px; forced-color-adjust: none}
+#watWrap .wat-cc-preview-text			{margin: 0 0 4px}
+#watWrap .wat-cc-contrast				{margin: 6px 0; font-weight: bold; color: #333}
+#watWrap .wat-cc-contrast[data-level="low"]	{color: #b00020}
+#watWrap .wat-cc-contrast-glyph			{margin-right: 4px}
+#watWrap .wat-cc-slot				{min-width: 0; margin: 8px 0; padding: 6px 8px; background-color: #fff; border: 1px solid #aaa; border-radius: 5px}
+#watWrap .wat-cc-slot-title			{padding: 0 4px; font-weight: bold}
+#watWrap .wat-cc-current				{font-weight: normal}
+#watWrap .wat-cc-swatches				{display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 4px}
+#watWrap .wat-cc-swatch-item			{display: flex; align-items: center; gap: 4px; min-height: 32px}
+#watWrap .wat-cc-swatch-input			{flex-shrink: 0; width: 20px; height: 20px; margin: 0}
+#watWrap .wat-cc-swatch				{display: flex; flex: 1 1 auto; align-items: center; gap: 6px; min-width: 0; min-height: 32px; font-size: 0.9em; cursor: pointer}
+#watWrap .wat-cc-swatch .wat-cc-chip		{width: 24px; height: 24px}
+#watWrap .wat-cc-swatch-input:checked + .wat-cc-swatch	{font-weight: bold}
+#watWrap .wat-cc-custom				{display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 4px 8px; margin-top: 8px}
+#watWrap .wat-cc-picker				{width: 48px; height: 32px; padding: 0; background-color: #fff; border: 1px solid #767676; border-radius: 4px; cursor: pointer}
+#watWrap .wat-cc-hex				{width: 9em; max-width: 100%; height: 32px; padding: 0 6px; box-sizing: border-box; font-family: monospace; font-size: 1em; color: #333; background-color: #fff; border: 1px solid #767676; border-radius: 4px}
+#watWrap .wat-cc-hex[aria-invalid="true"]	{border: 2px solid #b00020}
+#watWrap .wat-cc-hint				{grid-column: 2; margin: 0; font-size: 0.85em; color: #333}
+#watWrap .wat-cc-error				{grid-column: 2; margin: 0; font-size: 0.85em; font-weight: bold; color: #b00020}
+#watWrap .wat-cc-suggest				{margin: 8px 0; padding: 8px; background-color: #fff; border: 2px solid #0a58ca; border-radius: 5px}
+#watWrap .wat-cc-suggest-detail			{display: flex; align-items: center; gap: 8px; margin: 4px 0}
+#watWrap .wat-cc-suggest-actions			{display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px}
+#watWrap .wat-cc-actions				{display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; margin-top: 8px}
+#watWrap .wat-cc-request				{margin: 4px 0}
+#watWrap .wat-cc-button				{min-height: 32px; padding: 4px 12px; font-size: 1em; font-family: inherit; color: #333; background-color: #fff; border: 1px solid #767676; border-radius: 5px; cursor: pointer}
+#watWrap .wat-cc-preset:hover,
+#watWrap .wat-cc-button:hover			{background-color: #bdd7ff}
+#watWrap .wat-cc-button.wat-cc-primary		{color: #fff; background-color: #0a58ca; border-color: #0a58ca}
+#watWrap .wat-cc-button.wat-cc-primary:hover	{background-color: #084298}
+#watWrap .wat-cc :is(button, input):focus-visible	{outline: 2px solid #0D6EFD; outline-offset: 2px}
 
 
 #watWrap .setTitle::before				{position: absolute; display: block; content: ""; width: 30px; height: 30px; background-image: url('../images/icon_personal_fontSize.png'); background-repeat: no-repeat; background-position: left top; left: 0; top: 0;}

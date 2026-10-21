@@ -57,6 +57,30 @@ describe('exportSettings', () => {
 			global.Blob = OriginalBlob;
 		}
 	});
+
+	test('내 색상 저장값(watCustomColors)도 함께 내보낸다', () => {
+		localStorage.setItem(Constants.STORAGE_KEYS.CUSTOM_COLORS, '{"v":1,"bg":"#000000","fg":"#ffff00"}');
+
+		let capturedText = null;
+		const OriginalBlob = global.Blob;
+		global.Blob = class extends OriginalBlob {
+			constructor(parts, opts) {
+				super(parts, opts);
+				capturedText = parts.join('');
+			}
+		};
+		global.URL.createObjectURL = jest.fn(() => 'blob:mock');
+		global.URL.revokeObjectURL = jest.fn();
+		jest.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+
+		try {
+			WAT.prototype.exportSettings.call(makeStub());
+			const payload = JSON.parse(capturedText);
+			expect(payload.data.watCustomColors).toBe('{"v":1,"bg":"#000000","fg":"#ffff00"}');
+		} finally {
+			global.Blob = OriginalBlob;
+		}
+	});
 });
 
 describe('importSettings', () => {
@@ -74,6 +98,18 @@ describe('importSettings', () => {
 		expect(localStorage.getItem(Constants.STORAGE_KEYS.SETTINGS)).toBe('{"fontSize":"size-2x"}');
 		expect(stub._notify).toHaveBeenCalledWith(expect.any(String), { type: 'success' });
 		expect(stub._setTimeout).toHaveBeenCalled(); // reload 예약
+	});
+
+	test('내 색상 저장값(watCustomColors)도 가져온다', () => {
+		const stub = makeStub();
+		const json = JSON.stringify({
+			format: 'moduweb-settings',
+			version: 1,
+			data: { watCustomColors: '{"v":1,"bg":"#0b1f3a","fg":"#ffffff"}' }
+		});
+
+		expect(WAT.prototype.importSettings.call(stub, json)).toBe(true);
+		expect(localStorage.getItem('watCustomColors')).toBe('{"v":1,"bg":"#0b1f3a","fg":"#ffffff"}');
 	});
 
 	test('형식이 다른 JSON은 거부한다', () => {

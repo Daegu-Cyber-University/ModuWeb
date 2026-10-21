@@ -104,7 +104,7 @@ For IIS add the same header under `system.webServer/httpProtocol/customHeaders` 
 | Category | Features |
 |---|---|
 | Visual | Font size / typeface, text alignment & spacing, full-page magnification |
-| Color | High-contrast themes, color inversion, saturation control |
+| Color | High-contrast themes, color inversion, saturation control, custom text/background colors with contrast suggestions |
 | Focus | Cursor highlighting, reading guide, media & animation control |
 | Audio | TTS screen reading (auto / focus / keyboard modes), STT voice commands |
 | Extras | Dictionary lookup (shown only when a dictionary server endpoint is configured), simplified reading mode, page structure viewer |

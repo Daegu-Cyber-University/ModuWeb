@@ -11,7 +11,9 @@ export class Constants {
 		SETTINGS: 'watSettings',
 		CONTAINER: 'watContainer',
 		SELECTED_PROFILE: 'selectedProfile',
-		PANEL_STATE: 'watPanelState'
+		PANEL_STATE: 'watPanelState',
+		// 내 색상(배경·글자색) — watSettings는 savePreferences가 통째로 덮어쓰므로 별도 키로 둔다
+		CUSTOM_COLORS: 'watCustomColors'
 	};
 
 	static ELEMENT_IDS = {

@@ -43,6 +43,102 @@
 							"de": "독일어"
 						}
 					},
+					"customColors": {
+						"title": "내 색상",
+						"desc": "배경색과 글자색을 직접 고릅니다. 저장하면 개별 설정의 색상 모드가 '내 색상'으로 바뀝니다.",
+						"filterNotice": "채도 변경이나 색약 보정이 켜져 있어 실제 화면의 대비는 여기 표시와 다를 수 있어요.",
+						"presetsTitle": "견본 조합",
+						"presets": {
+							"yellowOnBlack": "검정 바탕, 노란 글자",
+							"brownOnCream": "크림색 바탕, 진갈색 글자",
+							"whiteOnNavy": "남색 바탕, 흰 글자",
+							"blackOnLightYellow": "연노랑 바탕, 검정 글자",
+							"navyOnLightBlue": "연파랑 바탕, 남색 글자",
+							"lightGrayOnDarkGray": "진회색 바탕, 연회색 글자"
+						},
+						"chipSample": "가",
+						"previewTitle": "미리보기",
+						"previewText": "본문 글자는 이렇게 보입니다.",
+						"previewLink": "링크는 이렇게 보입니다",
+						"contrast": {
+							"label": "명도 대비 {ratio} 대 1",
+							"aaa": "아주 잘 보임(AAA)",
+							"aa": "잘 보임(AA)",
+							"low": "대비 부족 — 글자가 잘 보이지 않을 수 있어요"
+						},
+						"slots": {
+							"bg": "배경색",
+							"fg": "글자색"
+						},
+						"current": "현재: {name}",
+						"picker": "{slot} 직접 선택",
+						"hex": "{slot} 색상 코드",
+						"hexHint": "예: #1a2b3c",
+						"hexError": "#과 16진수 6자리(또는 3자리)로 입력해 주세요.",
+						"suggest": {
+							"title": "{slot} 추천",
+							"detail": "{name}, 대비 {ratio} 대 1",
+							"apply": "추천색 적용",
+							"manual": "직접 고를게요",
+							"request": "추천 받기",
+							"announce": "{slot} 추천: {name}, 대비 {ratio} 대 1. 추천색 적용 또는 직접 고를게요를 선택하세요.",
+							"applied": "{slot}에 추천색을 적용했습니다: {name}"
+						},
+						"presetApplied": "견본 조합 적용: {name}, 대비 {ratio} 대 1",
+						"contrastAnnounce": "{slot}: {name}. 명도 대비 {ratio} 대 1, {level}",
+						"actions": {
+							"save": "저장하고 적용",
+							"cancel": "취소"
+						},
+						"msg": {
+							"saved": "내 색상을 저장하고 적용했습니다.",
+							"savedLow": "내 색상을 저장했습니다. 대비가 {ratio} 대 1로 낮아 글자가 잘 보이지 않을 수 있어요.",
+							"saveFailed": "내 색상을 저장하지 못했습니다.",
+							"canceled": "변경을 취소하고 저장된 색으로 되돌렸습니다."
+						},
+						"colorNames": {
+							"black": "검정",
+							"darkGray": "진회색",
+							"gray": "회색",
+							"lightGray": "연회색",
+							"white": "흰색",
+							"cream": "크림색",
+							"lightYellow": "연노랑",
+							"apricot": "살구색",
+							"lightPink": "연분홍",
+							"lightPurple": "연보라",
+							"lightBlue": "연파랑",
+							"mint": "민트색",
+							"navy": "남색",
+							"ink": "먹색",
+							"darkBrown": "진갈색",
+							"darkGreen": "진초록",
+							"yellow": "노랑",
+							"amber": "호박색",
+							"skyBlue": "하늘색"
+						},
+						"hues": {
+							"red": "빨강",
+							"orange": "주황",
+							"yellow": "노랑",
+							"yellowGreen": "연두",
+							"green": "초록",
+							"teal": "청록",
+							"sky": "하늘색",
+							"blue": "파랑",
+							"indigo": "남색",
+							"purple": "보라",
+							"magenta": "자주",
+							"pink": "분홍"
+						},
+						"tones": {
+							"veryDark": "아주 어두운",
+							"dark": "어두운",
+							"light": "밝은",
+							"veryLight": "아주 밝은"
+						},
+						"colorPattern": "{tone} {hue}"
+					},
 					"storage": {
 						"title": "저장 설정",
 						"desc": "설정을 저장하거나 초기화할 수 있습니다.",
@@ -117,7 +213,8 @@
 						"initial": "기본",
 						"light": "밝게",
 						"dark": "어둡게",
-						"reverse": "반전"
+						"reverse": "반전",
+						"custom": "내 색상"
 					}
 				},
 				"saturation": {

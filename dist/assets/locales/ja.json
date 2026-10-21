@@ -43,6 +43,102 @@
 							"de": "ドイツ語"
 						}
 					},
+					"customColors": {
+						"title": "マイカラー",
+						"desc": "背景色と文字色を自分で選べます。保存するとカラーモードが「マイカラー」に切り替わります。",
+						"filterNotice": "彩度変更または色覚補正がオンのため、実際の画面のコントラストはここの表示と異なる場合があります。",
+						"presetsTitle": "見本の組み合わせ",
+						"presets": {
+							"yellowOnBlack": "黒地に黄色の文字",
+							"brownOnCream": "クリーム地にこげ茶の文字",
+							"whiteOnNavy": "紺地に白の文字",
+							"blackOnLightYellow": "薄黄色地に黒の文字",
+							"navyOnLightBlue": "薄青地に紺の文字",
+							"lightGrayOnDarkGray": "濃い灰色地に薄い灰色の文字"
+						},
+						"chipSample": "あ",
+						"previewTitle": "プレビュー",
+						"previewText": "本文の文字はこのように表示されます。",
+						"previewLink": "リンクはこのように表示されます",
+						"contrast": {
+							"label": "コントラスト比 {ratio} 対 1",
+							"aaa": "とても見やすい(AAA)",
+							"aa": "見やすい(AA)",
+							"low": "コントラスト不足 — 文字が読みにくい場合があります"
+						},
+						"slots": {
+							"bg": "背景色",
+							"fg": "文字色"
+						},
+						"current": "現在: {name}",
+						"picker": "{slot}を自由に選択",
+						"hex": "{slot}のカラーコード",
+						"hexHint": "例: #1a2b3c",
+						"hexError": "#に続けて16進数6桁(または3桁)で入力してください。",
+						"suggest": {
+							"title": "{slot}の提案",
+							"detail": "{name}、コントラスト比 {ratio} 対 1",
+							"apply": "提案色を適用",
+							"manual": "自分で選ぶ",
+							"request": "提案を受ける",
+							"announce": "{slot}の提案: {name}、コントラスト比 {ratio} 対 1。「提案色を適用」または「自分で選ぶ」を選択してください。",
+							"applied": "{slot}に提案色を適用しました: {name}"
+						},
+						"presetApplied": "見本を適用: {name}、コントラスト比 {ratio} 対 1",
+						"contrastAnnounce": "{slot}: {name}。コントラスト比 {ratio} 対 1、{level}",
+						"actions": {
+							"save": "保存して適用",
+							"cancel": "キャンセル"
+						},
+						"msg": {
+							"saved": "マイカラーを保存して適用しました。",
+							"savedLow": "マイカラーを保存しました。コントラスト比が {ratio} 対 1 と低いため、文字が読みにくい場合があります。",
+							"saveFailed": "マイカラーを保存できませんでした。",
+							"canceled": "変更を取り消し、保存済みの色に戻しました。"
+						},
+						"colorNames": {
+							"black": "黒",
+							"darkGray": "濃い灰色",
+							"gray": "灰色",
+							"lightGray": "薄い灰色",
+							"white": "白",
+							"cream": "クリーム色",
+							"lightYellow": "薄黄色",
+							"apricot": "アプリコット",
+							"lightPink": "薄桃色",
+							"lightPurple": "薄紫",
+							"lightBlue": "薄青",
+							"mint": "ミント",
+							"navy": "紺",
+							"ink": "墨色",
+							"darkBrown": "こげ茶",
+							"darkGreen": "深緑",
+							"yellow": "黄色",
+							"amber": "琥珀色",
+							"skyBlue": "空色"
+						},
+						"hues": {
+							"red": "赤",
+							"orange": "オレンジ",
+							"yellow": "黄",
+							"yellowGreen": "黄緑",
+							"green": "緑",
+							"teal": "青緑",
+							"sky": "空色",
+							"blue": "青",
+							"indigo": "藍",
+							"purple": "紫",
+							"magenta": "赤紫",
+							"pink": "ピンク"
+						},
+						"tones": {
+							"veryDark": "とても暗い",
+							"dark": "暗い",
+							"light": "明るい",
+							"veryLight": "とても明るい"
+						},
+						"colorPattern": "{tone}{hue}"
+					},
 					"storage": {
 						"title": "保存設定",
 						"desc": "設定を保存または初期化できます。",
@@ -117,7 +213,8 @@
 						"initial": "標準",
 						"light": "明るく",
 						"dark": "暗く",
-						"reverse": "反転"
+						"reverse": "反転",
+						"custom": "マイカラー"
 					}
 				},
 				"saturation": {

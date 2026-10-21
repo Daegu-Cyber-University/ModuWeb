@@ -17,6 +17,8 @@ import { PageStructure } from './PageStructure.js';
 import { PanelBuilder } from './PanelBuilder.js';
 import { SettingsApplier } from './SettingsApplier.js';
 import { OverlayManager } from './OverlayManager.js';
+import { CUSTOM_COLOR_DEFAULTS, loadCustomColors, saveCustomColors, applyCustomColorVars } from './CustomColorTheme.js';
+import { CustomColorEditor } from './CustomColorEditor.js';
 import { isSafeHttpUrl } from '../core/safeUrl.js';
 import { safeParseJSON } from '../core/safeParseJSON.js';
 import { TTSManager } from '../tts/TTSManager.js';
@@ -2530,6 +2532,18 @@ export class WAT {
 		}
 
 		/**
+		 * 내 색상 편집기 지연 접근자 — 언어 변경으로 패널을 다시 만들어도 같은 인스턴스를 써서 편집 중인 색을 유지
+		 * @private
+		 * @returns {CustomColorEditor}
+		 */
+		_getCustomColorEditor() {
+			if (!this.customColorEditor) {
+				this.customColorEditor = new CustomColorEditor(this);
+			}
+			return this.customColorEditor;
+		}
+
+		/**
 		 * 설정 패널에 프로필 설정 섹션을 생성합니다 (PanelBuilder 위임)
 		 * @param {HTMLElement} container - 프로필 설정을 추가할 컨테이너 요소
 		 * @returns {void}
@@ -4551,7 +4565,7 @@ export class WAT {
 
 		/**
 		 * Changes the color theme of the interface (인터페이스의 색상 테마를 변경합니다)
-		 * @param {string} theme - Color theme setting ('initial', 'light', 'dark', 'reverse') (색상 테마 설정)
+		 * @param {string} theme - Color theme setting ('initial', 'light', 'dark', 'reverse', 'custom') (색상 테마 설정)
 		 * @returns {void}
 		 * @description Applies color theme changes through CSS data attributes and updates UI state
 		 *              (CSS 데이터 속성을 통해 색상 테마 변경을 적용하고 UI 상태를 업데이트합니다)
@@ -4563,11 +4577,42 @@ export class WAT {
 		 * this.changeColorTheme('initial');
 		 */
 		changeColorTheme(theme) {
+			// 라디오·프로필·리셋·저장값 복원 등 모든 경로가 여기를 지나므로 내 색상 변수는 이 한 곳에서 쓴다
+			// (iframe 동기화가 새 값을 복사하도록 동기화보다 먼저)
+			if (theme === 'custom') this._applyCustomColorVars();
 			document.documentElement.dataset.colorTheme = theme;
 			this.updatePersonalSettingsUI('radio', 'colorTheme', theme);
 			this.savePreferences();
 			// 다른 change* 계열과 동일하게 iframe에도 동기화 (누락 시 iframe만 원래 색 유지)
 			this.syncStyleToIframes('colorTheme', theme);
+		}
+
+		/**
+		 * 저장된 내 색상(배경·글자색)을 가져옵니다
+		 * @returns {{bg:string, fg:string}|null} 저장한 적이 없거나 값이 손상됐으면 null
+		 */
+		getCustomColors() {
+			return loadCustomColors();
+		}
+
+		/**
+		 * 내 색상을 저장하고 색상 모드를 '내 색상'으로 바꿉니다
+		 * @param {{bg:string, fg:string}} colors - 배경·글자색 hex
+		 * @returns {boolean} 저장 성공 여부 (잘못된 색이면 아무것도 바꾸지 않고 false)
+		 */
+		setCustomColors(colors) {
+			if (!saveCustomColors(colors)) return false;
+			this.changeColorTheme('custom');
+			return true;
+		}
+
+		/**
+		 * 내 색상 파생 색을 문서 루트 전용 변수(--wat-custom-*)에 씁니다 (저장값이 없으면 기본 조합)
+		 * @private
+		 * @returns {void}
+		 */
+		_applyCustomColorVars() {
+			applyCustomColorVars(document.documentElement, loadCustomColors() || CUSTOM_COLOR_DEFAULTS);
 		}
 
 		/**
