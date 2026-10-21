@@ -162,6 +162,25 @@ mark, q, s, samp, small, span, strong, sub, sup, time, u, var):not(.designWrap):
 :root[data-saturation="deuteranopia"] {
 	filter: url(#wat-cb-deuteranopia);
 }
+/* 반전 + 채도 — 두 규칙은 특이도가 같아(0,2,0) 뒤에 선언된 채도 filter가 invert(1)을 덮는다.
+   그러면 페이지는 반전되지 않고 재반전 규칙이 걸린 미디어·위젯만 뒤집혀 보이므로 한 filter로 잇는다.
+   invert(1)이 먼저다: 재반전된 미디어·위젯에는 채도 필터만 남아 채도 단독일 때와 같아진다.
+   (색약 보정 SVG 필터는 linearRGB에서 계산되어 순서를 바꾸면 재반전한 색이 원본과 달라진다) */
+:root[data-color-theme="reverse"][data-saturation="low"] {
+	filter: invert(1) saturate(0.2);
+}
+:root[data-color-theme="reverse"][data-saturation="high"] {
+	filter: invert(1) saturate(2);
+}
+:root[data-color-theme="reverse"][data-saturation="monochrome"] {
+	filter: invert(1) grayscale(100%);
+}
+:root[data-color-theme="reverse"][data-saturation="protanopia"] {
+	filter: invert(1) url(#wat-cb-protanopia);
+}
+:root[data-color-theme="reverse"][data-saturation="deuteranopia"] {
+	filter: invert(1) url(#wat-cb-deuteranopia);
+}
 :root[data-media-mute="true"] audio, video {
 	muted: true;
 }
