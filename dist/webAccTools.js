@@ -3164,12 +3164,9 @@ var WATPlugin = (function (exports) {
 					}
 					li.textContent = text;
 					li.classList.add('pgStruct_item', 'heading', heading.tagName.toLowerCase());
-					li.appendChild(this._createMarkerButton());
+					li.appendChild(this._createMarkerButton(text));
 
-					li.addEventListener('click', () => {
-						this.closePageStructure();
-						heading.scrollIntoView({ behavior: 'smooth' });
-					});
+					li.addEventListener('click', () => this._moveTo(heading));
 					panelList.appendChild(li);
 				});
 			} else if (tab.id === 'pgStruct_landmark') {
@@ -3181,12 +3178,9 @@ var WATPlugin = (function (exports) {
 					// 역할명은 로케일의 자연어 표기 사용 (미정의 역할은 토큰 폴백), 이름이 있으면 병기
 					const roleLabel = this.plugin.getLocalizedText(`panel.personal.options.pageStructure.landmarks.${role}`) || role;
 					li.textContent = label ? `${roleLabel} — ${label}` : roleLabel;
-					li.appendChild(this._createMarkerButton());
+					li.appendChild(this._createMarkerButton(li.textContent));
 
-					li.addEventListener('click', () => {
-						this.closePageStructure();
-						element.scrollIntoView({ behavior: 'smooth' });
-					});
+					li.addEventListener('click', () => this._moveTo(element));
 					panelList.appendChild(li);
 				});
 			} else if (tab.id === 'pgStruct_link') {
@@ -3222,11 +3216,8 @@ var WATPlugin = (function (exports) {
 					tag_a.appendChild(img_link);
 					li.appendChild(tag_a);
 
-					const btn_marker = this._createMarkerButton();
-					btn_marker.addEventListener('click', () => {
-						this.closePageStructure();
-						link.scrollIntoView({ behavior: 'smooth' });
-					});
+					const btn_marker = this._createMarkerButton(linkLabel);
+					btn_marker.addEventListener('click', () => this._moveTo(link));
 					li.appendChild(btn_marker);
 					panelList.appendChild(li);
 				});
@@ -3333,14 +3324,36 @@ var WATPlugin = (function (exports) {
 		}
 
 		/**
+		 * 대화상자를 닫고 고른 항목 위치로 이동하며 포커스도 옮깁니다
+		 * @param {Element} target - 이동할 제목·랜드마크·링크
+		 * @returns {void}
+		 * @private
+		 * @description 대화상자만 닫으면 포커스가 body로 사라진다 (WCAG 2.4.3). 제목·랜드마크처럼 포커스를
+		 *              받을 수 없는 요소는 임시 tabindex=-1을 주고, 포커스가 떠나면 지워 페이지 탭 순서를 바꾸지 않는다
+		 */
+		_moveTo(target) {
+			this.closePageStructure();
+			const focusable = target.matches('a[href], area[href], button, input, select, textarea, [tabindex], [contenteditable="true"]');
+			if (!focusable) {
+				target.setAttribute('tabindex', '-1');
+				target.addEventListener('blur', () => target.removeAttribute('tabindex'), { once: true });
+			}
+			target.focus({ preventScroll: true });
+			target.scrollIntoView({ behavior: 'smooth' });
+		}
+
+		/**
 		 * 항목 위치로 이동하는 마커 버튼(위치 표시 아이콘)을 생성합니다
+		 * @param {string} [itemText] - 이동할 항목의 텍스트 — 버튼 이름에 넣어 버튼마다 이름이 달라지게 한다 (WCAG 2.4.6)
 		 * @returns {HTMLButtonElement}
 		 * @private
 		 */
-		_createMarkerButton() {
+		_createMarkerButton(itemText) {
 			const btn_marker = document.createElement('button');
 			btn_marker.classList.add('btn_marker');
-			const markerLabel = this.plugin.getLocalizedText('panel.personal.options.pageStructure.options.marker');
+			const markerText = this.plugin.getLocalizedText('panel.personal.options.pageStructure.options.marker');
+			const trimmedItemText = (itemText || '').trim();
+			const markerLabel = trimmedItemText ? `${trimmedItemText} ${markerText}` : markerText;
 			const img = document.createElement('img');
 			img.classList.add('img_icon', 'marker');
 			img.src = this.plugin._assetUrl('assets/images/icon_pgStructure_marker.svg');
@@ -3612,6 +3625,8 @@ var WATPlugin = (function (exports) {
 		 */
 		createSettingsItem(itemType, titleText, optionName, optionItems) {
 			const plugin = this.plugin;
+			// 라이브 리전 안내는 textContent로 들어가므로 이스케이프 전 원문을 쓴다
+			const plainTitleText = titleText;
 			// config/로케일 유래 값이 innerHTML 템플릿에 삽입되므로 전부 이스케이프 (XSS 방지)
 			titleText = escapeHTML(titleText);
 			const itemsHtml = optionItems.map(item => {
@@ -3626,8 +3641,10 @@ var WATPlugin = (function (exports) {
 				const itemValue = escapeHTML(item.value);
 				const itemSrc = escapeHTML(item.src || '');
 				const labelTitleAttr = itemLabel ? ` title="${itemLabel}"` : '';
+				// 라디오 묶음 ul은 radiogroup 역할이라 li의 listitem 역할을 지워 라디오가 그룹에 직접 속하게 한다 (WCAG 1.3.1)
+				const itemRoleAttr = itemType === 'radio' ? ' role="none"' : '';
 				let htmlString = `
-				<li class='opt_item wat-item-li'>
+				<li class='opt_item wat-item-li'${itemRoleAttr}>
 					<input type="${itemType}" class="wat-items wat-item-type-radio" id="wat-${itemType}-${elementId}" name="${optionName}" title="${titleText} ${itemLabel}" value="${itemValue}" ${checkedAttr} ${disabledAttr}><label for="wat-${itemType}-${elementId}"${labelTitleAttr}>${itemLabel}</label>
 				</li>
 				`;
@@ -3709,14 +3726,22 @@ var WATPlugin = (function (exports) {
 				}
 			});
 
+			// 제목·이전/다음 버튼으로 바꾸면 포커스가 제목·버튼에 머물러 바뀐 값이 읽히지 않으므로 알린다 (WCAG 4.1.3)
+			const announceValue = (valueText) => {
+				plugin._announceToLiveRegion(`${plainTitleText}: ${valueText}`);
+			};
+
 			// 라디오 순환 선택 공통 처리 (제목 클릭/이전·다음 버튼)
 			const cycleRadio = (direction) => {
 				const radioElements = setWrapElement.querySelectorAll('.setCont input[type="radio"]');
 				const targetIndex = plugin.getRadioTargetIndex(setWrapElement, direction);
-				if (radioElements[targetIndex]) {
-					radioElements[targetIndex].checked = true;
+				const targetRadio = radioElements[targetIndex];
+				if (targetRadio) {
+					targetRadio.checked = true;
 					// change 이벤트를 수동으로 트리거
-					radioElements[targetIndex].dispatchEvent(new Event('change', { bubbles: true }));
+					targetRadio.dispatchEvent(new Event('change', { bubbles: true }));
+					const targetLabel = targetRadio.labels && targetRadio.labels[0];
+					announceValue(targetLabel ? targetLabel.textContent : targetRadio.value);
 				}
 			};
 
@@ -3736,6 +3761,8 @@ var WATPlugin = (function (exports) {
 					checkboxElement.checked = !checkboxElement.checked;
 					// change 이벤트를 수동으로 트리거
 					checkboxElement.dispatchEvent(new Event('change', { bubbles: true }));
+					const stateElement = setWrapElement.querySelector('.switch-state');
+					announceValue(stateElement ? stateElement.getAttribute('data-stateText-' + (checkboxElement.checked ? 'on' : 'off')) : '');
 				};
 				// 제목(role=button)만 직접 토글한다. 스위치 트랙(label.switch-label)은 for로 연결된 input을
 				// 브라우저가 토글하고 change를 보내므로(비활성이면 무시) 라벨에 리스너를 또 달면
@@ -3875,7 +3902,10 @@ var WATPlugin = (function (exports) {
 					const input = plugin.createElementWithAttrs('input', { type: 'checkbox', class: ['watSet-checkbox', 'profileListItemInput'], id: `watSet_checkbox_${profile}_${item}`, name: `${profile}_${item}`, value: profileItems[item], 'data-key': item });
 					input.checked = profileValues[profile].enabled[item];
 					const label = plugin.createElementWithAttrs('label', { class: ['watSet_label', 'watSet-profile-item-label'], for: `watSet_checkbox_${profile}_${item}` });
-					label.textContent = plugin.getLocalizedText(`panel.personal.options.${item}.title`);
+					// 로케일 그룹명이 설정 키와 다른 항목(stopAni→animationControl 등)은 개인 옵션과 같은 그룹명으로 조회한다
+					// — 설정 키로 찾으면 라벨이 빈 문자열이 된다
+					const labelGroup = (OPTION_DEFS[item] && OPTION_DEFS[item].group) || item;
+					label.textContent = plugin.getLocalizedText(`panel.personal.options.${labelGroup}.title`);
 					profileListItem.appendChild(input);
 					profileListItem.appendChild(label);
 					profileListInner.appendChild(profileListItem);
@@ -4062,29 +4092,12 @@ var WATPlugin = (function (exports) {
 				const languageSettingItems = plugin.languageOptions.map(lang => {
 					return { id: `watSet_language_${lang}`, label: plugin.getLocalizedText(`panel.settings.manage.options.language.options.${lang}`), lang: lang, checked: plugin.language === lang };
 				});
+				// 라디오는 고르기만 한다 — change마다 바꾸면 화살표로 옮길 때마다 패널이 다시 만들어져
+				// 포커스가 body로 사라졌다 (WCAG 3.2.2). 실제 변경은 아래 적용 버튼이 맡는다
 				languageSettingItems.forEach(item => {
 					const languageSettingItem = plugin.createElementWithAttrs('li', { class: 'watSet-item' });
 					const input = plugin.createElementWithAttrs('input', { type: 'radio', id: item.id, class: ['wat-set-items', 'wat-set-item-type-radio'], name: 'watSet_language', value: item.lang });
 					input.checked = item.checked;
-					input.onchange = () => {
-						plugin.language = item.lang;
-						document.documentElement.dataset['watLanguage'] = item.lang;
-						// 스크린리더가 올바른 언어 엔진으로 UI를 읽도록 문서 lang 갱신 (WCAG 3.1.2)
-						document.documentElement.setAttribute('lang', item.lang);
-						plugin.updateLanguageSetting();
-
-						plugin.loadLocale(item.lang).then(() => {
-							plugin.generateHTMLElements();
-							plugin.setInitialPreferences();
-
-							plugin.setupTabs();
-							plugin.activateInitialTab();
-							plugin.setEventListeners();
-							plugin.extractFocusableElements(document.body);
-							plugin.updateTextLocalization();
-							plugin.savePreferences();
-						});
-					};
 					const label = plugin.createElementWithAttrs('label', { for: item.id, class: 'wat-set-label' });
 					label.textContent = item.label;
 					languageSettingItem.appendChild(input);
@@ -4092,6 +4105,17 @@ var WATPlugin = (function (exports) {
 					languageSettingList.appendChild(languageSettingItem);
 				});
 				languageSettingInner.appendChild(languageSettingList);
+
+				const languageApplyList = plugin.createElementWithAttrs('ul', { class: ['watSet-list', 'watSet-list-type-button'] });
+				const languageApplyItem = plugin.createElementWithAttrs('li', { class: 'watSet-item' });
+				const languageApplyButton = plugin.createElementWithAttrs('input', { type: 'button', id: 'watSet_language_apply', class: ['wat-set-items', 'wat-set-item-type-button'], value: plugin.getLocalizedText('panel.settings.manage.options.language.apply') });
+				languageApplyButton.addEventListener('click', () => {
+					const selected = languageSettingList.querySelector('input[name="watSet_language"]:checked');
+					if (selected) plugin.changeLanguage(selected.value);
+				});
+				languageApplyItem.appendChild(languageApplyButton);
+				languageApplyList.appendChild(languageApplyItem);
+				languageSettingInner.appendChild(languageApplyList);
 				languageContainer.appendChild(languageSettingInner);
 
 				container.appendChild(languageContainer);
@@ -5086,6 +5110,9 @@ var WATPlugin = (function (exports) {
 						}
 					}
 				} else if (e.key === 'Escape') {
+					// 모달이 처리한 Esc가 document까지 올라가면 패널 닫기(_handleKeyDown)까지 실행된다
+					e.preventDefault();
+					e.stopPropagation();
 					self.teardown(layer, overlay);
 					self.restoreFocus(previousFocusedElement);
 				}
@@ -9555,9 +9582,12 @@ var WATPlugin = (function (exports) {
 			 * @private
 			 */
 			_handleKeyDown(e) {
-				// Escape: 열려 있는 메인 패널을 닫고 포커스를 열기 버튼으로 복원
-				// (사전·페이지구조 모달은 자체 keydown 핸들러가 먼저 처리하므로 여기 도달하지 않음)
-				if (e.key === 'Escape' && this.container && !this.container.classList.contains('hide')) {
+				// Escape: 열려 있는 메인 패널을 닫고 포커스를 열기 버튼으로 복원.
+				// 위젯 안에서 누른 Esc만 처리한다 — 호스트 입력칸의 Esc까지 가로채면 안 된다.
+				// 패널 안 컨트롤이 이미 처리한 Esc(defaultPrevented)도 건너뛴다
+				// (사전·페이지구조 모달은 body에 붙고 자체 핸들러가 전파를 막으므로 여기 도달하지 않음)
+				if (e.key === 'Escape' && this.container && !this.container.classList.contains('hide') &&
+					!e.defaultPrevented && e.target instanceof Node && this.container.contains(e.target)) {
 					const closeBtn = document.getElementById('wat_btnClose');
 					if (closeBtn) {
 						e.preventDefault();
@@ -9734,11 +9764,61 @@ var WATPlugin = (function (exports) {
 			 * this.updateTextLocalization();
 			 */
 			updateTextLocalization() {
-				const localizedText = this.getLocalizedText('panel.settings.profile.options.visualImpairment.title');
-				const profileTitleLabel = document.querySelector('.watSet-profile-title-label');
-				if (profileTitleLabel) {
-					profileTitleLabel.textContent = localizedText;
-				}
+				// 프로필 제목은 프로필마다 자기 로케일 키로 맞춘다 — 예전에는 첫 제목(저시력)을 '시각 장애'로 덮어썼다
+				const root = this.container || document;
+				root.querySelectorAll('.watSet-profile-item-container[data-profile]').forEach(profileContainer => {
+					const profile = profileContainer.getAttribute('data-profile');
+					const titleLabel = profileContainer.querySelector('.watSet-profile-title-label');
+					const localizedText = this.getLocalizedText(`panel.settings.profile.options.${profile}.title`);
+					if (titleLabel && localizedText) {
+						titleLabel.textContent = localizedText;
+					}
+				});
+			}
+
+			/**
+			 * 위젯 언어를 바꾸고 패널을 새 언어로 다시 그립니다 (환경설정 언어 적용 버튼)
+			 * @param {string} lang - 바꿀 언어 코드 ('ko', 'en-US' 등)
+			 * @returns {Promise<void>} 로케일을 불러와 패널을 다시 그린 뒤 resolve
+			 * @description 패널을 통째로 다시 만들어 포커스가 사라지므로, 환경설정 탭을 다시 열고 적용 버튼에
+			 *              포커스를 돌려준 뒤 결과를 새 언어로 알린다 (WCAG 2.4.3, 4.1.3).
+			 *              호스트 문서의 <html lang>은 건드리지 않는다 — lang은 위젯 요소에만 지정 (WCAG 3.1.1, 3.1.2)
+			 */
+			changeLanguage(lang) {
+				if (!lang || lang === this.language) return Promise.resolve();
+				this.language = lang;
+				document.documentElement.dataset.watLanguage = lang;
+				this.updateLanguageSetting();
+
+				return this.loadLocale(lang).then(() => {
+					this.generateHTMLElements();
+					this.setInitialPreferences();
+
+					this.setupTabs();
+					const root = this.container;
+					const settingsTab = document.getElementById('wat_settings');
+					if (root && settingsTab) {
+						this.activateTab(root.querySelectorAll('[role="tab"]'), root.querySelectorAll('[role="tabpanel"]'), settingsTab);
+					}
+					this.setEventListeners();
+					this.extractFocusableElements(document.body);
+					this.updateTextLocalization();
+					this.savePreferences();
+
+					const applyButton = document.getElementById('watSet_language_apply');
+					if (applyButton) applyButton.focus();
+					this._announceToLiveRegion(this.getLocalizedText('msg.success.languageChanged', { language: this.getLocalizedText('displayLanguage') }));
+				});
+			}
+
+			/**
+			 * 위젯이 만든 요소에 위젯 언어를 지정합니다
+			 * @param {HTMLElement} element - 위젯 컨테이너·body에 붙는 라이브 리전·알림·대화상자
+			 * @returns {void}
+			 * @description 호스트 문서와 언어가 달라도 스크린리더가 위젯 문구를 맞는 언어로 읽게 한다 (WCAG 3.1.2)
+			 */
+			_applyWidgetLang(element) {
+				if (element && this.language) element.setAttribute('lang', this.language);
 			}
 
 			/**
@@ -9864,7 +9944,9 @@ var WATPlugin = (function (exports) {
 				}
 				container.innerHTML = "";
 				container.classList.add('wat-container', 'no-speech', 'wat-exclude');
-				
+				// 패널·열기 버튼은 모두 컨테이너 안에 있으므로 여기 한 번 지정하면 위젯 언어로 읽힌다
+				this._applyWidgetLang(container);
+
 				return container;
 			}
 
@@ -10022,7 +10104,8 @@ var WATPlugin = (function (exports) {
 
 				// Create tab buttons (탭 버튼들 생성)
 				tabsData.forEach((tab, index) => {
-					const tabItemElement = document.createElement('li');
+					// ul에 tablist 역할을 줬으므로 li의 listitem 역할을 지워 탭이 tablist에 직접 속하게 한다 (WCAG 1.3.1)
+					const tabItemElement = this.createElementWithAttrs('li', { role: 'none' });
 					const tabButtonElement = this.createElementWithAttrs('button', {
 						role: 'tab',
 						'aria-selected': index === 0 ? 'true' : 'false',
@@ -10181,11 +10264,13 @@ var WATPlugin = (function (exports) {
 			_createOpenButton() {
 				// 열기 버튼 생성
 				const openButtonWrapElement = this.createElementWithAttrs('div', { id: 'wat_btnOpenWrap', class: 'wat-exclude' });
+				// 페이지 어디서든 탭으로 만나는 버튼이라 '열기'만으로는 무엇을 여는지 알 수 없다 — 도구 이름을 넣는다 (WCAG 2.4.6)
+				const openButtonLabel = this.getLocalizedText('command.openTool');
 				const openButtonElement = this.createElementWithAttrs('button', { 
 					id: 'wat_btnOpen', 
 					class: 'btn_open', 
-					'aria-label': this.getLocalizedText('command.open'), 
-					title: this.getLocalizedText('command.open') 
+					'aria-label': openButtonLabel, 
+					title: openButtonLabel 
 				});
 				
 				openButtonElement.addEventListener('click', () => {
@@ -11638,6 +11723,8 @@ var WATPlugin = (function (exports) {
 					region.setAttribute('aria-live', politeness);
 					document.body.appendChild(region);
 				}
+				// 리전은 상주하므로 언어를 바꾼 뒤에도 새 언어로 읽히도록 매번 지정한다
+				this._applyWidgetLang(region);
 				// 같은 메시지 연속 전달도 낭독되도록 비운 뒤 다음 프레임에 채운다
 				region.textContent = '';
 				this._requestAnimationFrame(() => {
@@ -11666,6 +11753,7 @@ var WATPlugin = (function (exports) {
 					if (extraClass) {
 						feedback.classList.add(...extraClass.split(' ').filter(Boolean));
 					}
+					this._applyWidgetLang(feedback);
 					// 낭독은 상주 라이브 리전이 담당 — 리전을 텍스트와 함께 삽입하면
 					// 일부 스크린리더가 첫 알림을 놓치므로, 시각 요소에는 live 시맨틱을 두지 않는다
 					this._announceToLiveRegion(message, type === 'error' ? 'assertive' : 'polite');
