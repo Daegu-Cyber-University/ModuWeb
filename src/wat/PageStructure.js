@@ -41,6 +41,9 @@ export class PageStructure {
 		layer.setAttribute('aria-modal', 'true');
 		layer.setAttribute('aria-labelledby', 'page-structure-title');
 		layer.setAttribute('tabindex', '-1');
+		// 호스트 <html lang>은 건드리지 않으므로 위젯 문구(제목·탭·버튼)가 위젯 언어로 읽히게 지정한다.
+		// 목록의 페이지 글은 _hostText가 원래 언어로 감싼다. 열 때마다 지정해 언어를 바꾼 뒤에도 따라간다 (WCAG 3.1.2)
+		this.plugin._applyWidgetLang(layer);
 
 		// 타이틀 생성
 		const layerTitle = document.createElement('h3');
@@ -184,7 +187,7 @@ export class PageStructure {
 						text = img.alt;
 					}
 				}
-				li.textContent = text;
+				li.appendChild(this._hostText(text, heading));
 				li.classList.add('pgStruct_item', 'heading', heading.tagName.toLowerCase());
 				li.appendChild(this._createMarkerButton(text));
 
@@ -199,8 +202,9 @@ export class PageStructure {
 				li.classList.add('pgStruct_item', 'landmark');
 				// 역할명은 로케일의 자연어 표기 사용 (미정의 역할은 토큰 폴백), 이름이 있으면 병기
 				const roleLabel = this.plugin.getLocalizedText(`panel.personal.options.pageStructure.landmarks.${role}`) || role;
-				li.textContent = label ? `${roleLabel} — ${label}` : roleLabel;
-				li.appendChild(this._createMarkerButton(li.textContent));
+				li.textContent = roleLabel;
+				if (label) li.append(' — ', this._hostText(label, element));
+				li.appendChild(this._createMarkerButton(label ? `${roleLabel} — ${label}` : roleLabel));
 
 				li.addEventListener('click', () => this._moveTo(element));
 				panelList.appendChild(li);
@@ -225,7 +229,7 @@ export class PageStructure {
 						linkLabel = link.href;
 					}
 				}
-				tag_a.textContent = linkLabel;
+				tag_a.appendChild(this._hostText(linkLabel, link));
 				tag_a.href = link.href;
 				tag_a.target = '_blank';
 				tag_a.title = link.title || this.plugin.getLocalizedText('text.newWindow');
@@ -362,6 +366,23 @@ export class PageStructure {
 		}
 		target.focus({ preventScroll: true });
 		target.scrollIntoView({ behavior: 'smooth' });
+	}
+
+	/**
+	 * 페이지에서 가져온 글을 그 글이 쓰인 언어로 감쌉니다
+	 * @param {string} text - 페이지의 제목·랜드마크 이름·링크 글자
+	 * @param {Element} source - 글을 가져온 요소 — 가장 가까운 lang 조상으로 언어를 정한다
+	 * @returns {HTMLSpanElement}
+	 * @private
+	 * @description 대화상자에 위젯 언어를 지정하므로 감싸지 않으면 페이지 글까지 위젯 언어로 읽힌다 (WCAG 3.1.2).
+	 *              페이지에 언어 지정이 없으면 lang=""(언어 미상)으로 두어 위젯 언어를 물려받지 않게 한다
+	 */
+	_hostText(text, source) {
+		const span = document.createElement('span');
+		const owner = source.closest('[lang]');
+		span.setAttribute('lang', owner ? owner.getAttribute('lang') : '');
+		span.textContent = text;
+		return span;
 	}
 
 	/**

@@ -144,6 +144,9 @@ export class VoiceCommand {
 
 	_updateStatusDisplay() {
 		if (!this.statusDisplay) return;
+		// 상태창은 body에 붙어 호스트 언어를 물려받는다 — 켜 둔 채 위젯 언어를 바꿔도 새 문구와 함께 따라가도록
+		// 갱신할 때마다 지정한다 (WCAG 3.1.2). start()는 상태창을 만들자마자 갱신한다
+		this.plugin._applyWidgetLang(this.statusDisplay);
 
 		const icon = this.statusDisplay.querySelector('.status-icon');
 		const text = this.statusDisplay.querySelector('.status-text');

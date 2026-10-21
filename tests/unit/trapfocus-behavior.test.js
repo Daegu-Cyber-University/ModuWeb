@@ -199,6 +199,7 @@ describe('displayDictionResult', () => {
 	function makeDictionStub() {
 		const plugin = {
 			trapFocus: WAT.prototype.trapFocus,
+			_applyWidgetLang: WAT.prototype._applyWidgetLang,
 			getConfigValue: jest.fn((path, fallback) => fallback),
 			getLocalizedText: jest.fn((key) => `[${key}]`)
 		};
